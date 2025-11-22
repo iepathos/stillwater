@@ -86,7 +86,9 @@ async fn test_user_registration_workflow() {
         .tap(|u| {
             let user_id = u.id;
             Effect::from_fn(move |env: &Env| {
-                env.logger.logs.contains(&format!("INFO: Validated user: {}", user_id));
+                env.logger
+                    .logs
+                    .contains(&format!("INFO: Validated user: {}", user_id));
                 Ok::<_, AppError>(())
             })
         })
