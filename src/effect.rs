@@ -470,10 +470,7 @@ where
     /// }
     /// # });
     /// ```
-    fn context(
-        self,
-        msg: impl Into<String> + Send + 'static,
-    ) -> Effect<T, ContextError<E>, Env> {
+    fn context(self, msg: impl Into<String> + Send + 'static) -> Effect<T, ContextError<E>, Env> {
         Effect {
             run_fn: Box::new(move |env| {
                 Box::pin(async move {
