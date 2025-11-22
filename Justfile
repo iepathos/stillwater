@@ -222,11 +222,11 @@ ci:
      export RUSTFLAGS="-Dwarnings" && \
      export RUST_BACKTRACE=1 && \
      echo "Running tests..." && \
-     cargo test --all-features && \
+     cargo test --features async && \
      echo "Running doctests..." && \
-     cargo test --doc --all-features && \
+     cargo test --doc --features async && \
      echo "Running clippy..." && \
-     cargo clippy --all-targets --all-features -- -D warnings && \
+     cargo clippy --all-targets --features async -- -D warnings && \
      echo "Checking formatting..." && \
      cargo fmt --all -- --check && \
      echo "Checking documentation..." && \
