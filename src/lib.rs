@@ -48,7 +48,7 @@
 //! }
 //! ```
 //!
-//! For more examples, see the [examples](https://github.com/anthropics/stillwater/tree/master/examples) directory.
+//! For more examples, see the [examples](https://github.com/iepathos/stillwater/tree/master/examples) directory.
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
