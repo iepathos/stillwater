@@ -199,7 +199,7 @@ fn example_mapping() {
     println!("\n=== Example 5: Mapping and Transforming ===");
 
     fn validate_age(age: i32) -> Validation<i32, String> {
-        if age >= 0 && age <= 150 {
+        if (0..=150).contains(&age) {
             Validation::success(age)
         } else {
             Validation::failure(format!("Age {} is invalid", age))
@@ -266,7 +266,7 @@ fn example_business_rules() {
     }
 
     fn validate_discount(discount: f64) -> Validation<(), Vec<String>> {
-        if discount >= 0.0 && discount <= 100.0 {
+        if (0.0..=100.0).contains(&discount) {
             Validation::success(())
         } else {
             Validation::failure(vec![format!(
@@ -340,7 +340,7 @@ fn example_collection_validation() {
         }
     }
 
-    let emails = vec!["alice@example.com", "bob@test.com", "charlie@mail.org"];
+    let emails = ["alice@example.com", "bob@test.com", "charlie@mail.org"];
 
     println!("Valid emails:");
     let validations: Vec<_> = emails.iter().map(|e| validate_email(e)).collect();
@@ -360,7 +360,7 @@ fn example_collection_validation() {
     }
 
     // Mix of valid and invalid
-    let mixed_emails = vec!["alice@example.com", "invalid", "bob@test.com", "bad"];
+    let mixed_emails = ["alice@example.com", "invalid", "bob@test.com", "bad"];
 
     println!("\nMixed emails:");
     let validations: Vec<_> = mixed_emails.iter().map(|e| validate_email(e)).collect();

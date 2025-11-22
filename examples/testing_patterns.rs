@@ -16,7 +16,7 @@ use stillwater::{Effect, Validation};
 
 /// Pure validation functions are trivial to test - no mocks needed!
 fn validate_age(age: i32) -> Validation<i32, Vec<String>> {
-    if age >= 0 && age <= 150 {
+    if (0..=150).contains(&age) {
         Validation::success(age)
     } else {
         Validation::failure(vec![format!("Invalid age: {}", age)])
@@ -321,7 +321,7 @@ fn example_property_based_testing() {
     // Property: validation should be consistent
     for age in -10..200 {
         let result = validate_age(age);
-        let is_valid = age >= 0 && age <= 150;
+        let is_valid = (0..=150).contains(&age);
 
         match result {
             Validation::Success(_) => assert!(is_valid, "Age {} should be invalid", age),

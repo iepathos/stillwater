@@ -124,7 +124,7 @@ fn validate_name(name: &str) -> Validation<String, Vec<String>> {
 
 fn validate_age(age: &str) -> Validation<u32, Vec<String>> {
     match age.parse::<u32>() {
-        Ok(n) if n >= 18 && n <= 120 => Validation::success(n),
+        Ok(n) if (18..=120).contains(&n) => Validation::success(n),
         Ok(n) => Validation::failure(vec![format!("Age {} out of range (18-120)", n)]),
         Err(_) => Validation::failure(vec![format!("Invalid age: '{}'", age)]),
     }

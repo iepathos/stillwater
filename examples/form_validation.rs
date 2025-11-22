@@ -152,7 +152,7 @@ fn example_user_profile() {
     }
 
     fn validate_age(age: u32) -> Validation<(), Vec<String>> {
-        if age >= 13 && age <= 120 {
+        if (13..=120).contains(&age) {
             Validation::success(())
         } else {
             Validation::failure(vec![format!(
@@ -262,11 +262,11 @@ fn example_payment_form() {
     fn validate_expiry(month: u32, year: u32) -> Validation<(), Vec<String>> {
         let mut errors = Vec::new();
 
-        if month < 1 || month > 12 {
+        if !(1..=12).contains(&month) {
             errors.push(format!("Invalid month: {}", month));
         }
 
-        if year < 2025 || year > 2035 {
+        if !(2025..=2035).contains(&year) {
             errors.push(format!("Invalid year: {}", year));
         }
 
