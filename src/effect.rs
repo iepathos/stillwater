@@ -80,7 +80,7 @@
 use std::future::Future;
 use std::pin::Pin;
 
-use crate::Validation;
+use crate::{ContextError, Validation};
 
 /// A boxed future that is Send
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -432,6 +432,98 @@ where
     }
 }
 
+// Extension trait for adding context - workaround for lack of specialization
+/// Extension trait for adding context to Effect errors
+pub trait EffectContext<T, E, Env> {
+    /// Add context to errors from this effect
+    fn context(self, msg: impl Into<String> + Send + 'static) -> Effect<T, ContextError<E>, Env>;
+}
+
+// Implementation for general errors - wraps E in ContextError
+impl<T, E, Env> EffectContext<T, E, Env> for Effect<T, E, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
+    /// Add context to errors from this effect
+    ///
+    /// Wraps any error from this effect in a `ContextError` with the given context message.
+    /// This enables building up a trail of context as errors propagate through the call stack.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    /// use stillwater::effect::EffectContext;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<i32, _, ()>::fail("connection refused")
+    ///     .context("connecting to database");
+    ///
+    /// match effect.run(&()).await {
+    ///     Err(ctx_err) => {
+    ///         assert_eq!(ctx_err.inner(), &"connection refused");
+    ///         assert_eq!(ctx_err.context_trail(), &["connecting to database"]);
+    ///     }
+    ///     Ok(_) => panic!("Expected error"),
+    /// }
+    /// # });
+    /// ```
+    fn context(self, msg: impl Into<String> + Send + 'static) -> Effect<T, ContextError<E>, Env> {
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    (self.run_fn)(env)
+                        .await
+                        .map_err(|err| ContextError::new(err).context(msg))
+                })
+            }),
+        }
+    }
+}
+
+// Add inherent method for ContextError chaining
+impl<T, E, Env> Effect<T, ContextError<E>, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
+    /// Add another layer of context
+    ///
+    /// Adds a new context message to an effect that already has a `ContextError`.
+    /// This allows building up deep context trails as errors propagate.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    /// use stillwater::effect::EffectContext;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<i32, _, ()>::fail("file not found")
+    ///     .context("reading config file")
+    ///     .context("initializing application");
+    ///
+    /// match effect.run(&()).await {
+    ///     Err(ctx_err) => {
+    ///         assert_eq!(ctx_err.inner(), &"file not found");
+    ///         assert_eq!(ctx_err.context_trail().len(), 2);
+    ///     }
+    ///     Ok(_) => panic!("Expected error"),
+    /// }
+    /// # });
+    /// ```
+    pub fn context(self, msg: impl Into<String> + Send + 'static) -> Self {
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move { (self.run_fn)(env).await.map_err(|err| err.context(msg)) })
+            }),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -631,5 +723,102 @@ mod tests {
             effect.run(&()).await,
             Err("Error code: 42 - recovered".to_string())
         );
+    }
+
+    // Context error tests
+    #[tokio::test]
+    async fn test_effect_context() {
+        let effect = Effect::<i32, _, ()>::fail("base error").context("operation failed");
+
+        match effect.run(&()).await {
+            Err(ctx_err) => {
+                assert_eq!(ctx_err.inner(), &"base error");
+                assert_eq!(ctx_err.context_trail(), &["operation failed"]);
+            }
+            Ok(_) => panic!("Expected error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_effect_multiple_contexts() {
+        let effect = Effect::<i32, _, ()>::fail("base error")
+            .context("step 1")
+            .context("step 2")
+            .context("step 3");
+
+        match effect.run(&()).await {
+            Err(ctx_err) => {
+                assert_eq!(ctx_err.inner(), &"base error");
+                assert_eq!(ctx_err.context_trail(), &["step 1", "step 2", "step 3"]);
+            }
+            Ok(_) => panic!("Expected error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_effect_context_success() {
+        let effect = Effect::<_, String, ()>::pure(42).context("this context won't be used");
+
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_effect_context_with_combinators() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .map(|x| x * 2)
+            .and_then(|_| Effect::fail("error".to_string()))
+            .context("step 1")
+            .map(|x: i32| x + 10)
+            .context("step 2");
+
+        match effect.run(&()).await {
+            Err(ctx_err) => {
+                assert_eq!(ctx_err.inner(), &"error".to_string());
+                assert_eq!(ctx_err.context_trail(), &["step 1", "step 2"]);
+            }
+            Ok(_) => panic!("Expected error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_effect_context_with_environment() {
+        struct Env {
+            database_url: String,
+        }
+
+        let effect = Effect::from_fn(|env: &Env| {
+            Err::<i32, _>(format!("Connection failed: {}", env.database_url))
+        })
+        .context("connecting to database")
+        .context("initializing application");
+
+        let env = Env {
+            database_url: "localhost:5432".to_string(),
+        };
+
+        match effect.run(&env).await {
+            Err(ctx_err) => {
+                assert!(ctx_err.inner().contains("Connection failed"));
+                assert_eq!(ctx_err.context_trail().len(), 2);
+            }
+            Ok(_) => panic!("Expected error"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_effect_context_with_string_types() {
+        let effect = Effect::<i32, _, ()>::fail(String::from("error"))
+            .context(String::from("owned context"))
+            .context("borrowed context");
+
+        match effect.run(&()).await {
+            Err(ctx_err) => {
+                assert_eq!(
+                    ctx_err.context_trail(),
+                    &["owned context", "borrowed context"]
+                );
+            }
+            Ok(_) => panic!("Expected error"),
+        }
     }
 }

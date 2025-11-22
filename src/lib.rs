@@ -40,14 +40,14 @@ pub mod validation;
 
 // Re-exports
 pub use context::ContextError;
-pub use effect::Effect;
+pub use effect::{Effect, EffectContext};
 pub use semigroup::Semigroup;
 pub use validation::Validation;
 
 /// Prelude module for convenient imports
 pub mod prelude {
     pub use crate::context::ContextError;
-    pub use crate::effect::Effect;
+    pub use crate::effect::{Effect, EffectContext};
     pub use crate::semigroup::Semigroup;
     pub use crate::validation::Validation;
 }
