@@ -1152,6 +1152,7 @@ mod tests {
     #[tokio::test]
     async fn test_and_then_auto_success() {
         #[derive(Debug, PartialEq)]
+        #[allow(dead_code)]
         enum Error1 {
             Fail,
         }
@@ -1176,11 +1177,13 @@ mod tests {
     #[tokio::test]
     async fn test_and_then_auto_chain() {
         #[derive(Debug, PartialEq)]
+        #[allow(dead_code)]
         enum ValidationError {
             Invalid,
         }
 
         #[derive(Debug, PartialEq)]
+        #[allow(dead_code)]
         enum DbError {
             NotFound,
         }

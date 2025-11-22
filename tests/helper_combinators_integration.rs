@@ -9,6 +9,7 @@ struct User {
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 enum AppError {
     AgeTooYoung,
     EmailExists,
@@ -25,6 +26,7 @@ impl Database {
         self.users.iter().any(|u| u.email == email)
     }
 
+    #[allow(dead_code)]
     fn save(&mut self, user: &User) -> Result<(), String> {
         self.users.push(user.clone());
         Ok(())
@@ -36,20 +38,24 @@ struct Logger {
 }
 
 impl Logger {
+    #[allow(dead_code)]
     fn info(&mut self, msg: String) {
         self.logs.push(format!("INFO: {}", msg));
     }
 
+    #[allow(dead_code)]
     fn warn(&mut self, msg: String) {
         self.logs.push(format!("WARN: {}", msg));
     }
 }
 
 struct EmailService {
+    #[allow(dead_code)]
     sent_emails: Vec<String>,
 }
 
 impl EmailService {
+    #[allow(dead_code)]
     fn send_welcome(&mut self, email: &str) -> Result<(), String> {
         self.sent_emails.push(email.to_string());
         Ok(())
@@ -59,6 +65,7 @@ impl EmailService {
 struct Env {
     db: Database,
     logger: Logger,
+    #[allow(dead_code)]
     email_service: EmailService,
 }
 
@@ -86,7 +93,8 @@ async fn test_user_registration_workflow() {
         .tap(|u| {
             let user_id = u.id;
             Effect::from_fn(move |env: &Env| {
-                env.logger
+                let _ = env
+                    .logger
                     .logs
                     .contains(&format!("INFO: Validated user: {}", user_id));
                 Ok::<_, AppError>(())
@@ -232,12 +240,14 @@ async fn test_composition_with_multiple_helpers() {
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 enum ValidationError {
     InvalidEmail,
     InvalidAge,
 }
 
 #[derive(Debug, PartialEq)]
+#[allow(dead_code)]
 enum DbError {
     ConnectionFailed,
     QueryFailed,
