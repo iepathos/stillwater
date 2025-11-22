@@ -60,7 +60,7 @@
 //! - **write**: Operations that modify state (e.g., database INSERT, file write)
 //!
 //! Both take `&T` due to Effect's immutable environment design. For true mutation,
-//! use interior mutability (Arc<Mutex<T>>, RefCell, etc.):
+//! use interior mutability (`Arc<Mutex<T>>`, RefCell, etc.):
 //!
 //! ```
 //! # use stillwater::IO;

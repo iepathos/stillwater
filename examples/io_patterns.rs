@@ -45,7 +45,11 @@ async fn example_basic_read() {
     // Create environment
     let env = Env {
         db: Database {
-            users: vec!["Alice".to_string(), "Bob".to_string(), "Charlie".to_string()],
+            users: vec![
+                "Alice".to_string(),
+                "Bob".to_string(),
+                "Charlie".to_string(),
+            ],
         },
     };
 
@@ -241,10 +245,7 @@ async fn example_async_operations() {
         ready(())
     });
     audit_effect.run(&env).await.unwrap();
-    println!(
-        "Audit log: {:?}",
-        env.audit.entries.lock().unwrap().clone()
-    );
+    println!("Audit log: {:?}", env.audit.entries.lock().unwrap().clone());
 }
 
 // ==================== Cache-Aside Pattern ====================
@@ -333,8 +334,8 @@ async fn example_cache_aside() {
             } else {
                 println!("Cache miss for user {}", user_id);
                 // Fetch from database (synchronous for simplicity)
-                IO::read(move |db: &Database| db.users.get(&user_id).cloned())
-                    .and_then(move |user| {
+                IO::read(move |db: &Database| db.users.get(&user_id).cloned()).and_then(
+                    move |user| {
                         if let Some(ref u) = user {
                             let user_clone = u.clone();
                             // Store in cache
@@ -345,7 +346,8 @@ async fn example_cache_aside() {
                         } else {
                             Effect::pure(user)
                         }
-                    })
+                    },
+                )
             }
         })
     }
