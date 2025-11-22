@@ -56,6 +56,32 @@
 //!
 //! assert_eq!(result, Validation::Success((1, 2, 3)));
 //! ```
+//!
+//! ## Try trait support (nightly + feature flag)
+//!
+//! When the `try_trait` feature is enabled and using nightly Rust, `Validation` supports
+//! the `?` operator for ergonomic error propagation:
+//!
+//! ```ignore
+//! #![feature(try_trait_v2)]
+//!
+//! fn validate_form(data: FormData) -> Validation<User, Vec<ValidationError>> {
+//!     let email = validate_email(&data.email)?;
+//!     let password = validate_password(&data.password)?;
+//!     let age = validate_age(data.age)?;
+//!
+//!     Validation::success(User { email, password, age })
+//! }
+//! ```
+//!
+//! **Important**: Using `?` with `Validation` provides **fail-fast** behavior, not error
+//! accumulation. The first validation failure will short-circuit and return immediately.
+//! For error accumulation, use `Validation::all()` or tuple validation instead.
+//!
+//! To enable this feature:
+//! 1. Use nightly Rust: `rustup default nightly`
+//! 2. Enable the feature in `Cargo.toml`: `features = ["try_trait"]`
+//! 3. Add `#![feature(try_trait_v2)]` to your crate root
 
 use crate::Semigroup;
 
@@ -791,6 +817,65 @@ impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9);
 impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
 impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
+
+// Try trait support for ? operator (requires nightly + try_trait feature)
+//
+// This implementation enables using the `?` operator with Validation types,
+// providing ergonomic error propagation similar to Result.
+//
+// IMPORTANT: Using `?` with Validation provides fail-fast behavior, not error
+// accumulation. For error accumulation, use `Validation::all()` instead.
+#[cfg(feature = "try_trait")]
+mod try_impl {
+    use super::*;
+    use std::convert::Infallible;
+    use std::ops::{ControlFlow, FromResidual, Try};
+
+    /// Try trait implementation for Validation
+    ///
+    /// Enables using the `?` operator for ergonomic error propagation.
+    /// Note: This provides fail-fast behavior, stopping at the first error.
+    impl<T, E> Try for Validation<T, E> {
+        type Output = T;
+        type Residual = Validation<Infallible, E>;
+
+        fn from_output(output: Self::Output) -> Self {
+            Validation::Success(output)
+        }
+
+        fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+            match self {
+                Validation::Success(value) => ControlFlow::Continue(value),
+                Validation::Failure(error) => ControlFlow::Break(Validation::Failure(error)),
+            }
+        }
+    }
+
+    /// Enables ? operator to propagate Validation failures
+    ///
+    /// Converts a Validation residual (error) into a Validation of the target type.
+    impl<T, E> FromResidual<Validation<Infallible, E>> for Validation<T, E> {
+        fn from_residual(residual: Validation<Infallible, E>) -> Self {
+            match residual {
+                Validation::Failure(error) => Validation::Failure(error),
+                Validation::Success(_) => unreachable!(),
+            }
+        }
+    }
+
+    /// Enables ? operator to convert Result errors to Validation
+    ///
+    /// This allows mixing Result and Validation in the same function with ?.
+    /// For example: `let value = some_result?;` will convert Err to Validation::Failure.
+    impl<T, E> FromResidual<Result<Infallible, E>> for Validation<T, E> {
+        fn from_residual(residual: Result<Infallible, E>) -> Self {
+            match residual {
+                Err(error) => Validation::Failure(error),
+                Ok(_) => unreachable!(),
+            }
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {

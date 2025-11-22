@@ -32,6 +32,7 @@
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
+#![cfg_attr(feature = "try_trait", feature(try_trait_v2))]
 
 pub mod context;
 pub mod effect;
