@@ -1,0 +1,34 @@
+[package]
+name = "stillwater"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+description = "Pragmatic effect composition and validation for Rust - pure core, imperative shell"
+repository = "https://github.com/yourusername/stillwater"
+keywords = ["validation", "effects", "functional", "composition", "railway"]
+categories = ["rust-patterns", "data-structures"]
+readme = "README.md"
+
+[dependencies]
+# No dependencies yet - keeping it minimal
+
+[dev-dependencies]
+# For testing async support later
+tokio = { version = "1", features = ["full"], optional = true }
+
+[features]
+default = []
+async = ["tokio"]
+
+[[example]]
+name = "validation"
+path = "examples/validation.rs"
+
+[[example]]
+name = "effects"
+path = "examples/effects.rs"
+
+[[example]]
+name = "pipeline"
+path = "examples/pipeline.rs"
