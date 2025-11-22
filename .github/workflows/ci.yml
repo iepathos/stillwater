@@ -42,17 +42,6 @@ jobs:
         chmod +x $HOME/.local/bin/claude
         echo "$HOME/.local/bin" >> $GITHUB_PATH
       shell: bash
-
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
     
     - name: Run tests
       run: cargo test --features async
@@ -74,15 +63,6 @@ jobs:
     
     - name: Install Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
-    
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target/
-        key: ubuntu-latest-cargo-${{ hashFiles('**/Cargo.lock') }}
-    
+
     - name: Check all targets
       run: cargo check --all-targets --features async
