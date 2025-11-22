@@ -183,7 +183,7 @@ This is an early-stage experiment. Interested in the concept? Open an issue to d
 
 ## License
 
-TBD (likely MIT or Apache-2.0)
+MIT © Glen Baker <iepathos@gmail.com>
 
 ---
 
