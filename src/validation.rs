@@ -912,7 +912,8 @@ mod tests {
     #[test]
     fn test_and_then_chain_failure() {
         let v = Validation::<_, Vec<&str>>::success(5);
-        let result: Validation<i32, Vec<&str>> = v.and_then(|_| Validation::failure(vec!["new error"]));
+        let result: Validation<i32, Vec<&str>> =
+            v.and_then(|_| Validation::failure(vec!["new error"]));
         assert_eq!(result, Validation::Failure(vec!["new error"]));
     }
 
@@ -920,9 +921,7 @@ mod tests {
     #[test]
     fn test_all_single_success() {
         use crate::validation::ValidateAll;
-        let result = (
-            Validation::<_, Vec<&str>>::success(1),
-        ).validate_all();
+        let result = (Validation::<_, Vec<&str>>::success(1),).validate_all();
         assert_eq!(result, Validation::Success((1,)));
     }
 
@@ -932,7 +931,8 @@ mod tests {
         let result = (
             Validation::<_, Vec<&str>>::success(1),
             Validation::<_, Vec<&str>>::success(2),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(result, Validation::Success((1, 2)));
     }
 
@@ -943,7 +943,8 @@ mod tests {
             Validation::<_, Vec<&str>>::success(1),
             Validation::<_, Vec<&str>>::success(2),
             Validation::<_, Vec<&str>>::success(3),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(result, Validation::Success((1, 2, 3)));
     }
 
@@ -954,7 +955,8 @@ mod tests {
             Validation::<i32, _>::failure(vec!["error1"]),
             Validation::<i32, _>::failure(vec!["error2"]),
             Validation::<i32, _>::failure(vec!["error3"]),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(
             result,
             Validation::Failure(vec!["error1", "error2", "error3"])
@@ -968,7 +970,8 @@ mod tests {
             Validation::<_, Vec<&str>>::success(1),
             Validation::<i32, _>::failure(vec!["error1"]),
             Validation::<i32, _>::failure(vec!["error2"]),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(result, Validation::Failure(vec!["error1", "error2"]));
     }
 
@@ -1057,7 +1060,8 @@ mod tests {
             validate_email("test@example.com"),
             validate_password("secure123"),
             validate_age(25),
-        ).validate_all();
+        )
+            .validate_all();
         assert!(result.is_success());
 
         // All invalid - should accumulate all 3 errors
@@ -1065,7 +1069,8 @@ mod tests {
             validate_email("invalid"),
             validate_password("short"),
             validate_age(15),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(
             result,
             Validation::Failure(vec![
@@ -1080,7 +1085,8 @@ mod tests {
             validate_email("test@example.com"),
             validate_password("short"),
             validate_age(15),
-        ).validate_all();
+        )
+            .validate_all();
         assert_eq!(
             result,
             Validation::Failure(vec![
