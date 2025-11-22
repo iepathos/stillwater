@@ -1,10 +1,635 @@
-//! Effect type for composing computations
+//! Effect type for composing async computations with dependencies
 //!
-//! This module will contain the Effect type for effect composition.
-//! Implementation pending in future specs.
+//! This module provides the `Effect` type, which represents a composable, async computation
+//! that depends on an environment and may fail. Effects enable the "pure core, imperative shell"
+//! pattern by separating business logic from I/O operations.
+//!
+//! # Core Concepts
+//!
+//! - **Pure Core**: Business logic is pure and testable (no I/O, no side effects)
+//! - **Imperative Shell**: I/O operations are pushed to the boundaries
+//! - **Environment**: Dependencies are injected explicitly through the environment parameter
+//! - **Composability**: Effects can be composed using `map`, `and_then`, etc.
+//!
+//! # Examples
+//!
+//! ## Basic usage
+//!
+//! ```
+//! use stillwater::Effect;
+//!
+//! # tokio_test::block_on(async {
+//! // Create a pure effect
+//! let effect = Effect::<_, String, ()>::pure(42);
+//! assert_eq!(effect.run(&()).await, Ok(42));
+//!
+//! // Create a failed effect
+//! let effect = Effect::<i32, _, ()>::fail("error");
+//! assert_eq!(effect.run(&()).await, Err("error"));
+//! # });
+//! ```
+//!
+//! ## Composing effects
+//!
+//! ```
+//! use stillwater::Effect;
+//!
+//! # tokio_test::block_on(async {
+//! let effect = Effect::<_, String, ()>::pure(5)
+//!     .map(|x| x * 2)
+//!     .and_then(|x| Effect::pure(x + 10));
+//!
+//! assert_eq!(effect.run(&()).await, Ok(20));
+//! # });
+//! ```
+//!
+//! ## Using environment
+//!
+//! ```
+//! use stillwater::Effect;
+//!
+//! # tokio_test::block_on(async {
+//! struct Env {
+//!     multiplier: i32,
+//! }
+//!
+//! let effect = Effect::from_fn(|env: &Env| {
+//!     Ok::<_, String>(env.multiplier * 2)
+//! });
+//!
+//! let env = Env { multiplier: 21 };
+//! assert_eq!(effect.run(&env).await, Ok(42));
+//! # });
+//! ```
+//!
+//! ## Async operations
+//!
+//! ```
+//! use stillwater::Effect;
+//!
+//! # tokio_test::block_on(async {
+//! let effect = Effect::from_async(|_: &()| async {
+//!     // Simulate async I/O
+//!     Ok::<_, String>(42)
+//! });
+//!
+//! assert_eq!(effect.run(&()).await, Ok(42));
+//! # });
+//! ```
 
-/// Placeholder for Effect type
-#[derive(Debug)]
-pub struct Effect<T, E, Env> {
-    _phantom: std::marker::PhantomData<(T, E, Env)>,
+use std::future::Future;
+use std::pin::Pin;
+
+use crate::Validation;
+
+/// A boxed future that is Send
+pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+
+/// Function type for Effect internals
+type EffectFn<T, E, Env> = Box<dyn FnOnce(&Env) -> BoxFuture<'_, Result<T, E>> + Send>;
+
+/// An effect that may perform I/O and depends on an environment
+///
+/// `Effect<T, E, Env>` represents an async computation that:
+/// - Produces a value of type `T` on success
+/// - Fails with an error of type `E`
+/// - Depends on an environment of type `Env`
+///
+/// Effects are lazy - they don't execute until `run()` is called.
+///
+/// # Type Parameters
+///
+/// * `T` - The type of the success value
+/// * `E` - The type of the error value (defaults to `std::convert::Infallible`)
+/// * `Env` - The type of the environment (defaults to `()`)
+///
+/// # Examples
+///
+/// ```
+/// use stillwater::Effect;
+///
+/// # tokio_test::block_on(async {
+/// // Effect with no error type
+/// let effect: Effect<_, String> = Effect::pure(42);
+/// assert_eq!(effect.run(&()).await, Ok(42));
+///
+/// // Effect with error type
+/// let effect: Effect<i32, String> = Effect::fail("error".to_string());
+/// assert_eq!(effect.run(&()).await, Err("error".to_string()));
+/// # });
+/// ```
+pub struct Effect<T, E = std::convert::Infallible, Env = ()> {
+    run_fn: EffectFn<T, E, Env>,
+}
+
+// Manual Debug implementation since FnOnce is not Debug
+impl<T, E, Env> std::fmt::Debug for Effect<T, E, Env> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Effect")
+            .field("run_fn", &"<function>")
+            .finish()
+    }
+}
+
+impl<T, E, Env> Effect<T, E, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
+    /// Create a pure value (no effects)
+    ///
+    /// This creates an effect that always succeeds with the given value,
+    /// performing no I/O or side effects.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// # });
+    /// ```
+    pub fn pure(value: T) -> Self {
+        Effect {
+            run_fn: Box::new(move |_| Box::pin(async move { Ok(value) })),
+        }
+    }
+
+    /// Create a failing effect
+    ///
+    /// This creates an effect that always fails with the given error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<i32, _, ()>::fail("error");
+    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// # });
+    /// ```
+    pub fn fail(error: E) -> Self {
+        Effect {
+            run_fn: Box::new(move |_| Box::pin(async move { Err(error) })),
+        }
+    }
+
+    /// Create from synchronous function
+    ///
+    /// Wraps a synchronous function that depends on the environment and returns a `Result`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::from_fn(|_: &()| Ok::<_, String>(42));
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// # });
+    /// ```
+    pub fn from_fn<F>(f: F) -> Self
+    where
+        F: FnOnce(&Env) -> Result<T, E> + Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| {
+                let result = f(env);
+                Box::pin(async move { result })
+            }),
+        }
+    }
+
+    /// Create from async function
+    ///
+    /// Wraps an async function that depends on the environment and returns a `Result`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::from_async(|_: &()| async {
+    ///     Ok::<_, String>(42)
+    /// });
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// # });
+    /// ```
+    pub fn from_async<F, Fut>(f: F) -> Self
+    where
+        F: FnOnce(&Env) -> Fut + Send + 'static,
+        Fut: Future<Output = Result<T, E>> + Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| Box::pin(f(env))),
+        }
+    }
+
+    /// Create from Result
+    ///
+    /// Lifts a `Result` into an Effect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::from_result(Ok(42));
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    ///
+    /// let effect = Effect::<i32, _, ()>::from_result(Err("error"));
+    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// # });
+    /// ```
+    pub fn from_result(result: Result<T, E>) -> Self {
+        Effect {
+            run_fn: Box::new(move |_| Box::pin(async move { result })),
+        }
+    }
+
+    /// Convert Validation to Effect
+    ///
+    /// Lifts a `Validation` into an Effect.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::{Effect, Validation};
+    ///
+    /// # tokio_test::block_on(async {
+    /// let validation = Validation::<_, String>::success(42);
+    /// let effect = Effect::from_validation(validation);
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    ///
+    /// let validation = Validation::<i32, _>::failure("error");
+    /// let effect = Effect::from_validation(validation);
+    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// # });
+    /// ```
+    pub fn from_validation(validation: Validation<T, E>) -> Self {
+        match validation {
+            Validation::Success(value) => Effect::pure(value),
+            Validation::Failure(error) => Effect::fail(error),
+        }
+    }
+
+    /// Chain effects
+    ///
+    /// If the current effect succeeds, apply the function to its result
+    /// to produce the next effect. If it fails, propagate the error.
+    ///
+    /// This is similar to `Result::and_then`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(5)
+    ///     .and_then(|x| Effect::pure(x * 2));
+    /// assert_eq!(effect.run(&()).await, Ok(10));
+    ///
+    /// // Error propagation
+    /// let effect = Effect::<_, String, ()>::fail("error".to_string())
+    ///     .and_then(|x: i32| Effect::pure(x * 2));
+    /// assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    /// # });
+    /// ```
+    pub fn and_then<U, F>(self, f: F) -> Effect<U, E, Env>
+    where
+        F: FnOnce(T) -> Effect<U, E, Env> + Send + 'static,
+        U: Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    let value = (self.run_fn)(env).await?;
+                    let next = f(value);
+                    (next.run_fn)(env).await
+                })
+            }),
+        }
+    }
+
+    /// Transform success value
+    ///
+    /// Applies a function to the success value if the effect succeeds.
+    /// This is similar to `Result::map`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(5)
+    ///     .map(|x| x * 2);
+    /// assert_eq!(effect.run(&()).await, Ok(10));
+    /// # });
+    /// ```
+    pub fn map<U, F>(self, f: F) -> Effect<U, E, Env>
+    where
+        F: FnOnce(T) -> U + Send + 'static,
+        U: Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| Box::pin(async move { (self.run_fn)(env).await.map(f) })),
+        }
+    }
+
+    /// Transform error value
+    ///
+    /// Applies a function to the error value if the effect fails.
+    /// This is similar to `Result::map_err`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<i32, _, ()>::fail("error")
+    ///     .map_err(|e| format!("Failed: {}", e));
+    /// assert_eq!(effect.run(&()).await, Err("Failed: error".to_string()));
+    /// # });
+    /// ```
+    pub fn map_err<E2, F>(self, f: F) -> Effect<T, E2, Env>
+    where
+        F: FnOnce(E) -> E2 + Send + 'static,
+        E2: Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move { (self.run_fn)(env).await.map_err(f) })
+            }),
+        }
+    }
+
+    /// Recover from errors
+    ///
+    /// If the effect fails, apply the recovery function to the error
+    /// to produce a new effect. If it succeeds, return the value unchanged.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<i32, _, ()>::fail("error")
+    ///     .or_else(|_| Effect::pure(42));
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    ///
+    /// // No recovery needed for success
+    /// let effect = Effect::<_, String, ()>::pure(100)
+    ///     .or_else(|_| Effect::pure(42));
+    /// assert_eq!(effect.run(&()).await, Ok(100));
+    /// # });
+    /// ```
+    pub fn or_else<F>(self, f: F) -> Self
+    where
+        F: FnOnce(E) -> Effect<T, E, Env> + Send + 'static,
+    {
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    match (self.run_fn)(env).await {
+                        Ok(value) => Ok(value),
+                        Err(err) => {
+                            let recovery = f(err);
+                            (recovery.run_fn)(env).await
+                        }
+                    }
+                })
+            }),
+        }
+    }
+
+    /// Run the effect with the given environment
+    ///
+    /// This executes the effect and returns a Future that resolves to a `Result`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let result = effect.run(&()).await;
+    /// assert_eq!(result, Ok(42));
+    /// # });
+    /// ```
+    pub async fn run(self, env: &Env) -> Result<T, E> {
+        (self.run_fn)(env).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Basic constructor tests
+    #[tokio::test]
+    async fn test_pure() {
+        let effect = Effect::<_, String, ()>::pure(42);
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_fail() {
+        let effect = Effect::<i32, _, ()>::fail("error");
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    // Conversion tests
+    #[tokio::test]
+    async fn test_from_result_ok() {
+        let effect = Effect::<_, String, ()>::from_result(Ok(42));
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_from_result_err() {
+        let effect = Effect::<i32, _, ()>::from_result(Err("error"));
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_from_fn_sync() {
+        let effect = Effect::from_fn(|_: &()| Ok::<_, String>(42));
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_from_fn_sync_error() {
+        let effect = Effect::from_fn(|_: &()| Err::<i32, _>("error"));
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_from_async() {
+        let effect = Effect::from_async(|_: &()| async { Ok::<_, String>(42) });
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_from_async_error() {
+        let effect = Effect::from_async(|_: &()| async { Err::<i32, _>("error") });
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_from_validation_success() {
+        let validation = Validation::<_, String>::success(42);
+        let effect = Effect::from_validation(validation);
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_from_validation_failure() {
+        let validation = Validation::<i32, _>::failure("error");
+        let effect = Effect::from_validation(validation);
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    // Combinator tests
+    #[tokio::test]
+    async fn test_map_success() {
+        let effect = Effect::<_, String, ()>::pure(5).map(|x| x * 2);
+        assert_eq!(effect.run(&()).await, Ok(10));
+    }
+
+    #[tokio::test]
+    async fn test_map_failure() {
+        let effect = Effect::<i32, _, ()>::fail("error").map(|x| x * 2);
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_map_err_success() {
+        let effect = Effect::<_, String, ()>::pure(42).map_err(|e| format!("Failed: {}", e));
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_map_err_failure() {
+        let effect = Effect::<i32, _, ()>::fail("error").map_err(|e| format!("Failed: {}", e));
+        assert_eq!(effect.run(&()).await, Err("Failed: error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_success() {
+        let effect = Effect::<_, String, ()>::pure(5).and_then(|x| Effect::pure(x * 2));
+        assert_eq!(effect.run(&()).await, Ok(10));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_failure() {
+        let effect = Effect::<i32, _, ()>::fail("error").and_then(|x| Effect::pure(x * 2));
+        assert_eq!(effect.run(&()).await, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_chain_failure() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .and_then(|_| Effect::fail("error".to_string()))
+            .map(|x: i32| x * 2); // This shouldn't run
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_or_else_success() {
+        let effect = Effect::<_, String, ()>::pure(100).or_else(|_| Effect::pure(42));
+        assert_eq!(effect.run(&()).await, Ok(100));
+    }
+
+    #[tokio::test]
+    async fn test_or_else_failure_recovery() {
+        let effect = Effect::<i32, _, ()>::fail("error").or_else(|_| Effect::pure(42));
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_or_else_failure_no_recovery() {
+        let effect = Effect::<i32, _, ()>::fail("error1").or_else(|_| Effect::fail("error2"));
+        assert_eq!(effect.run(&()).await, Err("error2"));
+    }
+
+    // Composition tests
+    #[tokio::test]
+    async fn test_mix_sync_and_async() {
+        let effect = Effect::from_fn(|_: &()| Ok::<_, String>(5))
+            .and_then(|x| Effect::from_async(move |_| async move { Ok(x * 2) }));
+        assert_eq!(effect.run(&()).await, Ok(10));
+    }
+
+    #[tokio::test]
+    async fn test_complex_chain() {
+        let effect = Effect::<_, String, ()>::pure(2)
+            .map(|x| x * 3) // 6
+            .and_then(|x| Effect::pure(x + 4)) // 10
+            .map(|x| x * 2) // 20
+            .and_then(|x| Effect::pure(x / 2)); // 10
+        assert_eq!(effect.run(&()).await, Ok(10));
+    }
+
+    // Environment tests
+    #[tokio::test]
+    async fn test_with_environment() {
+        struct Env {
+            value: i32,
+        }
+
+        let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.value * 2));
+
+        let env = Env { value: 21 };
+        assert_eq!(effect.run(&env).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_with_environment_chained() {
+        struct Env {
+            multiplier: i32,
+            adder: i32,
+        }
+
+        let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(10 * env.multiplier))
+            .and_then(|x| Effect::from_fn(move |env: &Env| Ok(x + env.adder)));
+
+        let env = Env {
+            multiplier: 3,
+            adder: 12,
+        };
+        assert_eq!(effect.run(&env).await, Ok(42));
+    }
+
+    // Error propagation tests
+    #[tokio::test]
+    async fn test_error_propagation() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .and_then(|_| Effect::fail("error".to_string()))
+            .map(|x: i32| x * 2); // This shouldn't run
+
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_error_transformation() {
+        let effect = Effect::<i32, _, ()>::fail(42)
+            .map_err(|x| format!("Error code: {}", x))
+            .or_else(|e| Effect::fail(format!("{} - recovered", e)));
+
+        assert_eq!(
+            effect.run(&()).await,
+            Err("Error code: 42 - recovered".to_string())
+        );
+    }
 }
