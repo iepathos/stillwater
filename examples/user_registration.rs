@@ -3,8 +3,8 @@
 //! This tests the "pure core, imperative shell" pattern.
 //! Pure functions are separated from I/O effects.
 
-use stillwater::{Effect, Validation, IO};
 use std::fmt;
+use stillwater::{Effect, Validation, IO};
 
 // ============================================================================
 // Domain Types
@@ -146,11 +146,8 @@ fn validate_password(pwd: &str) -> Validation<String, Vec<ValidationError>> {
 }
 
 fn validate_new_user(email: &str, password: &str) -> Validation<NewUser, Vec<ValidationError>> {
-    Validation::all((
-        validate_email(email),
-        validate_password(password),
-    ))
-    .map(|(email, password)| NewUser { email, password })
+    Validation::all((validate_email(email), validate_password(password)))
+        .map(|(email, password)| NewUser { email, password })
 }
 
 fn hash_password(password: &str) -> PasswordHash {
@@ -178,70 +175,52 @@ fn next_user_id() -> UserId {
 // Question: How does this composition feel?
 // Is the flow clear?
 
-fn register_user(
-    email: String,
-    password: String,
-) -> Effect<User, AppError, AppEnv> {
+fn register_user(email: String, password: String) -> Effect<User, AppError, AppEnv> {
     // Step 1: Validate input (pure, can fail with multiple errors)
     Effect::from_validation(validate_new_user(&email, &password))
-
         // Step 2: Check if email exists (I/O)
         .and_then(|new_user| {
-            IO::query(|db: &Database| {
-                db.find_by_email(&new_user.email)
-            })
-            .map_err(AppError::from)
-            .and_then(move |existing| {
-                if existing.is_some() {
-                    Effect::fail(AppError::EmailAlreadyExists(new_user.email.clone()))
-                } else {
-                    Effect::pure(new_user)
-                }
-            })
+            IO::query(|db: &Database| db.find_by_email(&new_user.email))
+                .map_err(AppError::from)
+                .and_then(move |existing| {
+                    if existing.is_some() {
+                        Effect::fail(AppError::EmailAlreadyExists(new_user.email.clone()))
+                    } else {
+                        Effect::pure(new_user)
+                    }
+                })
         })
-
         // Step 3: Create user entity (pure)
         .map(|new_user| {
             let id = next_user_id();
             create_user_from_new(new_user, id)
         })
-
         // Step 4: Save to database (I/O)
         .and_then(|user| {
             let user_clone = user.clone();
-            IO::execute(move |db: &mut Database| {
-                db.insert_user(user)
-            })
-            .map_err(AppError::from)
-            .map(move |_| user_clone)
+            IO::execute(move |db: &mut Database| db.insert_user(user))
+                .map_err(AppError::from)
+                .map(move |_| user_clone)
         })
-
         // Step 5: Send welcome email (I/O, non-critical)
         // Question: How should we handle non-critical failures?
         .and_then(|user| {
             let user_clone = user.clone();
-            IO::execute(move |email_service: &EmailService| {
-                email_service.send_welcome(&user.email)
-            })
-            .map_err(AppError::from)
-            // Option A: Ignore email errors
-            .or_else(|_err| {
-                println!("  [Warning] Failed to send welcome email, continuing...");
-                Effect::pure(())
-            })
-            .map(move |_| user_clone)
+            IO::execute(move |email_service: &EmailService| email_service.send_welcome(&user.email))
+                .map_err(AppError::from)
+                // Option A: Ignore email errors
+                .or_else(|_err| {
+                    println!("  [Warning] Failed to send welcome email, continuing...");
+                    Effect::pure(())
+                })
+                .map(move |_| user_clone)
         })
 }
 
 // Alternative: Should we have a helper for non-critical effects?
-fn register_user_alt(
-    email: String,
-    password: String,
-) -> Effect<User, AppError, AppEnv> {
+fn register_user_alt(email: String, password: String) -> Effect<User, AppError, AppEnv> {
     Effect::from_validation(validate_new_user(&email, &password))
-        .and_then(|new_user| {
-            check_email_not_exists(new_user)
-        })
+        .and_then(|new_user| check_email_not_exists(new_user))
         .map(|new_user| create_user_from_new(new_user, next_user_id()))
         .and_then(save_user)
         .and_then(send_welcome_email_optional) // Hypothetical helper
@@ -249,39 +228,33 @@ fn register_user_alt(
 
 // Helper effects - does this feel cleaner?
 fn check_email_not_exists(new_user: NewUser) -> Effect<NewUser, AppError, AppEnv> {
-    IO::query(|db: &Database| {
-        db.find_by_email(&new_user.email)
-    })
-    .map_err(AppError::from)
-    .and_then(move |existing| {
-        if existing.is_some() {
-            Effect::fail(AppError::EmailAlreadyExists(new_user.email.clone()))
-        } else {
-            Effect::pure(new_user)
-        }
-    })
+    IO::query(|db: &Database| db.find_by_email(&new_user.email))
+        .map_err(AppError::from)
+        .and_then(move |existing| {
+            if existing.is_some() {
+                Effect::fail(AppError::EmailAlreadyExists(new_user.email.clone()))
+            } else {
+                Effect::pure(new_user)
+            }
+        })
 }
 
 fn save_user(user: User) -> Effect<User, AppError, AppEnv> {
     let user_clone = user.clone();
-    IO::execute(move |db: &mut Database| {
-        db.insert_user(user)
-    })
-    .map_err(AppError::from)
-    .map(move |_| user_clone)
+    IO::execute(move |db: &mut Database| db.insert_user(user))
+        .map_err(AppError::from)
+        .map(move |_| user_clone)
 }
 
 fn send_welcome_email_optional(user: User) -> Effect<User, AppError, AppEnv> {
     let user_clone = user.clone();
-    IO::execute(move |email_service: &EmailService| {
-        email_service.send_welcome(&user.email)
-    })
-    .map_err(AppError::from)
-    .or_else(|_err| {
-        println!("  [Warning] Failed to send welcome email");
-        Effect::pure(())
-    })
-    .map(move |_| user_clone)
+    IO::execute(move |email_service: &EmailService| email_service.send_welcome(&user.email))
+        .map_err(AppError::from)
+        .or_else(|_err| {
+            println!("  [Warning] Failed to send welcome email");
+            Effect::pure(())
+        })
+        .map(move |_| user_clone)
 }
 
 // ============================================================================
@@ -318,10 +291,7 @@ fn main() {
 
     // Test 2: Validation errors
     println!("Test 2: Invalid input");
-    let effect = register_user(
-        "not-an-email".to_string(),
-        "weak".to_string(),
-    );
+    let effect = register_user("not-an-email".to_string(), "weak".to_string());
 
     match effect.run(&env) {
         Ok(_) => println!("✓ Unexpected success"),

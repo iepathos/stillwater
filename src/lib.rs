@@ -33,21 +33,21 @@
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
 
-pub mod validation;
-pub mod effect;
 pub mod context;
+pub mod effect;
 pub mod semigroup;
+pub mod validation;
 
 // Re-exports
-pub use validation::Validation;
-pub use effect::Effect;
 pub use context::ContextError;
+pub use effect::Effect;
 pub use semigroup::Semigroup;
+pub use validation::Validation;
 
 /// Prelude module for convenient imports
 pub mod prelude {
-    pub use crate::validation::Validation;
-    pub use crate::effect::Effect;
     pub use crate::context::ContextError;
+    pub use crate::effect::Effect;
     pub use crate::semigroup::Semigroup;
+    pub use crate::validation::Validation;
 }

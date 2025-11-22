@@ -2,7 +2,7 @@
 //!
 //! This example shows how we want validation to feel for a typical web form.
 
-use stillwater::{Validation, Semigroup};
+use stillwater::{Semigroup, Validation};
 
 // Domain types
 #[derive(Debug, Clone, PartialEq)]
@@ -74,10 +74,7 @@ fn validate_password(pwd: &str) -> Validation<Password, Vec<ValidationError>> {
     }
 }
 
-fn validate_passwords_match(
-    pwd: &str,
-    confirm: &str,
-) -> Validation<(), Vec<ValidationError>> {
+fn validate_passwords_match(pwd: &str, confirm: &str) -> Validation<(), Vec<ValidationError>> {
     if pwd == confirm {
         Validation::success(())
     } else {
@@ -98,10 +95,7 @@ fn validate_age_input(age_str: &str) -> Validation<Age, Vec<ValidationError>> {
 
     // Then validate range
     if age < 18 {
-        Validation::failure(vec![ValidationError::AgeTooYoung {
-            age,
-            minimum: 18,
-        }])
+        Validation::failure(vec![ValidationError::AgeTooYoung { age, minimum: 18 }])
     } else {
         Validation::success(Age(age))
     }
@@ -120,12 +114,14 @@ fn validate_signup_form(form: SignupForm) -> Validation<User, Vec<ValidationErro
     );
 
     // Combine field validations
-    Validation::all(field_validations)
-        .and_then(|(email, password, age)| {
-            // Now check password match (depends on password being valid)
-            validate_passwords_match(&form.password, &form.password_confirm)
-                .map(|_| User { email, password, age })
+    Validation::all(field_validations).and_then(|(email, password, age)| {
+        // Now check password match (depends on password being valid)
+        validate_passwords_match(&form.password, &form.password_confirm).map(|_| User {
+            email,
+            password,
+            age,
         })
+    })
 }
 
 // Alternative composition style - which feels better?
@@ -134,8 +130,15 @@ fn validate_signup_form_alt1(form: SignupForm) -> Validation<User, Vec<Validatio
     validate_email(&form.email)
         .and(validate_password(&form.password))
         .and(validate_age_input(&form.age))
-        .and(validate_passwords_match(&form.password, &form.password_confirm))
-        .map(|(email, password, age, _)| User { email, password, age })
+        .and(validate_passwords_match(
+            &form.password,
+            &form.password_confirm,
+        ))
+        .map(|(email, password, age, _)| User {
+            email,
+            password,
+            age,
+        })
 }
 
 fn validate_signup_form_alt2(form: SignupForm) -> Validation<User, Vec<ValidationError>> {
@@ -146,8 +149,11 @@ fn validate_signup_form_alt2(form: SignupForm) -> Validation<User, Vec<Validatio
     let match_check = validate_passwords_match(&form.password, &form.password_confirm);
 
     // Combine all four
-    Validation::all((email, password, age, match_check))
-        .map(|(e, p, a, _)| User { email: e, password: p, age: a })
+    Validation::all((email, password, age, match_check)).map(|(e, p, a, _)| User {
+        email: e,
+        password: p,
+        age: a,
+    })
 }
 
 // Usage example

@@ -143,14 +143,10 @@ trait PaymentGateway {
     fn charge(&self, customer_id: CustomerId, amount: Money) -> Result<String, CheckoutError>;
 }
 
-fn checkout_effect(
-    cart: Cart,
-    customer_id: CustomerId,
-) -> Effect<Order, CheckoutError, ShopEnv> {
+fn checkout_effect(cart: Cart, customer_id: CustomerId) -> Effect<Order, CheckoutError, ShopEnv> {
     // Validate cart
     Effect::from_validation(validate_cart(&cart))
         .map(|_| cart.clone())
-
         // Fetch customer
         .and_then(move |cart| {
             IO::query(move |customer_repo: &dyn CustomerRepository| {
@@ -158,10 +154,8 @@ fn checkout_effect(
             })
             .map(move |customer| (cart, customer))
         })
-
         // Create order (pure!)
         .map(|(cart, customer)| create_order(cart, &customer))
-
         // Check inventory
         .and_then(|order| {
             let items = order.cart.items.clone();
@@ -173,7 +167,6 @@ fn checkout_effect(
             })
             .map(move |_| order)
         })
-
         // Process payment
         .and_then(move |order| {
             IO::execute(move |payment: &dyn PaymentGateway| {
@@ -181,14 +174,11 @@ fn checkout_effect(
             })
             .map(move |_| order)
         })
-
         // Reserve inventory
         .and_then(|order| {
             let items = order.cart.items.clone();
-            IO::execute(move |inventory: &mut dyn Inventory| {
-                inventory.reserve_items(&items)
-            })
-            .map(move |_| order)
+            IO::execute(move |inventory: &mut dyn Inventory| inventory.reserve_items(&items))
+                .map(move |_| order)
         })
 }
 
@@ -310,8 +300,8 @@ mod pure_tests {
 
         assert_eq!(order.subtotal, Money(100.0));
         assert_eq!(order.discount, Money(10.0)); // 10% premium
-        assert_eq!(order.tax, Money(7.2));       // 8% of (100 - 10)
-        assert_eq!(order.total, Money(97.2));    // 90 + 7.2
+        assert_eq!(order.tax, Money(7.2)); // 8% of (100 - 10)
+        assert_eq!(order.total, Money(97.2)); // 90 + 7.2
     }
 
     #[test]
@@ -370,7 +360,11 @@ mod effect_tests {
     }
 
     impl Inventory for MockInventory {
-        fn check_availability(&self, _product_id: ProductId, _qty: u32) -> Result<(), CheckoutError> {
+        fn check_availability(
+            &self,
+            _product_id: ProductId,
+            _qty: u32,
+        ) -> Result<(), CheckoutError> {
             if self.available {
                 Ok(())
             } else {
@@ -388,7 +382,11 @@ mod effect_tests {
     }
 
     impl PaymentGateway for MockPaymentGateway {
-        fn charge(&self, _customer_id: CustomerId, _amount: Money) -> Result<String, CheckoutError> {
+        fn charge(
+            &self,
+            _customer_id: CustomerId,
+            _amount: Money,
+        ) -> Result<String, CheckoutError> {
             if self.should_fail {
                 Err(CheckoutError::PaymentFailed("Card declined".to_string()))
             } else {
@@ -483,7 +481,10 @@ mod effect_tests {
         let effect = checkout_effect(cart, CustomerId(1));
         let result = effect.run(&env);
 
-        assert!(matches!(result, Err(CheckoutError::InsufficientInventory(_))));
+        assert!(matches!(
+            result,
+            Err(CheckoutError::InsufficientInventory(_))
+        ));
     }
 
     // Note: How much easier is this compared to mocking everything

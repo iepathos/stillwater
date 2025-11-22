@@ -2,8 +2,8 @@
 //!
 //! This tests how well error context chains work in practice.
 
-use stillwater::{Effect, ContextError, IO};
 use std::path::{Path, PathBuf};
+use stillwater::{ContextError, Effect, IO};
 
 // ============================================================================
 // Domain
@@ -59,7 +59,9 @@ impl std::error::Error for AppError {}
 fn parse_toml(content: &str) -> Result<toml::Value, AppError> {
     // Simulated TOML parsing
     if content.contains("invalid") {
-        Err(AppError::ParseError("Invalid TOML syntax at line 10".to_string()))
+        Err(AppError::ParseError(
+            "Invalid TOML syntax at line 10".to_string(),
+        ))
     } else {
         Ok(toml::Value::String("parsed".to_string()))
     }
@@ -84,9 +86,13 @@ fn extract_max_connections(config: &toml::Value) -> Result<u32, AppError> {
 
 fn validate_config(config: &Config) -> Result<(), AppError> {
     if config.max_connections == 0 {
-        Err(AppError::ValidationError("max_connections must be > 0".to_string()))
+        Err(AppError::ValidationError(
+            "max_connections must be > 0".to_string(),
+        ))
     } else if config.api_key.is_empty() {
-        Err(AppError::ValidationError("api_key cannot be empty".to_string()))
+        Err(AppError::ValidationError(
+            "api_key cannot be empty".to_string(),
+        ))
     } else {
         Ok(())
     }
@@ -146,21 +152,15 @@ fn load_config_file(path: PathBuf) -> Effect<String, ContextError<AppError>, ()>
 }
 
 fn parse_config_content(content: String) -> Effect<toml::Value, ContextError<AppError>, ()> {
-    Effect::from_result(parse_toml(&content))
-        .context("Parsing TOML configuration")
+    Effect::from_result(parse_toml(&content)).context("Parsing TOML configuration")
 }
 
 fn extract_config_values(toml: toml::Value) -> Effect<Config, ContextError<AppError>, ()> {
-    Effect::from_result(
-        extract_database_url(&toml)
-            .and_then(|db_url| {
-                extract_api_key(&toml)
-                    .and_then(|api_key| {
-                        extract_max_connections(&toml)
-                            .map(|max_conn| create_config(db_url, api_key, max_conn))
-                    })
-            })
-    )
+    Effect::from_result(extract_database_url(&toml).and_then(|db_url| {
+        extract_api_key(&toml).and_then(|api_key| {
+            extract_max_connections(&toml).map(|max_conn| create_config(db_url, api_key, max_conn))
+        })
+    }))
     .context("Extracting configuration values")
 }
 
@@ -181,33 +181,32 @@ fn initialize_app(config_path: PathBuf) -> Effect<AppState, ContextError<AppErro
         .and_then(extract_config_values)
         .and_then(validate_config_effect)
         .and_then(|config| {
-            initialize_database(config.clone())
-                .map(move |db_pool| AppState { config, db_pool })
+            initialize_database(config.clone()).map(move |db_pool| AppState { config, db_pool })
         })
-        .context(format!("Initializing application with config: {}", config_path.display()))
+        .context(format!(
+            "Initializing application with config: {}",
+            config_path.display()
+        ))
 }
 
 // Alternative: more granular contexts?
 fn initialize_app_verbose(config_path: PathBuf) -> Effect<AppState, ContextError<AppError>, ()> {
     load_config_file(config_path.clone())
         .context("Step 1/4: Loading configuration file")
-
         .and_then(parse_config_content)
         .context("Step 2/4: Parsing configuration")
-
         .and_then(extract_config_values)
         .context("Step 3/4: Extracting configuration values")
-
         .and_then(validate_config_effect)
         .context("Step 4/4: Validating configuration")
-
         .and_then(|config| {
-            initialize_database(config.clone())
-                .map(move |db_pool| AppState { config, db_pool })
+            initialize_database(config.clone()).map(move |db_pool| AppState { config, db_pool })
         })
         .context("Step 5/5: Initializing database connection")
-
-        .context(format!("Application initialization from {}", config_path.display()))
+        .context(format!(
+            "Application initialization from {}",
+            config_path.display()
+        ))
 }
 
 // ============================================================================

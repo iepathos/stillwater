@@ -3,8 +3,8 @@
 //! This simulates an ETL pipeline: Extract -> Transform -> Load
 //! Tests how well stillwater handles real-world data processing.
 
-use stillwater::{Effect, Validation, Semigroup, IO};
 use std::path::PathBuf;
+use stillwater::{Effect, Semigroup, Validation, IO};
 
 // ============================================================================
 // Domain Types
@@ -99,7 +99,10 @@ impl From<Vec<ValidationError>> for PipelineError {
 fn parse_csv_line(line: &str) -> Result<RawRecord, PipelineError> {
     let parts: Vec<&str> = line.split(',').collect();
     if parts.len() != 4 {
-        return Err(PipelineError::Parse(format!("Expected 4 fields, got {}", parts.len())));
+        return Err(PipelineError::Parse(format!(
+            "Expected 4 fields, got {}",
+            parts.len()
+        )));
     }
 
     Ok(RawRecord {
@@ -167,13 +170,11 @@ fn validate_record(raw: RawRecord) -> Validation<ValidRecord, Vec<ValidationErro
         validate_amount(&raw.amount),
         validate_timestamp(&raw.timestamp),
     ))
-    .map(|(user_id, email, amount, timestamp)| {
-        ValidRecord {
-            user_id,
-            email,
-            amount,
-            timestamp,
-        }
+    .map(|(user_id, email, amount, timestamp)| ValidRecord {
+        user_id,
+        email,
+        amount,
+        timestamp,
     })
 }
 
@@ -191,7 +192,10 @@ fn calculate_risk_score(amount: f64, category: &str) -> f64 {
     base_risk * category_multiplier
 }
 
-fn enrich_record(valid: ValidRecord, ref_data: &ReferenceData) -> Result<EnrichedRecord, PipelineError> {
+fn enrich_record(
+    valid: ValidRecord,
+    ref_data: &ReferenceData,
+) -> Result<EnrichedRecord, PipelineError> {
     let category = ref_data
         .get_category(valid.user_id)
         .unwrap_or_else(|| "unknown".to_string());
@@ -255,31 +259,28 @@ fn read_csv_file(path: PathBuf) -> Effect<String, PipelineError, ()> {
         Ok("1,user1@example.com,100.50,1234567890\n\
             2,user2@example.com,250.00,1234567891\n\
             3,invalid-email,500.00,1234567892\n\
-            4,user4@example.com,-50.00,1234567893".to_string())
+            4,user4@example.com,-50.00,1234567893"
+            .to_string())
     })
 }
 
 fn parse_csv(content: String) -> Effect<Vec<RawRecord>, PipelineError, ()> {
     let lines: Vec<_> = content.lines().collect();
-    let results: Result<Vec<_>, _> = lines
-        .iter()
-        .map(|line| parse_csv_line(line))
-        .collect();
+    let results: Result<Vec<_>, _> = lines.iter().map(|line| parse_csv_line(line)).collect();
 
     Effect::from_result(results)
 }
 
-fn validate_all_records(raw_records: Vec<RawRecord>) -> Effect<Vec<ValidRecord>, PipelineError, ()> {
+fn validate_all_records(
+    raw_records: Vec<RawRecord>,
+) -> Effect<Vec<ValidRecord>, PipelineError, ()> {
     // Question: Should we:
     // A) Fail entire batch if any record invalid?
     // B) Collect all validation errors?
     // C) Filter out invalid records and continue?
 
     // Approach A: Fail on any error (strict)
-    let validations: Vec<_> = raw_records
-        .into_iter()
-        .map(validate_record)
-        .collect();
+    let validations: Vec<_> = raw_records.into_iter().map(validate_record).collect();
 
     // Combine all validations
     let combined = Validation::all(validations);
@@ -288,7 +289,9 @@ fn validate_all_records(raw_records: Vec<RawRecord>) -> Effect<Vec<ValidRecord>,
 }
 
 // Alternative: Filter out invalid records
-fn validate_records_permissive(raw_records: Vec<RawRecord>) -> Effect<Vec<ValidRecord>, PipelineError, ()> {
+fn validate_records_permissive(
+    raw_records: Vec<RawRecord>,
+) -> Effect<Vec<ValidRecord>, PipelineError, ()> {
     let mut valid = Vec::new();
     let mut errors = Vec::new();
 
@@ -300,19 +303,21 @@ fn validate_records_permissive(raw_records: Vec<RawRecord>) -> Effect<Vec<ValidR
     }
 
     if !errors.is_empty() {
-        println!("  [Warning] {} validation errors, continuing with {} valid records",
-                 errors.len(), valid.len());
+        println!(
+            "  [Warning] {} validation errors, continuing with {} valid records",
+            errors.len(),
+            valid.len()
+        );
     }
 
     Effect::pure(valid)
 }
 
-fn enrich_records(valid_records: Vec<ValidRecord>) -> Effect<Vec<EnrichedRecord>, PipelineError, PipelineEnv> {
+fn enrich_records(
+    valid_records: Vec<ValidRecord>,
+) -> Effect<Vec<EnrichedRecord>, PipelineError, PipelineEnv> {
     // Load reference data
-    IO::query(|db: &Database| {
-        db.load_reference_data()
-    })
-    .and_then(move |ref_data| {
+    IO::query(|db: &Database| db.load_reference_data()).and_then(move |ref_data| {
         // Enrich each record
         let enriched: Result<Vec<_>, _> = valid_records
             .into_iter()
@@ -323,31 +328,25 @@ fn enrich_records(valid_records: Vec<ValidRecord>) -> Effect<Vec<EnrichedRecord>
     })
 }
 
-fn save_records(enriched: Vec<EnrichedRecord>) -> Effect<Vec<EnrichedRecord>, PipelineError, PipelineEnv> {
+fn save_records(
+    enriched: Vec<EnrichedRecord>,
+) -> Effect<Vec<EnrichedRecord>, PipelineError, PipelineEnv> {
     let enriched_clone = enriched.clone();
-    IO::execute(move |db: &Database| {
-        db.save_enriched_records(&enriched)
-    })
-    .map(move |_| enriched_clone)
+    IO::execute(move |db: &Database| db.save_enriched_records(&enriched))
+        .map(move |_| enriched_clone)
 }
 
 // Full pipeline
-fn process_data_pipeline(
-    input_path: PathBuf,
-) -> Effect<Report, PipelineError, PipelineEnv> {
+fn process_data_pipeline(input_path: PathBuf) -> Effect<Report, PipelineError, PipelineEnv> {
     read_csv_file(input_path)
         // Parse
         .and_then(parse_csv)
-
         // Validate (strict - fail on any error)
         .and_then(validate_all_records)
-
         // Enrich (needs reference data from DB)
         .and_then(enrich_records)
-
         // Save enriched records
         .and_then(save_records)
-
         // Generate report (pure)
         .map(aggregate_records)
 }
