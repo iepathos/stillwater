@@ -2,10 +2,10 @@
 name = "stillwater"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Glen Baker <iepathos@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "Pragmatic effect composition and validation for Rust - pure core, imperative shell"
-repository = "https://github.com/yourusername/stillwater"
+repository = "https://github.com/iepathos/stillwater"
 keywords = ["validation", "effects", "functional", "composition", "railway"]
 categories = ["rust-patterns", "data-structures"]
 readme = "README.md"
