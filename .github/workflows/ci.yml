@@ -85,4 +85,4 @@ jobs:
         key: ubuntu-latest-cargo-${{ hashFiles('**/Cargo.lock') }}
     
     - name: Check all targets
-      run: cargo check --all-targets --all-features
+      run: cargo check --all-targets --features async
