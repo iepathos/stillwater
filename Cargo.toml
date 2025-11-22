@@ -21,6 +21,7 @@ tokio-test = "0.4"
 [features]
 default = []
 async = ["tokio"]
+try_trait = []
 
 [[example]]
 name = "validation"
