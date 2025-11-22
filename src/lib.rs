@@ -13,19 +13,19 @@
 //! ## Quick Example
 //!
 //! ```rust,ignore
-//! use stillwater::{Validation, Effect, IO};
+//! use stillwater::{Validation, Effect};
 //!
-//! // Accumulate all validation errors
+//! // Accumulate all validation errors (once Validation is implemented)
 //! let user = Validation::all((
 //!     validate_email(input),
 //!     validate_age(input),
 //!     validate_name(input),
 //! ))?;
 //!
-//! // Compose effects with pure logic
+//! // Compose effects with pure logic (once Effect is implemented)
 //! fn create_user(input: UserInput) -> Effect<User, Error, AppEnv> {
 //!     Effect::from_validation(validate_user(input))
-//!         .and_then(|user| IO::execute(|db| db.save(&user)))
+//!         .and_then(|user| save_user(user))
 //!         .context("Creating user")
 //! }
 //! ```
