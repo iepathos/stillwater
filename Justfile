@@ -61,7 +61,7 @@ coverage:
     echo "Cleaning previous coverage data..."
     cargo llvm-cov clean
     echo "Generating code coverage report with llvm-cov..."
-    cargo llvm-cov --all-features --lib --html --output-dir target/coverage
+    cargo llvm-cov --features async --lib --html --output-dir target/coverage
     echo "Coverage report generated at target/coverage/html/index.html"
 
 # Run tests with coverage (lcov format)
@@ -75,7 +75,7 @@ coverage-lcov:
     # Ensure target/coverage directory exists
     mkdir -p target/coverage
     echo "Generating code coverage report with llvm-cov (lcov format)..."
-    cargo llvm-cov --all-features --lib --lcov --output-path target/coverage/lcov.info
+    cargo llvm-cov --features async --lib --lcov --output-path target/coverage/lcov.info
     echo "Coverage report generated at target/coverage/lcov.info"
     # Verify the file was actually created
     if [ ! -f target/coverage/lcov.info ]; then
@@ -91,7 +91,7 @@ coverage-check:
     echo "Checking code coverage threshold..."
     cargo llvm-cov clean
     mkdir -p target/coverage
-    cargo llvm-cov --all-features --lib --json --output-path target/coverage/coverage.json
+    cargo llvm-cov --features async --lib --json --output-path target/coverage/coverage.json
     COVERAGE=$(cat target/coverage/coverage.json | jq -r '.data[0].totals.lines.percent')
     echo "Current coverage: ${COVERAGE}%"
     if (( $(echo "$COVERAGE < 80" | bc -l) )); then
