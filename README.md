@@ -5,7 +5,6 @@
 [![Security](https://github.com/iepathos/stillwater/actions/workflows/security.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/security.yml)
 [![Crates.io](https://img.shields.io/crates/v/stillwater)](https://crates.io/crates/stillwater)
 [![License](https://img.shields.io/badge/license-MIT)](LICENSE)
-[![Downloads](https://img.shields.io/crates/d/stillwater)](https://crates.io/crates/stillwater)
 
 > *"Still waters run pure"*
 
