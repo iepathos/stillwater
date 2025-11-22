@@ -11,11 +11,10 @@ categories = ["rust-patterns", "data-structures"]
 readme = "README.md"
 
 [dependencies]
-# No dependencies yet - keeping it minimal
+# Optional async support
+tokio = { version = "1", features = ["full"], optional = true }
 
 [dev-dependencies]
-# For testing async support later
-tokio = { version = "1", features = ["full"], optional = true }
 
 [features]
 default = []

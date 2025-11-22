@@ -1,0 +1,112 @@
+site/
+debtmap.json
+debtmap-after.json
+.metadata/
+.prodigy/validation-result.json
+.prodigy/debt-validation-result.json
+.prodigy/debtmap-before.json
+.prodigy/debtmap-after.json
+.prodigy/comparison.json
+.prodigy/debtmap-validation.json
+.prodigy/plan-validation.json
+.prodigy/IMPLEMENTATION_PLAN.md
+
+# Rust build artifacts
+/target/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+
+# Archive files
+*.tar.gz
+*.zip
+*.rar
+
+# Documentation build artifacts
+docs/_build/
+docs/build/
+book/book/
+
+# Test artifacts
+*.profraw
+*.profdata
+test_workspaces_*/
+
+# Benchmarking
+criterion/
+
+# Coverage reports
+tarpaulin-report.html
+lcov.info
+coverage/
+
+# Rust-specific
+**/*.rs.bk
+*.pdb
+
+# Flamegraph outputs
+flamegraph.svg
+perf.data*
+
+# Node modules (for web frontends)
+node_modules/
+
+# Python virtual environments (for tooling)
+venv/
+env/
+.venv/
+.env/
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# Local development files
+local/
+dev/
+
+# prodigy session state files
+.prodigy/session_state.json
+.prodigy/state.json.corrupted.*
+.prodigy/checkpoints/
+.prodigy/mapreduce/
+.prodigy/worktrees/
+.prodigy/context/
+.prodigy/metrics/
+.prodigy/events/
+.prodigy/dlq/
+.prodigy/documentation-drift.json
+.prodigy/documentation-drift-update.json
+.prodigy/IMPLEMENTATION_PLAN.md
+.prodigy/debtmap-*.json
+.prodigy/plan-validation.json
