@@ -315,6 +315,26 @@ async fn example_custom_errors() {
         })
     }
 
+    fn check_permissions(user_id: u64) -> Effect<(), AppError, Env> {
+        Effect::from_fn(move |_env: &Env| {
+            if user_id == 0 {
+                Err(AppError::PermissionDenied)
+            } else {
+                Ok(())
+            }
+        })
+    }
+
+    fn find_resource(id: u64) -> Effect<String, AppError, Env> {
+        Effect::from_fn(move |_env: &Env| {
+            if id == 99 {
+                Ok("resource data".to_string())
+            } else {
+                Err(AppError::NotFound)
+            }
+        })
+    }
+
     let env = Env;
 
     // Valid input
@@ -327,6 +347,20 @@ async fn example_custom_errors() {
     println!();
     match validate_user_input("".to_string()).run(&env).await {
         Ok(s) => println!("Valid input: {}", s),
+        Err(e) => println!("Error:\n{}", e),
+    }
+
+    // Permission denied
+    println!();
+    match check_permissions(0).run(&env).await {
+        Ok(_) => println!("Permission granted"),
+        Err(e) => println!("Error:\n{}", e),
+    }
+
+    // Not found
+    println!();
+    match find_resource(42).run(&env).await {
+        Ok(data) => println!("Found: {}", data),
         Err(e) => println!("Error:\n{}", e),
     }
 }
