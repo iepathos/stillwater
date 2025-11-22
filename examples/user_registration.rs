@@ -355,6 +355,7 @@ async fn example_successful_registration() {
             println!("  ID: {}", user.id);
             println!("  Username: {}", user.username);
             println!("  Email: {}", user.email);
+            println!("  Password hashed: {}", user.password_hash.starts_with("hashed_"));
             println!("  Total users: {}", env.db.count());
             println!("  Emails sent: {}", env.email.sent_count());
         }
