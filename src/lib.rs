@@ -35,12 +35,14 @@
 
 pub mod context;
 pub mod effect;
+pub mod io;
 pub mod semigroup;
 pub mod validation;
 
 // Re-exports
 pub use context::ContextError;
 pub use effect::{Effect, EffectContext};
+pub use io::IO;
 pub use semigroup::Semigroup;
 pub use validation::Validation;
 
@@ -48,6 +50,7 @@ pub use validation::Validation;
 pub mod prelude {
     pub use crate::context::ContextError;
     pub use crate::effect::{Effect, EffectContext};
+    pub use crate::io::IO;
     pub use crate::semigroup::Semigroup;
     pub use crate::validation::Validation;
 }
