@@ -12,23 +12,43 @@
 //!
 //! ## Quick Example
 //!
-//! ```rust,ignore
-//! use stillwater::{Validation, Effect};
+//! ```rust
+//! use stillwater::Validation;
 //!
-//! // Accumulate all validation errors (once Validation is implemented)
-//! let user = Validation::all((
-//!     validate_email(input),
-//!     validate_age(input),
-//!     validate_name(input),
-//! ))?;
+//! // Accumulate all validation errors
+//! fn validate_email(email: &str) -> Validation<String, Vec<String>> {
+//!     if email.contains('@') {
+//!         Validation::success(email.to_string())
+//!     } else {
+//!         Validation::failure(vec!["Email must contain @".to_string()])
+//!     }
+//! }
 //!
-//! // Compose effects with pure logic (once Effect is implemented)
-//! fn create_user(input: UserInput) -> Effect<User, Error, AppEnv> {
-//!     Effect::from_validation(validate_user(input))
-//!         .and_then(|user| save_user(user))
-//!         .context("Creating user")
+//! fn validate_age(age: i32) -> Validation<i32, Vec<String>> {
+//!     if age >= 18 {
+//!         Validation::success(age)
+//!     } else {
+//!         Validation::failure(vec!["Must be 18 or older".to_string()])
+//!     }
+//! }
+//!
+//! // Collect all errors at once
+//! let result = Validation::<(String, i32), Vec<String>>::all((
+//!     validate_email("user@example.com"),
+//!     validate_age(25),
+//! ));
+//!
+//! match result {
+//!     Validation::Success((email, age)) => {
+//!         println!("Valid: {} is {} years old", email, age);
+//!     }
+//!     Validation::Failure(errors) => {
+//!         println!("Errors: {:?}", errors);
+//!     }
 //! }
 //! ```
+//!
+//! For more examples, see the [examples](https://github.com/anthropics/stillwater/tree/master/examples) directory.
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
