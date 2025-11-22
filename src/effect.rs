@@ -430,6 +430,193 @@ where
     pub async fn run(self, env: &Env) -> Result<T, E> {
         (self.run_fn)(env).await
     }
+
+    /// Perform a side effect and return the original value
+    ///
+    /// Useful for logging, metrics, or other operations that don't
+    /// affect the main computation. The side effect function receives
+    /// a reference to the value and must return an Effect. If the side
+    /// effect fails, the entire computation fails.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42)
+    ///     .tap(|value| {
+    ///         println!("Value: {}", value);
+    ///         Effect::pure(())
+    ///     });
+    ///
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// # });
+    /// ```
+    #[inline]
+    pub fn tap<F>(self, f: F) -> Self
+    where
+        F: FnOnce(&T) -> Effect<(), E, Env> + Send + 'static,
+        T: Clone,
+    {
+        self.and_then(move |value| {
+            let value_clone = value.clone();
+            f(&value).map(move |_| value_clone)
+        })
+    }
+
+    /// Fail with error if predicate is false
+    ///
+    /// Provides a declarative way to express validation conditions.
+    /// If the predicate returns true, the value passes through unchanged.
+    /// If false, the error function is called to produce an error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// // Success case
+    /// let effect = Effect::<_, String, ()>::pure(25)
+    ///     .check(|age| *age >= 18, || "too young".to_string());
+    /// assert_eq!(effect.run(&()).await, Ok(25));
+    ///
+    /// // Failure case
+    /// let effect = Effect::<_, String, ()>::pure(15)
+    ///     .check(|age| *age >= 18, || "too young".to_string());
+    /// assert_eq!(effect.run(&()).await, Err("too young".to_string()));
+    /// # });
+    /// ```
+    #[inline]
+    pub fn check<P, F>(self, predicate: P, error_fn: F) -> Self
+    where
+        P: FnOnce(&T) -> bool + Send + 'static,
+        F: FnOnce() -> E + Send + 'static,
+    {
+        self.and_then(move |value| {
+            if predicate(&value) {
+                Effect::pure(value)
+            } else {
+                Effect::fail(error_fn())
+            }
+        })
+    }
+
+    /// Combine with another effect, returning both values
+    ///
+    /// Useful when you need results from multiple effects.
+    /// The function receives a reference to the first value
+    /// and returns an effect for the second value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(5)
+    ///     .with(|value| Effect::pure(*value * 2))
+    ///     .map(|(first, second)| first + second);
+    ///
+    /// assert_eq!(effect.run(&()).await, Ok(15));  // 5 + 10
+    /// # });
+    /// ```
+    #[inline]
+    pub fn with<U, F>(self, f: F) -> Effect<(T, U), E, Env>
+    where
+        F: FnOnce(&T) -> Effect<U, E, Env> + Send + 'static,
+        U: Send + 'static,
+        T: Clone,
+    {
+        self.and_then(move |value| {
+            let value_clone = value.clone();
+            f(&value).map(move |other| (value_clone, other))
+        })
+    }
+
+    /// Chain effect with automatic error conversion
+    ///
+    /// Eliminates manual `.map_err(E::from)` calls when error types differ.
+    /// The error type from the chained effect must be convertible to the
+    /// current error type via the `From` trait.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// #[derive(Debug, PartialEq)]
+    /// enum ValidationError {
+    ///     Invalid,
+    /// }
+    ///
+    /// #[derive(Debug, PartialEq)]
+    /// enum AppError {
+    ///     Validation(ValidationError),
+    /// }
+    ///
+    /// impl From<ValidationError> for AppError {
+    ///     fn from(e: ValidationError) -> Self {
+    ///         AppError::Validation(e)
+    ///     }
+    /// }
+    ///
+    /// let effect = Effect::<_, AppError, ()>::pure(42)
+    ///     .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100));
+    ///
+    /// assert_eq!(effect.run(&()).await, Ok(100));
+    /// # });
+    /// ```
+    #[inline]
+    pub fn and_then_auto<U, E2, F>(self, f: F) -> Effect<U, E, Env>
+    where
+        F: FnOnce(T) -> Effect<U, E2, Env> + Send + 'static,
+        U: Send + 'static,
+        E2: Send + 'static,
+        E: From<E2>,
+    {
+        self.and_then(move |value| f(value).map_err(E::from))
+    }
+
+    /// Chain effect by borrowing value, then returning it
+    ///
+    /// Avoids multiple clones when you need to use a value in multiple effects
+    /// but only care about the final result. The function receives a reference
+    /// to the value and returns an effect whose result is discarded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42)
+    ///     .and_then_ref(|value| {
+    ///         assert_eq!(*value, 42);
+    ///         Effect::pure("processed")
+    ///     })
+    ///     .and_then_ref(|value| {
+    ///         assert_eq!(*value, 42);
+    ///         Effect::pure("again")
+    ///     });
+    ///
+    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// # });
+    /// ```
+    #[inline]
+    pub fn and_then_ref<U, F>(self, f: F) -> Self
+    where
+        F: FnOnce(&T) -> Effect<U, E, Env> + Send + 'static,
+        U: Send + 'static,
+        T: Clone,
+    {
+        self.and_then(move |value| {
+            let value_clone = value.clone();
+            f(&value).map(move |_| value_clone)
+        })
+    }
 }
 
 // Extension trait for adding context - workaround for lack of specialization
@@ -820,5 +1007,304 @@ mod tests {
             }
             Ok(_) => panic!("Expected error"),
         }
+    }
+
+    // Helper combinator tests
+    #[tokio::test]
+    async fn test_tap_returns_original_value() {
+        let effect = Effect::<_, String, ()>::pure(42).tap(|_value| Effect::pure(()));
+
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_tap_side_effect_executes() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        let called = Arc::new(Mutex::new(false));
+        let called_clone = called.clone();
+
+        let effect = Effect::<_, String, ()>::pure(42).tap(move |value| {
+            *called_clone.lock().unwrap() = true;
+            assert_eq!(*value, 42);
+            Effect::pure(())
+        });
+
+        assert_eq!(effect.run(&()).await, Ok(42));
+        assert!(*called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_tap_propagates_side_effect_failure() {
+        let effect =
+            Effect::<_, String, ()>::pure(42).tap(|_value| Effect::fail("tap failed".to_string()));
+
+        assert_eq!(effect.run(&()).await, Err("tap failed".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_tap_on_failure_doesnt_execute() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        let called = Arc::new(Mutex::new(false));
+        let called_clone = called.clone();
+
+        let effect = Effect::<i32, _, ()>::fail("error".to_string()).tap(move |_value| {
+            *called_clone.lock().unwrap() = true;
+            Effect::pure(())
+        });
+
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert!(!*called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_check_success() {
+        let effect =
+            Effect::<_, String, ()>::pure(25).check(|age| *age >= 18, || "too young".to_string());
+
+        assert_eq!(effect.run(&()).await, Ok(25));
+    }
+
+    #[tokio::test]
+    async fn test_check_failure() {
+        let effect =
+            Effect::<_, String, ()>::pure(15).check(|age| *age >= 18, || "too young".to_string());
+
+        assert_eq!(effect.run(&()).await, Err("too young".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_check_multiple_conditions() {
+        let effect = Effect::<_, String, ()>::pure(25)
+            .check(|age| *age >= 18, || "too young".to_string())
+            .check(|age| *age <= 65, || "too old".to_string());
+
+        assert_eq!(effect.run(&()).await, Ok(25));
+    }
+
+    #[tokio::test]
+    async fn test_check_on_failure_doesnt_execute() {
+        let effect = Effect::<i32, _, ()>::fail("error".to_string())
+            .check(|age| *age >= 18, || "too young".to_string());
+
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_with_returns_tuple() {
+        let effect = Effect::<_, String, ()>::pure(5).with(|value| Effect::pure(*value * 2));
+
+        assert_eq!(effect.run(&()).await, Ok((5, 10)));
+    }
+
+    #[tokio::test]
+    async fn test_with_can_map_tuple() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .with(|value| Effect::pure(*value * 2))
+            .map(|(first, second)| first + second);
+
+        assert_eq!(effect.run(&()).await, Ok(15));
+    }
+
+    #[tokio::test]
+    async fn test_with_propagates_first_failure() {
+        let effect =
+            Effect::<i32, _, ()>::fail("error".to_string()).with(|value| Effect::pure(*value * 2));
+
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_with_propagates_second_failure() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .with(|_value| Effect::<i32, String, ()>::fail("second failed".to_string()));
+
+        assert_eq!(effect.run(&()).await, Err("second failed".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_auto_converts_error() {
+        #[derive(Debug, PartialEq)]
+        enum Error1 {
+            Fail,
+        }
+
+        #[derive(Debug, PartialEq)]
+        enum Error2 {
+            Other(Error1),
+        }
+
+        impl From<Error1> for Error2 {
+            fn from(e: Error1) -> Self {
+                Error2::Other(e)
+            }
+        }
+
+        let effect = Effect::<_, Error2, ()>::pure(42)
+            .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
+
+        assert_eq!(effect.run(&()).await, Err(Error2::Other(Error1::Fail)));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_auto_success() {
+        #[derive(Debug, PartialEq)]
+        enum Error1 {
+            Fail,
+        }
+
+        #[derive(Debug, PartialEq)]
+        enum Error2 {
+            Other(Error1),
+        }
+
+        impl From<Error1> for Error2 {
+            fn from(e: Error1) -> Self {
+                Error2::Other(e)
+            }
+        }
+
+        let effect =
+            Effect::<_, Error2, ()>::pure(42).and_then_auto(|_| Effect::<_, Error1, ()>::pure(100));
+
+        assert_eq!(effect.run(&()).await, Ok(100));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_auto_chain() {
+        #[derive(Debug, PartialEq)]
+        enum ValidationError {
+            Invalid,
+        }
+
+        #[derive(Debug, PartialEq)]
+        enum DbError {
+            NotFound,
+        }
+
+        #[derive(Debug, PartialEq)]
+        enum AppError {
+            Validation(ValidationError),
+            Database(DbError),
+        }
+
+        impl From<ValidationError> for AppError {
+            fn from(e: ValidationError) -> Self {
+                AppError::Validation(e)
+            }
+        }
+
+        impl From<DbError> for AppError {
+            fn from(e: DbError) -> Self {
+                AppError::Database(e)
+            }
+        }
+
+        let effect = Effect::<_, AppError, ()>::pure(42)
+            .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100))
+            .and_then_auto(|_| Effect::<i32, DbError, ()>::pure(200));
+
+        assert_eq!(effect.run(&()).await, Ok(200));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_ref_returns_original() {
+        let effect = Effect::<_, String, ()>::pure(42).and_then_ref(|value| {
+            assert_eq!(*value, 42);
+            Effect::pure("processed")
+        });
+
+        assert_eq!(effect.run(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_ref_multiple_calls() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        let count = Arc::new(Mutex::new(0));
+        let count1 = count.clone();
+        let count2 = count.clone();
+
+        let effect = Effect::<_, String, ()>::pure(42)
+            .and_then_ref(move |value| {
+                *count1.lock().unwrap() += 1;
+                assert_eq!(*value, 42);
+                Effect::pure("first")
+            })
+            .and_then_ref(move |value| {
+                *count2.lock().unwrap() += 1;
+                assert_eq!(*value, 42);
+                Effect::pure("second")
+            });
+
+        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(*count.lock().unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_and_then_ref_propagates_failure() {
+        let effect = Effect::<_, String, ()>::pure(42)
+            .and_then_ref(|_value| Effect::<(), String, ()>::fail("ref failed".to_string()));
+
+        assert_eq!(effect.run(&()).await, Err("ref failed".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_and_then_ref_on_failure_doesnt_execute() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        let called = Arc::new(Mutex::new(false));
+        let called_clone = called.clone();
+
+        let effect = Effect::<i32, _, ()>::fail("error".to_string()).and_then_ref(move |_value| {
+            *called_clone.lock().unwrap() = true;
+            Effect::pure("processed")
+        });
+
+        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert!(!*called.lock().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_composition_all_helpers() {
+        let effect = Effect::<_, String, ()>::pure(20)
+            .check(|age| *age >= 18, || "too young".to_string())
+            .tap(|_age| Effect::pure(()))
+            .with(|age| Effect::pure(*age * 2))
+            .map(|(age, double)| age + double);
+
+        assert_eq!(effect.run(&()).await, Ok(60)); // 20 + 40
+    }
+
+    #[tokio::test]
+    async fn test_composition_with_and_then_ref() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        let log = Arc::new(Mutex::new(Vec::new()));
+        let log1 = log.clone();
+        let log2 = log.clone();
+
+        let effect = Effect::<_, String, ()>::pure(42)
+            .and_then_ref(move |value| {
+                log1.lock().unwrap().push(format!("step1: {}", value));
+                Effect::pure(())
+            })
+            .and_then_ref(move |value| {
+                log2.lock().unwrap().push(format!("step2: {}", value));
+                Effect::pure(())
+            })
+            .map(|value| value * 2);
+
+        assert_eq!(effect.run(&()).await, Ok(84));
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["step1: 42".to_string(), "step2: 42".to_string()]
+        );
     }
 }
