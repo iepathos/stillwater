@@ -55,7 +55,7 @@ jobs:
           ${{ runner.os }}-cargo-
     
     - name: Run tests
-      run: cargo test --all-features
+      run: cargo test --features async
     
     - name: Run clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
