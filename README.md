@@ -187,17 +187,30 @@ stillwater = { version = "0.1", features = ["async"] }
 
 ## Examples
 
-Check out the [examples](./examples/) directory for comprehensive guides:
-- `validation.rs` - Form validation with error accumulation
-- `effects.rs` - Effect composition patterns
-- `user_registration.rs` - Real-world user registration flow
-- `testing_patterns.rs` - Testing strategies with mock environments
-- And 5 more!
+Stillwater provides comprehensive examples organized into two categories:
 
-Run any example:
-```bash
-cargo run --example validation
-```
+### Tutorial Examples
+
+Progressive introduction to core concepts:
+
+- **validation**: Validation type and error accumulation patterns
+- **effects**: Effect type and composition patterns
+- **io_patterns**: IO module helpers for reading/writing
+- **pipeline**: Data transformation pipelines
+
+### Real-World Examples
+
+Complete use cases demonstrating practical applications:
+
+- **form_validation**: Multi-field form validation with error accumulation
+- **user_registration**: User registration workflow with multiple services
+- **error_context**: Error trails for better debugging
+- **data_pipeline**: ETL pipeline with Validation
+- **testing_patterns**: Testing pure vs effectful code
+
+Run any example with `cargo run --example <name>`.
+
+See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 

@@ -60,9 +60,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
-    
+
     - name: Install Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
     - name: Check all targets
       run: cargo check --all-targets --features async
+
+  examples:
+    name: Build Examples
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+
+    - name: Build all examples
+      run: cargo build --examples --features async
