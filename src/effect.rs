@@ -745,6 +745,214 @@ where
             f(&value).map(move |_| value_clone)
         })
     }
+
+    /// Run multiple effects in parallel, collecting all results.
+    ///
+    /// All effects run concurrently. If any fail, all errors are collected.
+    /// Success only if all effects succeed.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effects = vec![
+    ///     Effect::<_, String, ()>::pure(1),
+    ///     Effect::pure(2),
+    ///     Effect::pure(3),
+    /// ];
+    ///
+    /// let results = Effect::par_all(effects).run(&()).await;
+    /// assert_eq!(results, Ok(vec![1, 2, 3]));
+    /// # });
+    /// ```
+    pub fn par_all<I>(effects: I) -> Effect<Vec<T>, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send,
+    {
+        Effect {
+            run_fn: Box::new(|env| {
+                Box::pin(async move {
+                    let effects_vec: Vec<_> = effects.into_iter().collect();
+                    let futures: Vec<_> = effects_vec
+                        .into_iter()
+                        .map(|effect| async move { effect.run(env).await })
+                        .collect();
+
+                    let results = futures::future::join_all(futures).await;
+
+                    let mut successes = Vec::new();
+                    let mut failures = Vec::new();
+
+                    for result in results {
+                        match result {
+                            Ok(value) => successes.push(value),
+                            Err(error) => failures.push(error),
+                        }
+                    }
+
+                    if failures.is_empty() {
+                        Ok(successes)
+                    } else {
+                        Err(failures)
+                    }
+                })
+            }),
+        }
+    }
+
+    /// Run effects in parallel, short-circuit on first error.
+    ///
+    /// More efficient than `par_all` if you don't need all errors.
+    /// Returns the first error encountered.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effects = vec![
+    ///     Effect::<_, String, ()>::pure(1),
+    ///     Effect::pure(2),
+    ///     Effect::pure(3),
+    /// ];
+    ///
+    /// let results = Effect::par_try_all(effects).run(&()).await;
+    /// assert_eq!(results, Ok(vec![1, 2, 3]));
+    /// # });
+    /// ```
+    pub fn par_try_all<I>(effects: I) -> Effect<Vec<T>, E, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send,
+    {
+        Effect {
+            run_fn: Box::new(|env| {
+                Box::pin(async move {
+                    let effects_vec: Vec<_> = effects.into_iter().collect();
+                    let futures: Vec<_> = effects_vec
+                        .into_iter()
+                        .map(|effect| async move { effect.run(env).await })
+                        .collect();
+
+                    futures::future::try_join_all(futures).await
+                })
+            }),
+        }
+    }
+
+    /// Race multiple effects, returning the first to succeed.
+    ///
+    /// If all fail, returns all errors.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effects = vec![
+    ///     Effect::<_, String, ()>::pure(1),
+    ///     Effect::pure(2),
+    ///     Effect::pure(3),
+    /// ];
+    ///
+    /// let result = Effect::race(effects).run(&()).await;
+    /// assert!(result.is_ok());
+    /// # });
+    /// ```
+    pub fn race<I>(effects: I) -> Effect<T, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send,
+    {
+        use futures::stream::{self, StreamExt};
+
+        Effect {
+            run_fn: Box::new(|env| {
+                Box::pin(async move {
+                    let effects_vec: Vec<_> = effects.into_iter().collect();
+
+                    if effects_vec.is_empty() {
+                        return Err(Vec::new());
+                    }
+
+                    let mut stream = stream::iter(effects_vec)
+                        .map(|effect| async move { effect.run(env).await })
+                        .buffer_unordered(usize::MAX);
+
+                    let mut errors = Vec::new();
+
+                    while let Some(result) = stream.next().await {
+                        match result {
+                            Ok(value) => return Ok(value),
+                            Err(error) => errors.push(error),
+                        }
+                    }
+
+                    Err(errors)
+                })
+            }),
+        }
+    }
+
+    /// Run effects in parallel with a concurrency limit.
+    ///
+    /// Useful for rate limiting or resource constraints.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effects: Vec<_> = (1..=10)
+    ///     .map(|i| Effect::<_, String, ()>::pure(i))
+    ///     .collect();
+    ///
+    /// let results = Effect::par_all_limit(effects, 3).run(&()).await;
+    /// assert_eq!(results.as_ref().map(|v| v.len()), Ok(10));
+    /// # });
+    /// ```
+    pub fn par_all_limit<I>(effects: I, limit: usize) -> Effect<Vec<T>, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send,
+    {
+        use futures::stream::{self, StreamExt};
+
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    let effects_vec: Vec<_> = effects.into_iter().collect();
+                    let results: Vec<_> = stream::iter(effects_vec)
+                        .map(|effect| async move { effect.run(env).await })
+                        .buffer_unordered(limit)
+                        .collect()
+                        .await;
+
+                    let mut successes = Vec::new();
+                    let mut failures = Vec::new();
+
+                    for result in results {
+                        match result {
+                            Ok(value) => successes.push(value),
+                            Err(error) => failures.push(error),
+                        }
+                    }
+
+                    if failures.is_empty() {
+                        Ok(successes)
+                    } else {
+                        Err(failures)
+                    }
+                })
+            }),
+        }
+    }
 }
 
 // Extension trait for adding context - workaround for lack of specialization
@@ -1628,5 +1836,235 @@ mod tests {
         let outer = Effect::local(|e: &Env| Env(e.0 * 2), inner);
 
         assert_eq!(outer.run(&env).await, Err("error".to_string()));
+    }
+
+    // Parallel execution tests
+    #[tokio::test]
+    async fn test_par_all_success() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<_, String, ()>::pure(1),
+            Effect::pure(2),
+            Effect::pure(3),
+        ];
+
+        let result = Effect::par_all(effects).run(&env).await;
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+    }
+
+    #[tokio::test]
+    async fn test_par_all_with_errors() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<i32, _, ()>::pure(1),
+            Effect::fail("error1"),
+            Effect::fail("error2"),
+        ];
+
+        let result = Effect::par_all(effects).run(&env).await;
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 2);
+        assert_eq!(errors, vec!["error1", "error2"]);
+    }
+
+    #[tokio::test]
+    async fn test_par_all_empty() {
+        let env = ();
+        let effects: Vec<Effect<i32, String, ()>> = vec![];
+        let result = Effect::par_all(effects).run(&env).await;
+        assert_eq!(result, Ok(vec![]));
+    }
+
+    #[tokio::test]
+    async fn test_par_try_all_success() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<_, String, ()>::pure(1),
+            Effect::pure(2),
+            Effect::pure(3),
+        ];
+
+        let result = Effect::par_try_all(effects).run(&env).await;
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+    }
+
+    #[tokio::test]
+    async fn test_par_try_all_with_error() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<i32, _, ()>::pure(1),
+            Effect::fail("error1"),
+            Effect::pure(3),
+        ];
+
+        let result = Effect::par_try_all(effects).run(&env).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_race_first_success() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<_, String, ()>::pure(1),
+            Effect::pure(2),
+            Effect::pure(3),
+        ];
+
+        let result = Effect::race(effects).run(&env).await;
+        assert!(result.is_ok());
+        let value = result.unwrap();
+        assert!(value == 1 || value == 2 || value == 3);
+    }
+
+    #[tokio::test]
+    async fn test_race_with_timing() {
+        use std::time::{Duration, Instant};
+
+        let env = ();
+        let start = Instant::now();
+
+        let effects = vec![
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Ok::<_, String>(1)
+            }),
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(50)).await;
+                Ok::<_, String>(2)
+            }),
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(200)).await;
+                Ok::<_, String>(3)
+            }),
+        ];
+
+        let result = Effect::race(effects).run(&env).await;
+        let elapsed = start.elapsed();
+
+        assert_eq!(result.unwrap(), 2);
+        assert!(elapsed < Duration::from_millis(100));
+    }
+
+    #[tokio::test]
+    async fn test_race_all_failures() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<i32, _, ()>::fail("error1"),
+            Effect::fail("error2"),
+            Effect::fail("error3"),
+        ];
+
+        let result = Effect::race(effects).run(&env).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_race_empty() {
+        let env = ();
+        let effects: Vec<Effect<i32, String, ()>> = vec![];
+        let result = Effect::race(effects).run(&env).await;
+        assert_eq!(result, Err(vec![]));
+    }
+
+    #[tokio::test]
+    async fn test_par_all_limit() {
+        let env = ();
+
+        let effects: Vec<_> = (1..=10).map(|i| Effect::<_, String, ()>::pure(i)).collect();
+
+        let result = Effect::par_all_limit(effects, 3).run(&env).await;
+        assert!(result.is_ok());
+        let values = result.unwrap();
+        assert_eq!(values.len(), 10);
+        assert_eq!(values.iter().sum::<i32>(), 55);
+    }
+
+    #[tokio::test]
+    async fn test_par_all_limit_with_errors() {
+        let env = ();
+
+        let effects = vec![
+            Effect::<i32, _, ()>::pure(1),
+            Effect::fail("error1"),
+            Effect::pure(3),
+            Effect::fail("error2"),
+        ];
+
+        let result = Effect::par_all_limit(effects, 2).run(&env).await;
+        assert!(result.is_err());
+        let errors = result.unwrap_err();
+        assert_eq!(errors.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_actual_parallelism() {
+        use std::time::{Duration, Instant};
+
+        let env = ();
+        let start = Instant::now();
+
+        let effects = vec![
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Ok::<_, String>(1)
+            }),
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Ok::<_, String>(2)
+            }),
+            Effect::from_async(|_: &()| async {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Ok::<_, String>(3)
+            }),
+        ];
+
+        Effect::par_all(effects).run(&env).await.unwrap();
+
+        let elapsed = start.elapsed();
+        assert!(elapsed < Duration::from_millis(200));
+    }
+
+    #[tokio::test]
+    async fn test_parallel_with_environment() {
+        #[derive(Clone)]
+        struct TestEnv {
+            multiplier: i32,
+        }
+
+        fn compute(value: i32) -> Effect<i32, String, TestEnv> {
+            Effect::<i32, String, TestEnv>::asks(move |env: &TestEnv| value * env.multiplier)
+        }
+
+        let env = TestEnv { multiplier: 2 };
+
+        let results = Effect::par_all(vec![compute(1), compute(2), compute(3)])
+            .run(&env)
+            .await
+            .unwrap();
+
+        assert_eq!(results, vec![2, 4, 6]);
+    }
+
+    #[tokio::test]
+    async fn test_par_all_with_context() {
+        use crate::effect::EffectContext;
+
+        let env = ();
+
+        let effects = vec![
+            Effect::<i32, _, ()>::fail("error1").context("task 1"),
+            Effect::<i32, _, ()>::pure(2),
+            Effect::<i32, _, ()>::fail("error2").context("task 2"),
+        ];
+
+        let result = Effect::par_all(effects).run(&env).await;
+        assert!(result.is_err());
     }
 }
