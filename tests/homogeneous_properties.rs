@@ -33,7 +33,7 @@ proptest! {
 
         let result = validate_homogeneous(
             items,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| format!("Error at {}", idx),
         );
 
@@ -46,7 +46,7 @@ proptest! {
 
         let result = validate_homogeneous(
             items,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| format!("Error at {}", idx),
         );
 
@@ -72,7 +72,7 @@ proptest! {
 
         let result = validate_homogeneous(
             items,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| idx,
         );
 
@@ -94,7 +94,7 @@ proptest! {
 
         let combined = combine_homogeneous(
             items1,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| format!("Error at {}", idx),
         );
 
@@ -114,13 +114,14 @@ proptest! {
     }
 
     #[test]
+    #[allow(clippy::let_unit_value)]
     fn prop_empty_validates(unit in any::<()>()) {
         let _ = unit; // Use the unit to satisfy proptest
         let items: Vec<TestEnum> = vec![];
 
         let result = validate_homogeneous(
             items,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| format!("Error at {}", idx),
         );
 
@@ -146,7 +147,7 @@ proptest! {
 
         let result = validate_homogeneous(
             items,
-            |e| discriminant(e),
+            discriminant,
             |idx, _, _| idx,
         );
 

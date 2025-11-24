@@ -473,11 +473,8 @@ mod tests {
     fn test_homogeneous_validates_successfully() {
         let items = vec![TestEnum::A(1), TestEnum::A(2), TestEnum::A(3)];
 
-        let result = validate_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            validate_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         assert!(result.is_success());
     }
@@ -491,11 +488,8 @@ mod tests {
             TestEnum::B("wrong2".into()),
         ];
 
-        let result = validate_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            validate_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         match result {
             Validation::Failure(errors) => {
@@ -511,11 +505,8 @@ mod tests {
     fn test_combine_homogeneous_validates_and_combines() {
         let items = vec![TestEnum::A(1), TestEnum::A(2), TestEnum::A(3)];
 
-        let result = combine_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            combine_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         match result {
             Validation::Success(combined) => {
@@ -529,11 +520,8 @@ mod tests {
     fn test_empty_collection_validates() {
         let items: Vec<TestEnum> = vec![];
 
-        let result = validate_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            validate_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         assert!(result.is_success());
     }
@@ -542,11 +530,8 @@ mod tests {
     fn test_single_item_validates() {
         let items = vec![TestEnum::A(42)];
 
-        let result = validate_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            validate_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         assert!(result.is_success());
     }
@@ -555,7 +540,7 @@ mod tests {
     fn test_type_mismatch_error_creation() {
         let items = vec![TestEnum::A(1), TestEnum::B("wrong".into())];
 
-        let result = validate_homogeneous(items, |e| discriminant(e), TypeMismatchError::new);
+        let result = validate_homogeneous(items, discriminant, TypeMismatchError::new);
 
         match result {
             Validation::Failure(errors) => {
@@ -586,11 +571,8 @@ mod tests {
     fn test_combine_homogeneous_fails_on_mismatch() {
         let items = vec![TestEnum::A(1), TestEnum::B("wrong".into()), TestEnum::A(3)];
 
-        let result = combine_homogeneous(
-            items,
-            |e| discriminant(e),
-            |idx, _, _| format!("Error at {}", idx),
-        );
+        let result =
+            combine_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
         match result {
             Validation::Failure(errors) => {

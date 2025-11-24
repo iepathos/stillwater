@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "try_trait", feature(try_trait_v2))]
 //! # Stillwater
 //!
 //! > *"Still waters run pure"*

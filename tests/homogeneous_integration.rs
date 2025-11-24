@@ -44,11 +44,9 @@ fn test_validation_with_successful_aggregation() {
         AggregateResult::Count(2),
     ];
 
-    let combined = combine_homogeneous(
-        results,
-        |r| discriminant(r),
-        |idx, _, _| format!("Worker {} type mismatch", idx),
-    );
+    let combined = combine_homogeneous(results, discriminant, |idx, _, _| {
+        format!("Worker {} type mismatch", idx)
+    });
 
     match combined {
         Validation::Success(result) => {
@@ -66,11 +64,9 @@ fn test_validation_with_failed_aggregation() {
         AggregateResult::Count(2),
     ];
 
-    let combined = combine_homogeneous(
-        results,
-        |r| discriminant(r),
-        |idx, _, _| format!("Worker {} type mismatch", idx),
-    );
+    let combined = combine_homogeneous(results, discriminant, |idx, _, _| {
+        format!("Worker {} type mismatch", idx)
+    });
 
     match combined {
         Validation::Failure(errors) => {
@@ -89,7 +85,7 @@ fn test_type_mismatch_error_with_discriminant_name() {
         AggregateResult::Average(10.0, 2),
     ];
 
-    let result = validate_homogeneous(items, |r| discriminant(r), TypeMismatchError::new);
+    let result = validate_homogeneous(items, discriminant, TypeMismatchError::new);
 
     match result {
         Validation::Failure(errors) => {
@@ -117,17 +113,13 @@ fn test_validation_composition() {
         AggregateResult::Sum(10.0), // Wrong type!
     ];
 
-    let result1 = validate_homogeneous(
-        batch1,
-        |r| discriminant(r),
-        |idx, _, _| format!("Batch 1, index {}", idx),
-    );
+    let result1 = validate_homogeneous(batch1, discriminant, |idx, _, _| {
+        format!("Batch 1, index {}", idx)
+    });
 
-    let result2 = validate_homogeneous(
-        batch2,
-        |r| discriminant(r),
-        |idx, _, _| format!("Batch 2, index {}", idx),
-    );
+    let result2 = validate_homogeneous(batch2, discriminant, |idx, _, _| {
+        format!("Batch 2, index {}", idx)
+    });
 
     // Compose validations
     let combined = result1.and(result2);
@@ -144,6 +136,7 @@ fn test_validation_composition() {
 #[test]
 fn test_json_like_enum_validation() {
     #[derive(Clone, Debug, PartialEq)]
+    #[allow(dead_code)]
     enum Value {
         Null,
         Bool(bool),
@@ -194,7 +187,7 @@ fn test_json_like_enum_validation() {
         Value::Object(vec![]),
     ];
 
-    let result = validate_homogeneous(mixed_values, |v| discriminant(v), TypeMismatchError::new);
+    let result = validate_homogeneous(mixed_values, discriminant, TypeMismatchError::new);
 
     match result {
         Validation::Failure(errors) => {
@@ -212,7 +205,7 @@ fn test_json_like_enum_validation() {
         Value::Array(vec![Value::Number(3.0)]),
     ];
 
-    let result = combine_homogeneous(arrays, |v| discriminant(v), TypeMismatchError::new);
+    let result = combine_homogeneous(arrays, discriminant, TypeMismatchError::new);
 
     match result {
         Validation::Success(combined) => {
@@ -229,6 +222,7 @@ fn test_json_like_enum_validation() {
 #[test]
 fn test_mapreduce_aggregation_pattern() {
     // Simulate MapReduce aggregation where workers return results
+    #[allow(dead_code)]
     struct Worker {
         id: usize,
         result: AggregateResult,
@@ -251,18 +245,14 @@ fn test_mapreduce_aggregation_pattern() {
 
     let results: Vec<AggregateResult> = workers.into_iter().map(|w| w.result).collect();
 
-    let aggregated = combine_homogeneous(
-        results,
-        |r| discriminant(r),
-        |idx, got, expected| {
-            format!(
-                "Worker {} returned {}, expected {}",
-                idx,
-                got.discriminant_name(),
-                expected.discriminant_name()
-            )
-        },
-    );
+    let aggregated = combine_homogeneous(results, discriminant, |idx, got, expected| {
+        format!(
+            "Worker {} returned {}, expected {}",
+            idx,
+            got.discriminant_name(),
+            expected.discriminant_name()
+        )
+    });
 
     match aggregated {
         Validation::Success(result) => {
@@ -285,11 +275,7 @@ fn test_error_accumulation_with_many_mismatches() {
         }
     }
 
-    let result = validate_homogeneous(
-        items,
-        |r| discriminant(r),
-        |idx, _, _| format!("Error at {}", idx),
-    );
+    let result = validate_homogeneous(items, discriminant, |idx, _, _| format!("Error at {}", idx));
 
     match result {
         Validation::Failure(errors) => {
