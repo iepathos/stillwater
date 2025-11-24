@@ -278,9 +278,9 @@ fn example_statistics() {
     println!("\n=== Example 9: Real-World - Statistics ===");
 
     // Calculate sum, count, and product in one pass
-    let dataset1 = vec![2, 3, 5];
-    let dataset2 = vec![7, 11];
-    let dataset3 = vec![13];
+    let dataset1 = [2, 3, 5];
+    let dataset2 = [7, 11];
+    let dataset3 = [13];
 
     // Sum using Sum monoid
     let all_values_sum: Vec<Vec<Sum<i32>>> = vec![
