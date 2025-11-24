@@ -122,7 +122,7 @@ fn example_batch_user_validation() {
     }
 
     fn validate_age(age: i32) -> Validation<i32, Vec<String>> {
-        if age >= 18 && age <= 120 {
+        if (18..=120).contains(&age) {
             Validation::success(age)
         } else {
             Validation::failure(vec![format!("Invalid age: {} (must be 18-120)", age)])
