@@ -7,6 +7,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Extended Semigroup Implementations (Spec 014)
+
+- **`Semigroup` for `HashMap<K, V: Semigroup>`** - Merge maps, combining values with same key
+  - Enables configuration merging and error aggregation by type
+  - Values are combined using their Semigroup instance
+- **`Semigroup` for `HashSet<T>`** - Union operation (all unique elements)
+  - Useful for feature flags and permission sets
+- **`Semigroup` for `BTreeMap<K, V: Semigroup>`** - Same as HashMap but maintains sorted keys
+- **`Semigroup` for `BTreeSet<T>`** - Same as HashSet but maintains sorted elements
+- **`Semigroup` for `Option<T: Semigroup>`** - Lifts semigroup operation to Option
+  - `Some(a).combine(Some(b))` = `Some(a.combine(b))`
+  - `Some(a).combine(None)` = `Some(a)`
+  - `None.combine(Some(b))` = `Some(b)`
+  - `None.combine(None)` = `None`
+
+#### Wrapper Types for Alternative Semantics (Spec 014)
+
+- **`First<T>`** - Keep first (left) value, discard second
+  - Useful for default configuration values
+- **`Last<T>`** - Keep last (right) value, discard first
+  - Useful for override semantics in layered configuration
+- **`Intersection<Set>`** - Set intersection instead of union
+  - Useful for finding common permissions or required features
+
+#### Parallel Effect Execution (Spec 015)
+
+- **`Effect::par_all()`** - Run multiple effects in parallel, collect all results and errors
+  - All effects run concurrently
+  - Success only if all effects succeed
+  - Accumulates all errors on failure
+- **`Effect::par_try_all()`** - Run effects in parallel, short-circuit on first error
+  - More efficient when you don't need all errors
+  - Fail-fast semantics for critical operations
+- **`Effect::race()`** - Race multiple effects, return first to succeed
+  - Useful for fallback data sources and timeout patterns
+  - Returns all errors if all effects fail
+- **`Effect::par_all_limit()`** - Run effects in parallel with concurrency limit
+  - Prevents resource exhaustion (connection pools, rate limits)
+  - Configurable maximum concurrent tasks
+
+#### Documentation
+
+- **`docs/guide/11-parallel-effects.md`** - Comprehensive guide to parallel execution (643 lines)
+  - Detailed examples for all four parallel methods
+  - Performance considerations and best practices
+  - Common patterns: scatter-gather, timeouts, graceful degradation
+  - Error handling strategies for parallel operations
+- **Updated `docs/guide/01-semigroup.md`** - Extended with collection implementations (+350 lines)
+  - HashMap, HashSet, BTreeMap, BTreeSet examples
+  - Option lifting patterns
+  - Wrapper types (First, Last, Intersection)
+  - Real-world use cases: config merging, error aggregation
+- **`examples/parallel_effects.rs`** - 8 comprehensive examples (450 lines)
+  - par_all with error accumulation
+  - par_try_all for fail-fast
+  - race for fallback sources and timeouts
+  - par_all_limit for bounded concurrency
+  - Dashboard loading (scatter-gather pattern)
+  - Graceful degradation patterns
+- **`examples/extended_semigroup.rs`** - 14 comprehensive examples (600 lines)
+  - HashMap and BTreeMap merging
+  - HashSet and BTreeSet union
+  - Option lifting for optional errors
+  - First/Last for configuration layering
+  - Intersection for permission checking
+  - Error aggregation by type
+- Updated README.md with new features and examples
+
+### Technical Details
+
+#### Spec 014 Technical Details
+- Zero-cost abstractions via trait monomorphization
+- HashMap/BTreeMap combine uses `entry().and_modify().or_insert()`
+- Set union via `extend()` for optimal performance
+- Option combine handles all four cases correctly
+- Property-based tests verify associativity for all implementations
+- Wrapper types are zero-sized newtypes
+
+#### Spec 015 Technical Details
+- Uses `futures` crate for async combinators
+- `par_all` and `par_try_all` use `join_all` and `try_join_all`
+- `race` uses `select_ok` for first success
+- `par_all_limit` uses `buffer_unordered` for concurrency control
+- Environment must be `Sync` for safe cross-thread sharing
+- Actual concurrency verified by timing tests
+- Works with tokio, async-std, and other async runtimes
+
 ## [0.4.0] - 2025-11-23
 
 ### Added

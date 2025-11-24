@@ -131,8 +131,11 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
+- **Parallel effect execution** - Run independent effects concurrently with `par_all()`, `race()`, and `par_all_limit()`
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
+  - Extended implementations for `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `Option`
+  - Wrapper types: `First`, `Last`, `Intersection` for alternative semantics
 - **`Monoid` trait** - Identity elements for powerful composition patterns
 - **Context chaining** - Never lose error context
 - **Zero-cost abstractions** - Compiles to same code as hand-written
@@ -238,9 +241,11 @@ Run any example with `cargo run --example <name>`:
 | [reader_pattern](examples/reader_pattern.rs) | Reader pattern with ask(), asks(), and local() |
 | [validation](examples/validation.rs) | Validation type and error accumulation patterns |
 | [effects](examples/effects.rs) | Effect type and composition patterns |
+| [parallel_effects](examples/parallel_effects.rs) | Parallel execution with par_all, race, and par_all_limit |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
 | [pipeline](examples/pipeline.rs) | Data transformation pipelines |
 | [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
+| [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
 
 See [examples/](examples/) directory for full code.
 

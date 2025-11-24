@@ -273,6 +273,369 @@ match validate_form("invalid", "short", 15) {
 
 Without Semigroup, we couldn't combine the error vectors automatically!
 
+## Extended Implementations for Collections
+
+Stillwater provides Semigroup implementations for standard Rust collection types, enabling powerful composition patterns for configuration merging, error aggregation, and data combining.
+
+### HashMaps and BTrees
+
+#### HashMap<K, V: Semigroup>
+
+Combines two maps by merging their entries. When keys conflict, their values are combined using the value's Semigroup instance:
+
+```rust
+use std::collections::HashMap;
+use stillwater::Semigroup;
+
+let mut map1 = HashMap::new();
+map1.insert("errors", vec!["error1"]);
+map1.insert("warnings", vec!["warn1"]);
+
+let mut map2 = HashMap::new();
+map2.insert("errors", vec!["error2"]);
+map2.insert("info", vec!["info1"]);
+
+let combined = map1.combine(map2);
+// Result:
+// {
+//   "errors": ["error1", "error2"],  // Combined with Vec semigroup
+//   "warnings": ["warn1"],            // From map1 only
+//   "info": ["info1"]                 // From map2 only
+// }
+```
+
+**Use case: Configuration Merging**
+
+```rust
+use std::collections::HashMap;
+use stillwater::Semigroup;
+
+#[derive(Clone)]
+struct Config {
+    settings: HashMap<String, String>,
+}
+
+impl Semigroup for Config {
+    fn combine(self, other: Self) -> Self {
+        Config {
+            settings: self.settings.combine(other.settings),
+        }
+    }
+}
+
+// Layer configs from different sources
+let default_config = Config {
+    settings: [("timeout", "30"), ("retries", "3")]
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+};
+
+let user_config = Config {
+    settings: [("timeout", "60"), ("debug", "true")]
+        .iter()
+        .map(|(k, v)| (k.to_string(), v.to_string()))
+        .collect(),
+};
+
+// user_config values override default_config values
+// (String semigroup concatenates, but you'd typically use Last wrapper for configs)
+```
+
+#### BTreeMap<K, V: Semigroup>
+
+Same as HashMap but maintains sorted keys:
+
+```rust
+use std::collections::BTreeMap;
+use stillwater::Semigroup;
+
+let mut map1 = BTreeMap::new();
+map1.insert("a", vec![1, 2]);
+map1.insert("b", vec![3]);
+
+let mut map2 = BTreeMap::new();
+map2.insert("a", vec![4, 5]);
+map2.insert("c", vec![6]);
+
+let combined = map1.combine(map2);
+// Keys in sorted order: {a: [1,2,4,5], b: [3], c: [6]}
+```
+
+### Sets
+
+#### HashSet<T>
+
+Combines two sets using union:
+
+```rust
+use std::collections::HashSet;
+use stillwater::Semigroup;
+
+let set1: HashSet<_> = [1, 2, 3].iter().cloned().collect();
+let set2: HashSet<_> = [3, 4, 5].iter().cloned().collect();
+
+let combined = set1.combine(set2);
+// Result: {1, 2, 3, 4, 5}
+```
+
+**Use case: Feature Flags**
+
+```rust
+use std::collections::HashSet;
+use stillwater::Semigroup;
+
+#[derive(Clone)]
+struct Features {
+    enabled: HashSet<String>,
+}
+
+impl Semigroup for Features {
+    fn combine(self, other: Self) -> Self {
+        Features {
+            enabled: self.enabled.combine(other.enabled),
+        }
+    }
+}
+
+let base_features = Features {
+    enabled: ["logging", "metrics"].iter().map(|s| s.to_string()).collect(),
+};
+
+let premium_features = Features {
+    enabled: ["advanced_analytics", "priority_support"].iter().map(|s| s.to_string()).collect(),
+};
+
+let all_features = base_features.combine(premium_features);
+// All features enabled
+```
+
+#### BTreeSet<T>
+
+Same as HashSet but maintains sorted elements:
+
+```rust
+use std::collections::BTreeSet;
+use stillwater::Semigroup;
+
+let set1: BTreeSet<_> = [1, 2, 3].iter().cloned().collect();
+let set2: BTreeSet<_> = [3, 4, 5].iter().cloned().collect();
+
+let combined = set1.combine(set2);
+// Elements in sorted order: {1, 2, 3, 4, 5}
+```
+
+### Option<T: Semigroup>
+
+Lifts a Semigroup operation to Option, combining inner values when both are Some:
+
+```rust
+use stillwater::Semigroup;
+
+let opt1 = Some(vec![1, 2]);
+let opt2 = Some(vec![3, 4]);
+assert_eq!(opt1.combine(opt2), Some(vec![1, 2, 3, 4]));
+
+let none: Option<Vec<i32>> = None;
+let some = Some(vec![1, 2]);
+assert_eq!(none.clone().combine(some.clone()), some);
+assert_eq!(some.clone().combine(none), some);
+
+let none1: Option<Vec<i32>> = None;
+let none2: Option<Vec<i32>> = None;
+assert_eq!(none1.combine(none2), None);
+```
+
+**Combination rules:**
+- `Some(a).combine(Some(b))` = `Some(a.combine(b))`
+- `Some(a).combine(None)` = `Some(a)`
+- `None.combine(Some(b))` = `Some(b)`
+- `None.combine(None)` = `None`
+
+**Use case: Optional Error Accumulation**
+
+```rust
+use stillwater::Semigroup;
+
+fn validate_optional_field(
+    value: Option<String>,
+) -> Option<Vec<String>> {
+    value.and_then(|v| {
+        if v.is_empty() {
+            Some(vec!["Field cannot be empty".to_string()])
+        } else {
+            None // No errors
+        }
+    })
+}
+
+let error1 = Some(vec!["Error 1".to_string()]);
+let error2 = None;
+let error3 = Some(vec!["Error 2".to_string()]);
+
+let all_errors = error1.combine(error2).combine(error3);
+// Some(vec!["Error 1", "Error 2"])
+```
+
+## Wrapper Types for Alternative Semantics
+
+Sometimes you want different combining behavior. Stillwater provides wrapper types for common alternatives:
+
+### First<T> - Keep First Value
+
+Always keeps the first (left) value, discarding the second:
+
+```rust
+use stillwater::{First, Semigroup};
+
+let first = First(1).combine(First(2));
+assert_eq!(first.0, 1); // Keeps first
+
+// Useful for configuration: first definition wins
+let config_value = First("default").combine(First("override"));
+assert_eq!(config_value.0, "default");
+```
+
+**Use case: Default Values**
+
+```rust
+use std::collections::HashMap;
+use stillwater::{First, Semigroup};
+
+// Use First wrapper to keep default config values
+let defaults: HashMap<String, First<i32>> =
+    [("timeout", First(30)), ("retries", First(3))]
+        .iter()
+        .cloned()
+        .collect();
+
+let user_config: HashMap<String, First<i32>> =
+    [("timeout", First(60))]  // User only overrides timeout
+        .iter()
+        .cloned()
+        .collect();
+
+// Combine: user config "wins" by being first
+let final_config = user_config.combine(defaults);
+// timeout is 60, retries is 3
+```
+
+### Last<T> - Keep Last Value
+
+Always keeps the last (right) value, discarding the first:
+
+```rust
+use stillwater::{Last, Semigroup};
+
+let last = Last(1).combine(Last(2));
+assert_eq!(last.0, 2); // Keeps last
+
+// Useful for configuration: last definition wins (override)
+let config_value = Last("default").combine(Last("override"));
+assert_eq!(config_value.0, "override");
+```
+
+**Use case: Layered Configuration**
+
+```rust
+use std::collections::HashMap;
+use stillwater::{Last, Semigroup};
+
+// Build config from multiple layers (last wins)
+let default_cfg: HashMap<String, Last<String>> =
+    [("env", Last("production".into())), ("debug", Last("false".into()))]
+        .iter()
+        .cloned()
+        .collect();
+
+let env_cfg: HashMap<String, Last<String>> =
+    [("debug", Last("true".into()))]  // Override from environment
+        .iter()
+        .cloned()
+        .collect();
+
+let final_cfg = default_cfg.combine(env_cfg);
+// debug is "true" (env_cfg overrides)
+// env is "production" (from defaults)
+```
+
+### Intersection<Set> - Set Intersection
+
+Alternative to the default union operation for sets:
+
+```rust
+use std::collections::HashSet;
+use stillwater::{Intersection, Semigroup};
+
+let set1: HashSet<_> = [1, 2, 3].iter().cloned().collect();
+let set2: HashSet<_> = [2, 3, 4].iter().cloned().collect();
+
+let i1 = Intersection(set1);
+let i2 = Intersection(set2);
+let result = i1.combine(i2);
+
+let expected: HashSet<_> = [2, 3].iter().cloned().collect();
+assert_eq!(result.0, expected); // Only common elements
+```
+
+**Use case: Required Permissions**
+
+```rust
+use std::collections::HashSet;
+use stillwater::{Intersection, Semigroup};
+
+// User must have ALL these permissions (intersection)
+let admin_perms: HashSet<_> =
+    ["read", "write", "delete", "admin"].iter().cloned().collect();
+let user_perms: HashSet<_> =
+    ["read", "write", "delete"].iter().cloned().collect();
+
+let effective_perms = Intersection(admin_perms).combine(Intersection(user_perms));
+// Result: ["read", "write", "delete"] - what user actually has
+```
+
+## Real-World Example: Error Aggregation by Type
+
+Here's how these implementations enable sophisticated error handling:
+
+```rust
+use std::collections::HashMap;
+use stillwater::Semigroup;
+
+type ErrorsByType = HashMap<String, Vec<String>>;
+
+fn validate_user_data(data: UserData) -> ErrorsByType {
+    let mut errors = HashMap::new();
+
+    // Validation errors
+    if !data.email.contains('@') {
+        errors.insert("validation".to_string(), vec!["Invalid email".to_string()]);
+    }
+
+    errors
+}
+
+fn check_permissions(user: &User) -> ErrorsByType {
+    let mut errors = HashMap::new();
+
+    if !user.has_permission("create") {
+        errors.insert("permission".to_string(), vec!["Unauthorized".to_string()]);
+    }
+
+    errors
+}
+
+// Combine error maps - errors of same type accumulate
+let validation_errors = validate_user_data(data);
+let permission_errors = check_permissions(&user);
+
+let all_errors = validation_errors.combine(permission_errors);
+// {
+//   "validation": ["Invalid email", ...],
+//   "permission": ["Unauthorized", ...]
+// }
+```
+
 ## Testing Your Semigroup Implementation
 
 When implementing Semigroup, test the associativity law:
@@ -307,9 +670,17 @@ fn test_associativity() {
 
 - **Semigroup** is a type with an associative `combine` operation
 - **Associativity** means combining order doesn't matter
-- **Built-in implementations** for Vec, String, and tuples
+- **Built-in implementations** for:
+  - Vec, String, and tuples (up to 12 elements)
+  - HashMap, BTreeMap (merge with value combining)
+  - HashSet, BTreeSet (union)
+  - Option (lifts inner Semigroup)
+- **Wrapper types** for alternative semantics:
+  - `First<T>` - keeps first value
+  - `Last<T>` - keeps last value
+  - `Intersection<Set>` - set intersection instead of union
 - **Custom implementations** are easy to write
-- **Foundation for validation** error accumulation
+- **Foundation for validation** error accumulation and configuration merging
 
 ## Next Steps
 
