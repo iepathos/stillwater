@@ -30,7 +30,6 @@ fn example_basic_aggregation() {
     enum Aggregate {
         Sum(f64),
         Count(usize),
-        Average(f64, usize),
     }
 
     impl Semigroup for Aggregate {
@@ -38,9 +37,6 @@ fn example_basic_aggregation() {
             match (self, other) {
                 (Aggregate::Sum(a), Aggregate::Sum(b)) => Aggregate::Sum(a + b),
                 (Aggregate::Count(a), Aggregate::Count(b)) => Aggregate::Count(a + b),
-                (Aggregate::Average(s1, c1), Aggregate::Average(s2, c2)) => {
-                    Aggregate::Average(s1 + s2, c1 + c2)
-                }
                 _ => unreachable!("Call validate_homogeneous first"),
             }
         }
@@ -51,7 +47,6 @@ fn example_basic_aggregation() {
             match self {
                 Aggregate::Sum(_) => "Sum",
                 Aggregate::Count(_) => "Count",
-                Aggregate::Average(_, _) => "Average",
             }
         }
     }
@@ -108,15 +103,12 @@ fn example_mapreduce_aggregation() {
     #[derive(Clone, Debug, PartialEq)]
     enum WorkerResult {
         Count(usize),
-        Sum(f64),
     }
 
     impl Semigroup for WorkerResult {
         fn combine(self, other: Self) -> Self {
             match (self, other) {
                 (WorkerResult::Count(a), WorkerResult::Count(b)) => WorkerResult::Count(a + b),
-                (WorkerResult::Sum(a), WorkerResult::Sum(b)) => WorkerResult::Sum(a + b),
-                _ => unreachable!("Validated before combining"),
             }
         }
     }
@@ -125,7 +117,6 @@ fn example_mapreduce_aggregation() {
         fn discriminant_name(&self) -> &'static str {
             match self {
                 WorkerResult::Count(_) => "Count",
-                WorkerResult::Sum(_) => "Sum",
             }
         }
     }
@@ -176,9 +167,7 @@ fn example_config_merging() {
     #[derive(Clone, Debug, PartialEq)]
     enum ConfigValue {
         Object(Vec<(String, String)>),
-        Array(Vec<String>),
         String(String),
-        Number(f64),
     }
 
     impl Semigroup for ConfigValue {
@@ -188,14 +177,9 @@ fn example_config_merging() {
                     a.extend(b);
                     ConfigValue::Object(a)
                 }
-                (ConfigValue::Array(mut a), ConfigValue::Array(b)) => {
-                    a.extend(b);
-                    ConfigValue::Array(a)
-                }
                 (ConfigValue::String(a), ConfigValue::String(b)) => {
                     ConfigValue::String(format!("{}{}", a, b))
                 }
-                (ConfigValue::Number(a), ConfigValue::Number(b)) => ConfigValue::Number(a + b),
                 _ => unreachable!("Validated before combining"),
             }
         }
@@ -205,9 +189,7 @@ fn example_config_merging() {
         fn discriminant_name(&self) -> &'static str {
             match self {
                 ConfigValue::Object(_) => "Object",
-                ConfigValue::Array(_) => "Array",
                 ConfigValue::String(_) => "String",
-                ConfigValue::Number(_) => "Number",
             }
         }
     }
@@ -280,8 +262,6 @@ fn example_database_sharding() {
     #[derive(Clone, Debug, PartialEq)]
     enum QueryResult {
         Rows(Vec<String>),
-        Count(usize),
-        Affected(usize),
     }
 
     impl Semigroup for QueryResult {
@@ -291,11 +271,6 @@ fn example_database_sharding() {
                     a.extend(b);
                     QueryResult::Rows(a)
                 }
-                (QueryResult::Count(a), QueryResult::Count(b)) => QueryResult::Count(a + b),
-                (QueryResult::Affected(a), QueryResult::Affected(b)) => {
-                    QueryResult::Affected(a + b)
-                }
-                _ => unreachable!("Validated before combining"),
             }
         }
     }
@@ -304,8 +279,6 @@ fn example_database_sharding() {
         fn discriminant_name(&self) -> &'static str {
             match self {
                 QueryResult::Rows(_) => "Rows",
-                QueryResult::Count(_) => "Count",
-                QueryResult::Affected(_) => "Affected",
             }
         }
     }
@@ -331,9 +304,8 @@ fn example_database_sharding() {
     match combined {
         Validation::Success(result) => {
             println!("✓ Combined query result: {:?}", result);
-            if let QueryResult::Rows(rows) = result {
-                println!("  Total rows: {}", rows.len());
-            }
+            let QueryResult::Rows(rows) = result;
+            println!("  Total rows: {}", rows.len());
         }
         Validation::Failure(errors) => {
             println!("✗ Query combination failed:");
