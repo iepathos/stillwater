@@ -1,81 +1,28 @@
----
-number: 013
-title: NonEmptyVec Data Structure
-category: foundation
-priority: medium
-status: draft
-dependencies: []
-created: 2025-11-22
----
+//! Non-empty vector type for type-safe collections
+//!
+//! This module provides the `NonEmptyVec<T>` type, which is a vector guaranteed to contain
+//! at least one element. This provides type-level guarantees that prevent runtime errors
+//! when operations assume a non-empty collection.
+//!
+//! # Examples
+//!
+//! ```
+//! use stillwater::NonEmptyVec;
+//!
+//! let nev = NonEmptyVec::new(1, vec![2, 3, 4]);
+//! assert_eq!(nev.head(), &1);
+//! assert_eq!(nev.tail(), &[2, 3, 4]);
+//! assert_eq!(nev.len(), 4);
+//! ```
+//!
+//! # Use Cases
+//!
+//! - Validation errors: When a `Validation` fails, there's always at least one error
+//! - Aggregations: Operations like `head()`, `max()`, `min()` require non-empty data
+//! - Type safety: Prevent `None`/`panic!` in operations that need elements
 
-# Specification 013: NonEmptyVec Data Structure
+use crate::Semigroup;
 
-**Category**: foundation
-**Priority**: medium
-**Status**: draft
-**Dependencies**: None
-
-## Context
-
-In functional programming, it's common to need a vector that is guaranteed to have at least one element. This provides type-level guarantees that prevent runtime errors when operations assume a non-empty collection.
-
-Use cases in Stillwater:
-- **Validation errors**: When a `Validation` fails, there's always at least one error
-- **Aggregations**: Some operations (like `head()`, `max()`, `min()`) require non-empty data
-- **Type safety**: Prevent `None`/`panic!` in operations that need elements
-
-Currently, `Validation<T, Vec<E>>` can fail with an empty error vector, which shouldn't be possible. `NonEmptyVec<E>` makes this impossible at the type level.
-
-## Objective
-
-Implement a `NonEmptyVec<T>` data structure that guarantees at least one element exists, providing type-safe operations that don't require Option returns or panic.
-
-## Requirements
-
-### Functional Requirements
-
-- Define `NonEmptyVec<T>` struct with at least one element guaranteed
-- Provide safe construction methods
-- Implement standard collection operations:
-  - `head()` / `first()` - always succeeds
-  - `tail()` - returns `Vec<T>` (may be empty)
-  - `last()` - always succeeds
-  - `push()`, `pop()` - safe operations
-  - `map()`, `filter()` (returns `Vec<T>`), `iter()`
-- Implement `FromIterator` with fallible conversion
-- Provide infallible `from_vec_unchecked()` for trusted sources
-- Integrate with `Validation` error type
-- Implement standard traits: `Debug`, `Clone`, `PartialEq`, `IntoIterator`
-
-### Non-Functional Requirements
-
-- Zero-cost abstraction (same performance as Vec)
-- Clear API preventing misuse
-- Comprehensive documentation
-- Interoperable with Vec
-
-## Acceptance Criteria
-
-- [ ] `NonEmptyVec<T>` struct defined
-- [ ] Construction methods: `new()`, `from_vec()`, `from_vec_unchecked()`
-- [ ] Safe accessor methods: `head()`, `tail()`, `last()`
-- [ ] Collection operations: `push()`, `pop()`, `len()`, `iter()`
-- [ ] Transformation methods: `map()`, `filter()`
-- [ ] Implements `FromIterator` with fallible conversion
-- [ ] Implements `IntoIterator`, `Debug`, `Clone`, `PartialEq`, `Eq`
-- [ ] Semigroup and Monoid instances
-- [ ] Integration with `Validation` type
-- [ ] Comprehensive tests
-- [ ] Documentation with examples
-- [ ] All tests pass
-
-## Technical Details
-
-### Implementation Approach
-
-#### Core Structure
-
-```rust
 /// A non-empty vector guaranteed to contain at least one element.
 ///
 /// This type provides type-level guarantees that operations like `head()`,
@@ -83,7 +30,7 @@ Implement a `NonEmptyVec<T>` data structure that guarantees at least one element
 ///
 /// # Example
 ///
-/// ```rust
+/// ```
 /// use stillwater::NonEmptyVec;
 ///
 /// let nev = NonEmptyVec::new(1, vec![2, 3, 4]);
@@ -102,7 +49,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.len(), 3);
     /// ```
@@ -114,7 +63,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::singleton(42);
     /// assert_eq!(nev.len(), 1);
     /// assert_eq!(nev.head(), &42);
@@ -129,7 +80,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::from_vec(vec![1, 2, 3]).unwrap();
     /// assert_eq!(nev.len(), 3);
     ///
@@ -147,18 +100,22 @@ impl<T> NonEmptyVec<T> {
 
     /// Create a non-empty vector from a `Vec` without checking.
     ///
-    /// # Safety
+    /// # Panics
     ///
-    /// The caller must ensure the vector is non-empty. Panics if empty.
+    /// Panics if the vector is empty.
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::from_vec_unchecked(vec![1, 2, 3]);
     /// assert_eq!(nev.len(), 3);
     /// ```
     ///
     /// ```should_panic
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::from_vec_unchecked(Vec::<i32>::new()); // panics
     /// ```
     pub fn from_vec_unchecked(vec: Vec<T>) -> Self {
@@ -169,7 +126,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.head(), &1);
     /// ```
@@ -181,7 +140,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.tail(), &[2, 3]);
     /// ```
@@ -193,7 +154,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.last(), &3);
     ///
@@ -210,7 +173,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.len(), 3);
     /// ```
@@ -218,11 +183,31 @@ impl<T> NonEmptyVec<T> {
         1 + self.tail.len()
     }
 
+    /// Check if the vector is empty.
+    ///
+    /// Always returns `false` since a NonEmptyVec is guaranteed to have at least one element.
+    ///
+    /// This method exists to satisfy clippy's `len_without_is_empty` lint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
+    /// let nev = NonEmptyVec::singleton(42);
+    /// assert!(!nev.is_empty());
+    /// ```
+    pub fn is_empty(&self) -> bool {
+        false
+    }
+
     /// Push an element to the end.
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let mut nev = NonEmptyVec::singleton(1);
     /// nev.push(2);
     /// nev.push(3);
@@ -238,7 +223,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let mut nev = NonEmptyVec::new(1, vec![2, 3]);
     /// assert_eq!(nev.pop(), Some(3));
     /// assert_eq!(nev.pop(), Some(2));
@@ -252,7 +239,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// let doubled = nev.map(|x| x * 2);
     /// assert_eq!(doubled.head(), &2);
@@ -273,7 +262,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3, 4]);
     /// let evens = nev.filter(|x| x % 2 == 0);
     /// assert_eq!(evens, vec![2, 4]);
@@ -297,7 +288,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// let vec = nev.into_vec();
     /// assert_eq!(vec, vec![1, 2, 3]);
@@ -312,7 +305,9 @@ impl<T> NonEmptyVec<T> {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```
+    /// use stillwater::NonEmptyVec;
+    ///
     /// let nev = NonEmptyVec::new(1, vec![2, 3]);
     /// let sum: i32 = nev.iter().sum();
     /// assert_eq!(sum, 6);
@@ -321,11 +316,7 @@ impl<T> NonEmptyVec<T> {
         std::iter::once(&self.head).chain(self.tail.iter())
     }
 }
-```
 
-### Trait Implementations
-
-```rust
 // Semigroup: concatenation
 impl<T> Semigroup for NonEmptyVec<T> {
     fn combine(mut self, other: Self) -> Self {
@@ -341,17 +332,12 @@ impl<T> IntoIterator for NonEmptyVec<T> {
     type IntoIter = std::iter::Chain<std::iter::Once<T>, std::vec::IntoIter<T>>;
 
     fn into_iter(self) -> Self::IntoIter {
-        std::iter::once(self.head).chain(self.tail.into_iter())
+        std::iter::once(self.head).chain(self.tail)
     }
 }
 
-// FromIterator (fallible)
-impl<T> FromIterator<T> for Option<NonEmptyVec<T>> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        let vec: Vec<T> = iter.into_iter().collect();
-        NonEmptyVec::from_vec(vec)
-    }
-}
+// Note: We cannot implement FromIterator for Option<NonEmptyVec<T>> due to orphan rules.
+// Instead, use NonEmptyVec::from_vec(vec) where vec is collected from an iterator.
 
 // Index
 impl<T> std::ops::Index<usize> for NonEmptyVec<T> {
@@ -365,42 +351,7 @@ impl<T> std::ops::Index<usize> for NonEmptyVec<T> {
         }
     }
 }
-```
 
-### Integration with Validation
-
-```rust
-// Update Validation to use NonEmptyVec for errors
-impl<T, E> Validation<T, NonEmptyVec<E>> {
-    /// Create a failure with a single error.
-    pub fn fail(error: E) -> Self {
-        Validation::failure(NonEmptyVec::singleton(error))
-    }
-
-    /// Combine validations, accumulating errors in NonEmptyVec.
-    pub fn all<I>(validations: I) -> Validation<Vec<T>, NonEmptyVec<E>>
-    where
-        I: IntoIterator<Item = Validation<T, NonEmptyVec<E>>>,
-    {
-        // Implementation that accumulates errors
-    }
-}
-```
-
-## Dependencies
-
-- **Prerequisites**: None
-- **Affected Components**:
-  - New module: `src/nonempty.rs`
-  - Integration with `src/validation.rs`
-  - Documentation updates
-- **External Dependencies**: None (std only)
-
-## Testing Strategy
-
-### Unit Tests
-
-```rust
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -414,6 +365,14 @@ mod tests {
     }
 
     #[test]
+    fn test_new() {
+        let nev = NonEmptyVec::new(1, vec![2, 3]);
+        assert_eq!(nev.head(), &1);
+        assert_eq!(nev.tail(), &[2, 3]);
+        assert_eq!(nev.len(), 3);
+    }
+
+    #[test]
     fn test_from_vec() {
         let nev = NonEmptyVec::from_vec(vec![1, 2, 3]).unwrap();
         assert_eq!(nev.head(), &1);
@@ -421,6 +380,28 @@ mod tests {
 
         let empty = NonEmptyVec::from_vec(Vec::<i32>::new());
         assert!(empty.is_none());
+    }
+
+    #[test]
+    fn test_from_vec_unchecked() {
+        let nev = NonEmptyVec::from_vec_unchecked(vec![1, 2, 3]);
+        assert_eq!(nev.head(), &1);
+        assert_eq!(nev.tail(), &[2, 3]);
+    }
+
+    #[test]
+    #[should_panic(expected = "NonEmptyVec::from_vec_unchecked called on empty Vec")]
+    fn test_from_vec_unchecked_panics() {
+        NonEmptyVec::from_vec_unchecked(Vec::<i32>::new());
+    }
+
+    #[test]
+    fn test_last() {
+        let nev = NonEmptyVec::new(1, vec![2, 3]);
+        assert_eq!(nev.last(), &3);
+
+        let single = NonEmptyVec::singleton(42);
+        assert_eq!(single.last(), &42);
     }
 
     #[test]
@@ -448,6 +429,27 @@ mod tests {
         let nev = NonEmptyVec::new(1, vec![2, 3, 4]);
         let evens = nev.filter(|x| x % 2 == 0);
         assert_eq!(evens, vec![2, 4]);
+
+        let nev2 = NonEmptyVec::singleton(1);
+        let empty = nev2.filter(|x| x % 2 == 0);
+        assert_eq!(empty, vec![]);
+    }
+
+    #[test]
+    fn test_into_vec() {
+        let nev = NonEmptyVec::new(1, vec![2, 3]);
+        let vec = nev.into_vec();
+        assert_eq!(vec, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_iter() {
+        let nev = NonEmptyVec::new(1, vec![2, 3]);
+        let sum: i32 = nev.iter().sum();
+        assert_eq!(sum, 6);
+
+        let collected: Vec<_> = nev.iter().copied().collect();
+        assert_eq!(collected, vec![1, 2, 3]);
     }
 
     #[test]
@@ -464,63 +466,32 @@ mod tests {
         let vec: Vec<_> = nev.into_iter().collect();
         assert_eq!(vec, vec![1, 2, 3]);
     }
+
+    #[test]
+    fn test_from_vec_with_iterator() {
+        // Since we can't implement FromIterator, test the pattern of collect + from_vec
+        let vec: Vec<i32> = vec![1, 2, 3].into_iter().collect();
+        let nev = NonEmptyVec::from_vec(vec);
+        assert!(nev.is_some());
+        assert_eq!(nev.unwrap().into_vec(), vec![1, 2, 3]);
+
+        let vec_empty: Vec<i32> = vec![].into_iter().collect();
+        let nev_empty = NonEmptyVec::from_vec(vec_empty);
+        assert!(nev_empty.is_none());
+    }
+
+    #[test]
+    fn test_index() {
+        let nev = NonEmptyVec::new(1, vec![2, 3]);
+        assert_eq!(nev[0], 1);
+        assert_eq!(nev[1], 2);
+        assert_eq!(nev[2], 3);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_index_out_of_bounds() {
+        let nev = NonEmptyVec::singleton(42);
+        let _ = nev[1]; // Should panic
+    }
 }
-```
-
-## Documentation Requirements
-
-### Code Documentation
-
-- Comprehensive rustdoc for all methods
-- Examples for each operation
-- Document why NonEmptyVec vs Vec
-- Explain type safety guarantees
-
-### User Documentation
-
-- New guide: `docs/guide/10-nonempty-collections.md`
-- Update Validation guide with NonEmptyVec usage
-- Add to README examples
-- FAQ: "When to use NonEmptyVec?"
-
-## Implementation Notes
-
-### Design Decisions
-
-**Why head + tail instead of Vec wrapper?**
-- Makes "at least one" explicit in structure
-- Efficient head access (no indexing)
-- Clear separation of guaranteed vs optional elements
-
-**Why no Monoid instance?**
-- No sensible empty value (contradicts "non-empty")
-- Only Semigroup (concatenation)
-
-**Why filter returns Vec?**
-- Filtering might remove all elements
-- Type system enforces thinking about this case
-- Alternative: `filter_ne()` that returns `Option<NonEmptyVec<T>>`
-
-## Migration and Compatibility
-
-### Breaking Changes
-
-None - pure addition.
-
-### Compatibility
-
-- Fully backward compatible
-- Opt-in usage where type safety is desired
-
-## Success Metrics
-
-- Zero runtime overhead vs manual Vec + bool check
-- Positive user feedback on type safety
-- Reduced runtime errors in validation code
-
-## Future Enhancements
-
-- `NonEmpty<Vec<T>>` trait for generic non-empty collections
-- `filter_ne()` returning `Option<NonEmptyVec<T>>`
-- Additional methods: `split_first()`, `split_last()`, etc.
-- NonEmptySet, NonEmptyMap variants
