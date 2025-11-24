@@ -216,10 +216,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.2"
+stillwater = "0.3"
 
 # Optional: async support
-stillwater = { version = "0.2", features = ["async"] }
+stillwater = { version = "0.3", features = ["async"] }
 ```
 
 ## Examples
@@ -233,6 +233,7 @@ Run any example with `cargo run --example <name>`:
 | [error_context](examples/error_context.rs) | Error trails for debugging |
 | [data_pipeline](examples/data_pipeline.rs) | Real-world ETL pipeline |
 | [testing_patterns](examples/testing_patterns.rs) | Testing pure vs effectful code |
+| [reader_pattern](examples/reader_pattern.rs) | Reader pattern with ask(), asks(), and local() |
 | [validation](examples/validation.rs) | Validation type and error accumulation patterns |
 | [effects](examples/effects.rs) | Effect type and composition patterns |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
@@ -243,10 +244,10 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.2 - Production Ready for Early Adopters**
+**Status: 0.3 - Production Ready for Early Adopters**
 
-- ✅ 152 unit tests passing (includes property-based tests)
-- ✅ 68 documentation tests passing
+- ✅ 163 unit tests passing (includes property-based tests)
+- ✅ 72 documentation tests passing
 - ✅ Zero clippy warnings
 - ✅ Comprehensive examples
 - ✅ Full async support

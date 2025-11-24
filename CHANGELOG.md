@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-11-23
+
+### Added
+
+#### Reader Pattern Helpers
+- **`Effect::ask()`** - Access entire environment in Reader monad pattern
+  - Returns current environment as Effect value
+  - Enables dependency injection without globals
+  - Zero-cost abstraction for environment access
+- **`Effect::asks(f)`** - Query and transform environment
+  - Extract specific fields or compute derived values
+  - Compose environment queries functionally
+  - Type-safe environment projection
+- **`Effect::local(f, effect)`** - Temporarily modify environment
+  - Run effect with modified environment
+  - Original environment preserved after execution
+  - Enables scoped configuration overrides
+
+#### Testing
+- **8 new unit tests** for Reader pattern helpers:
+  - Identity law verification for ask()
+  - Composition tests for asks()
+  - Nested environment modification with local()
+  - Integration with existing Effect combinators
+- Test count increased from 152 to 163 unit tests
+- Documentation test count increased from 68 to 72
+
+#### Documentation
+- **`docs/guide/09-reader-pattern.md`** - Comprehensive Reader pattern guide (619 lines)
+  - Reader monad concepts and motivation
+  - Usage patterns for all three helpers
+  - Best practices and anti-patterns
+  - Real-world dependency injection examples
+  - Integration with Effect combinators
+- Updated `docs/guide/03-effects.md` with Reader pattern section (+124 lines)
+- Updated README.md with Reader pattern example (+35 lines)
+- Updated DESIGN.md with Reader pattern design rationale (+56 lines)
+
+### Changed
+- Bumped version from 0.2.0 to 0.3.0
+- Enhanced Effect type with Reader monad capabilities
+- Improved doctest examples with explicit type annotations
+
+### Technical Details
+- Reader pattern implementation follows monad laws
+- ask() provides monadic unit for environment
+- asks() and local() enable functional environment manipulation
+- All helpers work seamlessly with async effects
+- No runtime overhead - pure compile-time abstractions
+
 ## [0.2.0] - 2025-11-23
 
 ### Added
@@ -146,6 +196,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/iepathos/stillwater/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/iepathos/stillwater/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/iepathos/stillwater/releases/tag/v0.1.0
