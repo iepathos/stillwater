@@ -471,16 +471,13 @@ async fn main() -> Result<(), AppError> {
         .await?;
 
     // Show safe query validation
-    match safe_database_query("DROP TABLE users".to_string())
+    if let Err(AppError::DatabaseError(msg)) = safe_database_query("DROP TABLE users".to_string())
         .run(&env)
         .await
     {
-        Err(AppError::DatabaseError(msg)) => {
-            log_error(format!("Query blocked: {}", msg))
-                .run(&env)
-                .await?;
-        }
-        _ => {}
+        log_error(format!("Query blocked: {}", msg))
+            .run(&env)
+            .await?;
     }
 
     // Show successful safe query
