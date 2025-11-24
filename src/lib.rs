@@ -58,6 +58,7 @@ pub mod context;
 pub mod effect;
 pub mod io;
 pub mod monoid;
+pub mod nonempty;
 pub mod semigroup;
 pub mod validation;
 
@@ -66,6 +67,7 @@ pub use context::ContextError;
 pub use effect::{Effect, EffectContext};
 pub use io::IO;
 pub use monoid::Monoid;
+pub use nonempty::NonEmptyVec;
 pub use semigroup::Semigroup;
 pub use validation::Validation;
 
@@ -75,6 +77,7 @@ pub mod prelude {
     pub use crate::effect::{Effect, EffectContext};
     pub use crate::io::IO;
     pub use crate::monoid::Monoid;
+    pub use crate::nonempty::NonEmptyVec;
     pub use crate::semigroup::Semigroup;
     pub use crate::validation::Validation;
 }

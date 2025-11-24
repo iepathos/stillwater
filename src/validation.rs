@@ -83,6 +83,7 @@
 //! 2. Enable the feature in `Cargo.toml`: `features = ["try_trait"]`
 //! 3. Add `#![feature(try_trait_v2)]` to your crate root
 
+use crate::nonempty::NonEmptyVec;
 use crate::Semigroup;
 
 /// A validation that either succeeds with a value or fails with accumulated errors
@@ -264,6 +265,25 @@ impl<T, E> Validation<T, E> {
             Validation::Success(value) => Validation::Success(value),
             Validation::Failure(error) => Validation::Failure(f(error)),
         }
+    }
+}
+
+impl<T, E> Validation<T, NonEmptyVec<E>> {
+    /// Create a failure with a single error.
+    ///
+    /// This is a convenience method for creating validations that fail with a single error,
+    /// without needing to construct a NonEmptyVec explicitly.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::{Validation, NonEmptyVec};
+    ///
+    /// let v = Validation::<i32, NonEmptyVec<&str>>::fail("error");
+    /// assert!(v.is_failure());
+    /// ```
+    pub fn fail(error: E) -> Self {
+        Validation::failure(NonEmptyVec::singleton(error))
     }
 }
 
@@ -1103,6 +1123,40 @@ mod tests {
         ];
         let result = Validation::all_vec(validations);
         assert_eq!(result, Validation::Failure(vec!["error1", "error2"]));
+    }
+
+    // NonEmptyVec integration tests
+    #[test]
+    fn test_fail_with_nonempty() {
+        use crate::nonempty::NonEmptyVec;
+
+        let v = Validation::<i32, NonEmptyVec<&str>>::fail("error");
+        assert!(v.is_failure());
+
+        match v {
+            Validation::Failure(errors) => {
+                assert_eq!(errors.len(), 1);
+                assert_eq!(errors.head(), &"error");
+            }
+            _ => panic!("Expected failure"),
+        }
+    }
+
+    #[test]
+    fn test_nonempty_error_accumulation() {
+        use crate::nonempty::NonEmptyVec;
+
+        let v1 = Validation::<i32, NonEmptyVec<&str>>::fail("error1");
+        let v2 = Validation::<i32, NonEmptyVec<&str>>::fail("error2");
+        let result = v1.and(v2);
+
+        match result {
+            Validation::Failure(errors) => {
+                assert_eq!(errors.len(), 2);
+                assert_eq!(errors.into_vec(), vec!["error1", "error2"]);
+            }
+            _ => panic!("Expected failure"),
+        }
     }
 
     // Integration test: form validation
