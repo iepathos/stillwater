@@ -70,6 +70,15 @@ This guide is organized into progressive chapters, each building on the previous
    - Traverse vs sequence
    - Real-world examples
 
+### Testing & Quality
+
+14. **[Testing](14-testing.md)** - Testing utilities and patterns
+   - MockEnv builder for test environments
+   - Assertion macros for Validation
+   - TestEffect for deterministic testing
+   - Property-based testing with proptest
+   - Testing best practices
+
 Note: Chapter 8 (Monoid) is listed under Core Concepts as it's fundamental to understanding error accumulation and composition patterns.
 
 ## How to Use This Guide
@@ -108,6 +117,10 @@ cargo run --example form_validation
 | Error debugging | ContextError | Add context trails |
 | Data aggregation | Monoid | Combine collections with fold_all |
 | Numeric operations | Sum/Product | Aggregate numbers with identity |
+| Testing validations | assert_success! / assert_failure! | Concise test assertions |
+| Testing effects | TestEffect | Deterministic effect testing |
+| Mock environments | MockEnv | Build test dependencies |
+| Property-based tests | proptest feature | Generate test cases |
 
 ### Common Patterns
 

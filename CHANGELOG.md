@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2025-11-24
+
+### Added
+
+#### Testing Utilities (Spec 018)
+
+- **`MockEnv` builder** - Composable test environment builder
+  - Chain multiple dependencies with `.with()` method
+  - Signature: `MockEnv::new().with(|| dependency).build()`
+  - Creates nested tuple structure: `(((), Dep1), Dep2)`
+  - Enables clean dependency injection for tests
+- **`assert_success!` macro** - Assert validation succeeds
+  - Panics with error details if validation is a `Failure`
+  - Usage: `assert_success!(validate_email("user@example.com"))`
+- **`assert_failure!` macro** - Assert validation fails
+  - Panics with value details if validation is a `Success`
+  - Usage: `assert_failure!(validate_email("invalid"))`
+- **`assert_validation_errors!` macro** - Assert specific errors
+  - Verifies exact error messages in failures
+  - Usage: `assert_validation_errors!(result, vec!["error1", "error2"])`
+- **`TestEffect` wrapper** - Deterministic effect testing
+  - Test effects without real I/O operations
+  - Provides `new()`, `run()`, and `into_effect()` methods
+  - Enables controlled testing of success and failure paths
+- **Property-based testing support** - Optional `proptest` feature
+  - `Arbitrary` implementation for `Validation<T, E>`
+  - Generates random Success and Failure instances
+  - Enables comprehensive property testing
+
+#### Documentation
+
+- **`docs/guide/14-testing.md`** - Comprehensive testing guide (433 lines)
+  - MockEnv builder patterns for test environments
+  - Assertion macro usage and examples
+  - TestEffect patterns for deterministic testing
+  - Property-based testing with proptest
+  - Testing best practices and patterns
+- **`tests/testing_utilities.rs`** - Integration test examples (369 lines)
+  - Real-world testing patterns
+  - Domain model testing examples
+  - Error accumulation verification
+  - Effect testing with mock environments
+
+#### Module and Exports
+
+- **New `src/testing.rs` module** - All testing utilities (494 lines)
+  - Full documentation with examples
+  - Comprehensive test coverage (13 unit tests)
+- **Exported in prelude** - `MockEnv`, `TestEffect`, and assertion macros
+  - Available via `use stillwater::prelude::*;`
+  - Direct access via `stillwater::testing::{...}`
+- **New Cargo feature** - `proptest` for property-based testing
+  - Optional dependency on proptest crate
+  - Enable with `features = ["proptest"]`
+
 ## [0.6.0] - 2025-11-24
 
 ### Added

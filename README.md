@@ -140,6 +140,11 @@ let result = fetch_with_extended_timeout().run(&config).await?;
   - Extended implementations for `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `Option`
   - Wrapper types: `First`, `Last`, `Intersection` for alternative semantics
 - **`Monoid` trait** - Identity elements for powerful composition patterns
+- **Testing utilities** - Ergonomic test helpers
+  - `MockEnv` builder for composing test environments
+  - Assertion macros: `assert_success!`, `assert_failure!`, `assert_validation_errors!`
+  - `TestEffect` wrapper for deterministic effect testing
+  - Optional `proptest` feature for property-based testing
 - **Context chaining** - Never lose error context
 - **Zero-cost abstractions** - Compiles to same code as hand-written
 - **Works with `?` operator** - Integrates with Rust idioms
@@ -223,10 +228,16 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.6"
+stillwater = "0.7"
 
 # Optional: async support
-stillwater = { version = "0.6", features = ["async"] }
+stillwater = { version = "0.7", features = ["async"] }
+
+# Optional: property-based testing
+stillwater = { version = "0.7", features = ["proptest"] }
+
+# Optional: multiple features
+stillwater = { version = "0.7", features = ["async", "proptest"] }
 ```
 
 ## Examples
@@ -255,13 +266,14 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.6 - Production Ready for Early Adopters**
+**Status: 0.7 - Production Ready for Early Adopters**
 
-- ✅ 235 unit tests passing (includes property-based tests)
-- ✅ 108 documentation tests passing
+- ✅ 248 unit tests passing (includes property-based tests)
+- ✅ 122 documentation tests passing
 - ✅ Zero clippy warnings
 - ✅ Comprehensive examples
 - ✅ Full async support
+- ✅ Testing utilities with MockEnv and assertion macros
 - ✅ CI/CD pipeline with security audits
 
 This library is stable and ready for use. The 0.x version indicates the API may evolve based on community feedback.
