@@ -129,6 +129,7 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
+- **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
@@ -216,10 +217,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.3"
+stillwater = "0.4"
 
 # Optional: async support
-stillwater = { version = "0.3", features = ["async"] }
+stillwater = { version = "0.4", features = ["async"] }
 ```
 
 ## Examples
@@ -229,6 +230,7 @@ Run any example with `cargo run --example <name>`:
 | Example | Demonstrates |
 |---------|--------------|
 | [form_validation](examples/form_validation.rs) | Validation error accumulation |
+| [nonempty](examples/nonempty.rs) | NonEmptyVec type for guaranteed non-empty collections |
 | [user_registration](examples/user_registration.rs) | Effect composition and I/O separation |
 | [error_context](examples/error_context.rs) | Error trails for debugging |
 | [data_pipeline](examples/data_pipeline.rs) | Real-world ETL pipeline |
@@ -244,9 +246,9 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.3 - Production Ready for Early Adopters**
+**Status: 0.4 - Production Ready for Early Adopters**
 
-- ✅ 163 unit tests passing (includes property-based tests)
+- ✅ 181 unit tests passing (includes property-based tests)
 - ✅ 72 documentation tests passing
 - ✅ Zero clippy warnings
 - ✅ Comprehensive examples

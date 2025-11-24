@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2025-11-23
+
+### Added
+
+#### NonEmptyVec Type
+- **`NonEmptyVec<T>`** - Type-safe non-empty vector guaranteed to contain at least one element
+  - Prevents runtime errors in operations requiring non-empty collections
+  - Head + tail internal structure for guaranteed non-emptiness
+  - Safe construction via `new()`, `singleton()`, `from_vec()` (returns `Option`)
+  - Unsafe construction via `from_vec_unchecked()` for performance-critical paths
+
+#### NonEmptyVec Operations
+- **Safe accessors** that never fail:
+  - `head()` - Get first element (always succeeds, no `Option`)
+  - `last()` - Get last element (always succeeds, no `Option`)
+  - `tail()` - Get all elements except the first
+  - `len()` - Get length (always >= 1)
+  - `is_empty()` - Always returns `false` (satisfies clippy lint)
+- **Mutation methods**:
+  - `push()` - Add element to end
+  - `pop()` - Remove from end (returns `Option`, preserves head)
+- **Functional operations**:
+  - `map()` - Transform all elements (preserves non-emptiness)
+  - `filter()` - Filter elements (returns `Vec<T>` since may become empty)
+  - `iter()` - Iterate over all elements
+  - `into_iter()` - Consuming iterator
+  - `into_vec()` - Convert to regular `Vec<T>`
+
+#### Trait Implementations
+- **`Semigroup`** for `NonEmptyVec<T>` - Concatenation via `combine()`
+- **`IntoIterator`** - Enables use in for loops
+- **`Index<usize>`** - Array-like indexing (panics on out of bounds)
+
+#### Validation Integration
+- **`Validation::fail(error: E)`** - Convenience method for `Validation<T, NonEmptyVec<E>>`
+  - Creates validation failure with single error
+  - Eliminates need to manually construct `NonEmptyVec`
+  - Type-safe error accumulation guaranteed to have at least one error
+
+#### Testing
+- **18 new unit tests** for NonEmptyVec:
+  - Construction methods (new, singleton, from_vec, from_vec_unchecked)
+  - Safe operations (head, tail, last, len)
+  - Mutation (push, pop boundary conditions)
+  - Functional operations (map, filter, iter, into_iter)
+  - Trait implementations (Semigroup, Index, IntoIterator)
+  - Panic tests for unsafe operations
+- **2 integration tests** for Validation with NonEmptyVec
+- Test count increased from 163 to 181 unit tests
+
+#### Documentation
+- **`examples/nonempty.rs`** - Comprehensive NonEmptyVec examples (330 lines)
+  - 8 examples covering all functionality
+  - Basic creation patterns
+  - Safe operations demonstration
+  - Mutation examples
+  - Functional programming patterns
+  - Semigroup concatenation
+  - Validation integration
+  - Real-world batch processing scenario
+  - Safe aggregation operations (min, max, avg)
+- **Module documentation** with examples for all public methods
+- Updated README.md with NonEmptyVec feature
+- Integration examples with Validation type
+
+### Changed
+- Bumped version from 0.3.0 to 0.4.0
+- Updated README installation instructions to 0.4
+- Updated examples table with nonempty.rs
+
+### Technical Details
+- Zero-cost abstraction using head + tail structure
+- `from_vec()` uses `vec.remove(0)` for simplicity (O(n) but acceptable)
+- `filter()` returns `Vec<T>` not `Option<NonEmptyVec<T>>` - simpler API
+- `is_empty()` always returns `false` - included for clippy compliance
+- Integrates seamlessly with existing Validation error accumulation
+
+### Use Cases
+- **Validation failures** - Guarantee at least one error when validation fails
+- **Aggregations** - Operations like `max()`, `min()` that require elements
+- **Batch processing** - Ensure batches are never empty
+- **Type safety** - Eliminate `Option` unwraps in operations needing elements
+
 ## [0.3.0] - 2025-11-23
 
 ### Added
@@ -196,7 +279,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/iepathos/stillwater/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/iepathos/stillwater/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/iepathos/stillwater/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/iepathos/stillwater/releases/tag/v0.1.0
