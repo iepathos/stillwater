@@ -31,6 +31,151 @@
 //! let failure = Validation::<i32, _>::failure(vec!["error".to_string()]);
 //! assert_failure!(failure);
 //! ```
+//!
+//! ## TestEffect
+//!
+//! ```rust
+//! use stillwater::testing::TestEffect;
+//! use stillwater::Effect;
+//!
+//! # tokio_test::block_on(async {
+//! // Wrap an effect for deterministic testing
+//! let effect = Effect::<_, String, ()>::pure(42);
+//! let test_effect = TestEffect::new(effect);
+//!
+//! // Run without real I/O
+//! assert_eq!(test_effect.run(&()).await, Ok(42));
+//! # });
+//! ```
+
+use crate::Effect;
+
+/// Wrapper for testing effects deterministically without real I/O.
+///
+/// `TestEffect` provides a way to test effects in a controlled environment,
+/// allowing you to verify behavior without performing actual I/O operations.
+/// This is particularly useful for testing error paths and edge cases.
+///
+/// # Examples
+///
+/// ## Basic Testing
+///
+/// ```rust
+/// use stillwater::testing::TestEffect;
+/// use stillwater::Effect;
+///
+/// # tokio_test::block_on(async {
+/// let effect = Effect::<_, String, ()>::pure(42);
+/// let test_effect = TestEffect::new(effect);
+///
+/// assert_eq!(test_effect.run(&()).await, Ok(42));
+/// # });
+/// ```
+///
+/// ## Testing Failures
+///
+/// ```rust
+/// use stillwater::testing::TestEffect;
+/// use stillwater::Effect;
+///
+/// # tokio_test::block_on(async {
+/// let effect = Effect::<i32, _, ()>::fail("error");
+/// let test_effect = TestEffect::new(effect);
+///
+/// assert_eq!(test_effect.run(&()).await, Err("error"));
+/// # });
+/// ```
+///
+/// ## Testing with Environment
+///
+/// ```rust
+/// use stillwater::testing::{TestEffect, MockEnv};
+/// use stillwater::Effect;
+///
+/// # tokio_test::block_on(async {
+/// struct Database {
+///     value: i32,
+/// }
+///
+/// let env = MockEnv::new()
+///     .with(|| Database { value: 42 })
+///     .build();
+///
+/// let effect = Effect::from_fn(|(_, db): &((), Database)| {
+///     Ok::<_, String>(db.value * 2)
+/// });
+///
+/// let test_effect = TestEffect::new(effect);
+/// assert_eq!(test_effect.run(&env).await, Ok(84));
+/// # });
+/// ```
+#[derive(Debug)]
+pub struct TestEffect<T, E, Env> {
+    effect: Effect<T, E, Env>,
+}
+
+impl<T, E, Env> TestEffect<T, E, Env> {
+    /// Create a new TestEffect from an Effect.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::testing::TestEffect;
+    /// use stillwater::Effect;
+    ///
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let test_effect = TestEffect::new(effect);
+    /// ```
+    pub fn new(effect: Effect<T, E, Env>) -> Self {
+        Self { effect }
+    }
+
+    /// Run the effect with the given environment.
+    ///
+    /// This executes the effect in a controlled test context, allowing you
+    /// to verify behavior without real I/O.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::testing::TestEffect;
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let test_effect = TestEffect::new(effect);
+    ///
+    /// let result = test_effect.run(&()).await;
+    /// assert_eq!(result, Ok(42));
+    /// # });
+    /// ```
+    pub async fn run(self, env: &Env) -> Result<T, E>
+    where
+        T: Send + 'static,
+        E: Send + 'static,
+        Env: Sync + 'static,
+    {
+        self.effect.run(env).await
+    }
+
+    /// Unwrap the underlying effect.
+    ///
+    /// This is useful if you need to compose the test effect with other effects.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::testing::TestEffect;
+    /// use stillwater::Effect;
+    ///
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let test_effect = TestEffect::new(effect);
+    /// let unwrapped = test_effect.into_effect();
+    /// ```
+    pub fn into_effect(self) -> Effect<T, E, Env> {
+        self.effect
+    }
+}
 
 /// Builder for creating test environments.
 ///
@@ -197,6 +342,9 @@ macro_rules! assert_validation_errors {
 use proptest::prelude::*;
 
 #[cfg(feature = "proptest")]
+use crate::Validation;
+
+#[cfg(feature = "proptest")]
 impl<T, E> Arbitrary for Validation<T, E>
 where
     T: Arbitrary,
@@ -282,6 +430,46 @@ mod tests {
     fn assert_validation_errors_panics_on_success() {
         let val = Validation::<_, Vec<String>>::success(42);
         assert_validation_errors!(val, vec!["error".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn test_effect_new_and_run() {
+        let effect = Effect::<_, String, ()>::pure(42);
+        let test_effect = TestEffect::new(effect);
+        let result = test_effect.run(&()).await;
+        assert_eq!(result, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_effect_with_failure() {
+        let effect = Effect::<i32, _, ()>::fail("error");
+        let test_effect = TestEffect::new(effect);
+        let result = test_effect.run(&()).await;
+        assert_eq!(result, Err("error"));
+    }
+
+    #[tokio::test]
+    async fn test_effect_with_mock_env() {
+        struct Config {
+            multiplier: i32,
+        }
+
+        let env = MockEnv::new().with(|| Config { multiplier: 21 }).build();
+
+        let effect = Effect::from_fn(|(_, config): &((), Config)| Ok::<_, String>(config.multiplier * 2));
+
+        let test_effect = TestEffect::new(effect);
+        let result = test_effect.run(&env).await;
+        assert_eq!(result, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_effect_into_effect() {
+        let effect = Effect::<_, String, ()>::pure(42);
+        let test_effect = TestEffect::new(effect);
+        let unwrapped = test_effect.into_effect();
+        let result = unwrapped.run(&()).await;
+        assert_eq!(result, Ok(42));
     }
 
     #[cfg(feature = "proptest")]

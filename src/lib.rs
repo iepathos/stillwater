@@ -80,7 +80,7 @@ pub mod prelude {
     pub use crate::monoid::Monoid;
     pub use crate::nonempty::NonEmptyVec;
     pub use crate::semigroup::{First, Intersection, Last, Semigroup};
-    pub use crate::testing::MockEnv;
+    pub use crate::testing::{MockEnv, TestEffect};
     pub use crate::traverse::{sequence, sequence_effect, traverse, traverse_effect};
     pub use crate::validation::Validation;
     pub use crate::{assert_failure, assert_success, assert_validation_errors};
