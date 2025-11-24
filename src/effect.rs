@@ -1977,7 +1977,7 @@ mod tests {
     async fn test_par_all_limit() {
         let env = ();
 
-        let effects: Vec<_> = (1..=10).map(|i| Effect::<_, String, ()>::pure(i)).collect();
+        let effects: Vec<_> = (1..=10).map(Effect::<_, String, ()>::pure).collect();
 
         let result = Effect::par_all_limit(effects, 3).run(&env).await;
         assert!(result.is_ok());
