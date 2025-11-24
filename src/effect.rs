@@ -1468,12 +1468,12 @@ mod tests {
     #[tokio::test]
     async fn test_asks_extract_field() {
         struct AppEnv {
-            database: String,
+            _database: String,
             config: String,
         }
 
         let env = AppEnv {
-            database: "db".into(),
+            _database: "db".into(),
             config: "cfg".into(),
         };
 
