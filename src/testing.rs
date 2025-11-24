@@ -347,8 +347,8 @@ use crate::Validation;
 #[cfg(feature = "proptest")]
 impl<T, E> Arbitrary for Validation<T, E>
 where
-    T: Arbitrary,
-    E: Arbitrary,
+    T: Arbitrary + 'static,
+    E: Arbitrary + 'static,
 {
     type Parameters = (T::Parameters, E::Parameters);
     type Strategy = BoxedStrategy<Self>;
