@@ -128,6 +128,7 @@ fn test_successful_user_validation() {
 // Tests demonstrating MockEnv builder
 
 #[test]
+#[allow(clippy::let_unit_value, clippy::unit_cmp)]
 fn test_mock_env_empty() {
     let env = MockEnv::new().build();
     assert_eq!(env, ());
@@ -135,7 +136,7 @@ fn test_mock_env_empty() {
 
 #[test]
 fn test_mock_env_with_database() {
-    let env = MockEnv::new().with(|| Database::new()).build();
+    let env = MockEnv::new().with(Database::new).build();
 
     let (_, db) = env;
     assert_eq!(db.users.len(), 0);
@@ -144,20 +145,20 @@ fn test_mock_env_with_database() {
 #[test]
 fn test_mock_env_with_config_and_database() {
     let env = MockEnv::new()
-        .with(|| Config::test_config())
-        .with(|| Database::new())
+        .with(Config::test_config)
+        .with(Database::new)
         .build();
 
     let ((_, config), db) = env;
     assert_eq!(config.min_age, 18);
-    assert_eq!(config.debug, true);
+    assert!(config.debug);
     assert_eq!(db.users.len(), 0);
 }
 
 #[test]
 fn test_mock_env_with_multiple_dependencies() {
     let env = MockEnv::new()
-        .with(|| Config::test_config())
+        .with(Config::test_config)
         .with(|| {
             Database::with_users(vec![User {
                 email: "test@example.com".to_string(),

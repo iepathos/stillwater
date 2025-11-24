@@ -369,6 +369,7 @@ mod tests {
     use crate::Validation;
 
     #[test]
+    #[allow(clippy::let_unit_value, clippy::unit_cmp)]
     fn mock_env_new() {
         let env = MockEnv::new().build();
         assert_eq!(env, ());
@@ -390,7 +391,7 @@ mod tests {
 
         let (((_, s), _n), b) = env;
         assert_eq!(s, "hello");
-        assert_eq!(b, true);
+        assert!(b);
     }
 
     #[test]
