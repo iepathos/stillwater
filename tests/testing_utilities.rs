@@ -224,7 +224,10 @@ fn test_validation_map() {
 #[test]
 fn test_validation_map_error() {
     let result = validate_email("invalid").map_err(|errors: Vec<String>| {
-        errors.iter().map(|e| e.to_uppercase()).collect::<Vec<String>>()
+        errors
+            .iter()
+            .map(|e| e.to_uppercase())
+            .collect::<Vec<String>>()
     });
 
     assert_failure!(result);

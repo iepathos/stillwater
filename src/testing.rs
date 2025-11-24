@@ -456,7 +456,8 @@ mod tests {
 
         let env = MockEnv::new().with(|| Config { multiplier: 21 }).build();
 
-        let effect = Effect::from_fn(|(_, config): &((), Config)| Ok::<_, String>(config.multiplier * 2));
+        let effect =
+            Effect::from_fn(|(_, config): &((), Config)| Ok::<_, String>(config.multiplier * 2));
 
         let test_effect = TestEffect::new(effect);
         let result = test_effect.run(&env).await;
