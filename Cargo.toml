@@ -17,6 +17,7 @@ tokio = { version = "1", features = ["full"], optional = true }
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-test = "0.4"
+proptest = "1.0"
 
 [features]
 default = []
