@@ -187,28 +187,19 @@ stillwater = { version = "0.1", features = ["async"] }
 
 ## Examples
 
-Stillwater provides comprehensive examples organized into two categories:
+Run any example with `cargo run --example <name>`:
 
-### Tutorial Examples
-
-Progressive introduction to core concepts:
-
-- **validation**: Validation type and error accumulation patterns
-- **effects**: Effect type and composition patterns
-- **io_patterns**: IO module helpers for reading/writing
-- **pipeline**: Data transformation pipelines
-
-### Real-World Examples
-
-Complete use cases demonstrating practical applications:
-
-- **form_validation**: Multi-field form validation with error accumulation
-- **user_registration**: User registration workflow with multiple services
-- **error_context**: Error trails for better debugging
-- **data_pipeline**: ETL pipeline with Validation
-- **testing_patterns**: Testing pure vs effectful code
-
-Run any example with `cargo run --example <name>`.
+| Example | Demonstrates |
+|---------|--------------|
+| [form_validation](examples/form_validation.rs) | Validation error accumulation |
+| [user_registration](examples/user_registration.rs) | Effect composition and I/O separation |
+| [error_context](examples/error_context.rs) | Error trails for debugging |
+| [data_pipeline](examples/data_pipeline.rs) | Real-world ETL pipeline |
+| [testing_patterns](examples/testing_patterns.rs) | Testing pure vs effectful code |
+| [validation](examples/validation.rs) | Validation type and error accumulation patterns |
+| [effects](examples/effects.rs) | Effect type and composition patterns |
+| [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
+| [pipeline](examples/pipeline.rs) | Data transformation pipelines |
 
 See [examples/](examples/) directory for full code.
 
@@ -225,9 +216,15 @@ See [examples/](examples/) directory for full code.
 
 This library is stable and ready for use. The 0.x version indicates the API may evolve based on community feedback.
 
-## Design Philosophy
+## Documentation
 
-See [DESIGN.md](./DESIGN.md) for detailed design decisions, patterns, and architecture.
+- 📚 [User Guide](docs/guide/README.md) - Comprehensive tutorials
+- 📖 [API Docs](https://docs.rs/stillwater) - Full API reference
+- 🤔 [FAQ](docs/FAQ.md) - Common questions
+- 🏛️ [Design](DESIGN.md) - Architecture and decisions
+- 💭 [Philosophy](PHILOSOPHY.md) - Core principles
+- 🎯 [Patterns](docs/PATTERNS.md) - Common patterns and recipes
+- 🔄 [Comparison](docs/COMPARISON.md) - vs other libraries
 
 ## Migrating from Result
 
