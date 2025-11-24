@@ -297,7 +297,7 @@ where
     ///     timeout: u64,
     /// }
     ///
-    /// let effect = Effect::ask()
+    /// let effect = Effect::<Config, String, Config>::ask()
     ///     .map(|config: Config| config.api_key.clone());
     ///
     /// let config = Config {
@@ -334,7 +334,7 @@ where
     /// }
     ///
     /// // Extract just the config
-    /// let effect = Effect::asks(|env: &AppEnv| env.config.clone());
+    /// let effect = Effect::<String, String, AppEnv>::asks(|env: &AppEnv| env.config.clone());
     ///
     /// let env = AppEnv {
     ///     database: "db".into(),
@@ -345,7 +345,7 @@ where
     /// assert_eq!(result, "cfg");
     ///
     /// // Or query a specific field
-    /// let effect = Effect::asks(|env: &AppEnv| env.database.len());
+    /// let effect = Effect::<usize, String, AppEnv>::asks(|env: &AppEnv| env.database.len());
     /// let result = effect.run(&env).await.unwrap();
     /// assert_eq!(result, 2);
     /// # });
@@ -377,7 +377,7 @@ where
     /// }
     ///
     /// fn fetch_data() -> Effect<String, String, Config> {
-    ///     Effect::asks(|cfg: &Config| cfg.timeout)
+    ///     Effect::<u64, String, Config>::asks(|cfg: &Config| cfg.timeout)
     ///         .map(|timeout| format!("fetched with timeout {}", timeout))
     /// }
     ///
