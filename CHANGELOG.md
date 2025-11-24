@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.0] - 2025-11-24
+## [0.8.0] - 2025-11-24
 
 ### Added
 
@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - API comparison table showing validation vs panic approaches
   - Property-based tests verifying correctness
   - Integration tests with real-world scenarios
+  - Runnable example in `examples/homogeneous_validation.rs`
 - **Testing**:
   - Property-based tests with proptest
   - Integration tests demonstrating practical patterns

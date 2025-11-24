@@ -263,16 +263,16 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.7"
+stillwater = "0.8"
 
 # Optional: async support
-stillwater = { version = "0.7", features = ["async"] }
+stillwater = { version = "0.8", features = ["async"] }
 
 # Optional: property-based testing
-stillwater = { version = "0.7", features = ["proptest"] }
+stillwater = { version = "0.8", features = ["proptest"] }
 
 # Optional: multiple features
-stillwater = { version = "0.7", features = ["async", "proptest"] }
+stillwater = { version = "0.8", features = ["async", "proptest"] }
 ```
 
 ## Examples
@@ -282,6 +282,7 @@ Run any example with `cargo run --example <name>`:
 | Example | Demonstrates |
 |---------|--------------|
 | [form_validation](examples/form_validation.rs) | Validation error accumulation |
+| [homogeneous_validation](examples/homogeneous_validation.rs) | Type-safe validation for discriminated unions before combining |
 | [nonempty](examples/nonempty.rs) | NonEmptyVec type for guaranteed non-empty collections |
 | [user_registration](examples/user_registration.rs) | Effect composition and I/O separation |
 | [error_context](examples/error_context.rs) | Error trails for debugging |
@@ -301,13 +302,14 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.7 - Production Ready for Early Adopters**
+**Status: 0.8 - Production Ready for Early Adopters**
 
-- ✅ 248 unit tests passing (includes property-based tests)
+- ✅ 295 unit tests passing (includes property-based tests)
 - ✅ 122 documentation tests passing
 - ✅ Zero clippy warnings
-- ✅ Comprehensive examples
+- ✅ Comprehensive examples (16 runnable examples)
 - ✅ Full async support
+- ✅ Homogeneous validation for type-safe combining
 - ✅ Testing utilities with MockEnv and assertion macros
 - ✅ CI/CD pipeline with security audits
 
