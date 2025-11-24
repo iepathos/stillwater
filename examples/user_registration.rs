@@ -38,9 +38,11 @@ fn validate_username(username: &str) -> Validation<(), Vec<String>> {
 
     if username.is_empty() {
         errors.push("Username is required".to_string());
-    } else if username.len() < 3 || username.len() > 20 {
+    }
+    if username.len() < 3 || username.len() > 20 {
         errors.push("Username must be between 3 and 20 characters".to_string());
-    } else if !username
+    }
+    if !username
         .chars()
         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
     {
@@ -62,11 +64,14 @@ fn validate_email(email: &str) -> Validation<(), Vec<String>> {
 
     if email.is_empty() {
         errors.push("Email is required".to_string());
-    } else if !email.contains('@') {
+    }
+    if !email.contains('@') {
         errors.push("Email must contain @".to_string());
-    } else if !email.contains('.') {
+    }
+    if !email.contains('.') {
         errors.push("Email must contain a domain".to_string());
-    } else if email.len() > 254 {
+    }
+    if email.len() > 254 {
         errors.push("Email is too long".to_string());
     }
 
