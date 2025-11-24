@@ -223,7 +223,7 @@ async fn example_batch_user_loading() {
 
     println!("Loading multiple users in parallel...");
 
-    let user_ids = vec![1, 2, 3, 4, 5];
+    let user_ids = [1, 2, 3, 4, 5];
 
     let start = Instant::now();
 
