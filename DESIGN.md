@@ -183,6 +183,62 @@ where
 }
 ```
 
+### Reader Pattern Helpers
+
+The Reader pattern provides functional dependency injection, allowing effects to access environment without explicit parameter passing.
+
+```rust
+impl<T, E, Env> Effect<T, E, Env> {
+    /// Get the entire environment as an Effect
+    pub fn ask() -> Effect<Env, E, Env>
+    where
+        Env: Clone + Send;
+
+    /// Query a specific value from the environment
+    pub fn asks<F, U>(f: F) -> Effect<U, E, Env>
+    where
+        F: FnOnce(&Env) -> U + Send + 'static,
+        U: Send + 'static;
+
+    /// Run an effect with a modified environment
+    pub fn local<F>(f: F, effect: Effect<T, E, Env>) -> Effect<T, E, Env>
+    where
+        F: FnOnce(&Env) -> Env + Send + 'static,
+        Env: Clone + Send;
+}
+```
+
+**Design rationale:**
+- `ask()` provides access to the whole environment for cases where multiple fields are needed
+- `asks(f)` is more efficient, extracting only what's needed without cloning the entire environment
+- `local(f, effect)` enables temporary environment modifications without mutating the original
+- All three compose naturally with other Effect combinators
+
+**Usage patterns:**
+
+```rust
+// Query configuration from environment
+fn get_timeout() -> Effect<u64, Error, Config> {
+    Effect::asks(|cfg: &Config| cfg.timeout)
+}
+
+// Temporarily modify environment for specific operation
+fn with_extended_timeout<T>(effect: Effect<T, Error, Config>) -> Effect<T, Error, Config> {
+    Effect::local(
+        |cfg: &Config| Config { timeout: cfg.timeout * 2, ..*cfg },
+        effect
+    )
+}
+
+// Compose with other operations
+fn fetch_with_config(url: String) -> Effect<Response, Error, AppEnv> {
+    Effect::asks(|env: &AppEnv| env.config.timeout)
+        .and_then(|timeout| fetch_with_timeout(url, timeout))
+}
+```
+
+See [Reader Pattern guide](docs/guide/09-reader-pattern.md) for comprehensive examples.
+
 ### IO Module
 
 Helper for creating I/O effects at boundaries.

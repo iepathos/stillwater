@@ -441,6 +441,128 @@ Effect has minimal overhead:
 
 For tight loops or hot paths, consider using plain Result/async fn.
 
+## Reader Pattern
+
+The Reader pattern provides a functional approach to dependency injection. Stillwater includes three helpers for working with environments:
+
+### `ask()` - Access the Environment
+
+Returns the entire environment as an Effect:
+
+```rust
+use stillwater::Effect;
+
+struct Config {
+    api_key: String,
+    timeout: u64,
+}
+
+// Get the whole environment
+let effect = Effect::<Config, String, Config>::ask();
+
+let config = Config {
+    api_key: "secret".into(),
+    timeout: 30,
+};
+
+let result = effect.run(&config).await.unwrap();
+assert_eq!(result.api_key, "secret");
+```
+
+### `asks()` - Query Environment
+
+Extract a specific value from the environment:
+
+```rust
+use stillwater::Effect;
+
+struct AppEnv {
+    database: String,
+    cache: String,
+}
+
+// Query just the database field
+let effect = Effect::asks(|env: &AppEnv| env.database.clone());
+
+let env = AppEnv {
+    database: "postgres".into(),
+    cache: "redis".into(),
+};
+
+let result = effect.run(&env).await.unwrap();
+assert_eq!(result, "postgres");
+```
+
+### `local()` - Modify Environment
+
+Run an effect with a temporarily modified environment:
+
+```rust
+use stillwater::Effect;
+
+#[derive(Clone)]
+struct Config {
+    debug: bool,
+    timeout: u64,
+}
+
+fn fetch_data() -> Effect<String, String, Config> {
+    Effect::asks(|cfg: &Config| {
+        format!("fetched with timeout {}", cfg.timeout)
+    })
+}
+
+let config = Config {
+    debug: false,
+    timeout: 30,
+};
+
+// Run with modified timeout for this specific fetch
+let effect = Effect::local(
+    |cfg: &Config| Config { timeout: 60, ..*cfg },
+    fetch_data()
+);
+
+let result = effect.run(&config).await.unwrap();
+assert_eq!(result, "fetched with timeout 60");
+// Original config still has timeout=30
+```
+
+### Composing Reader Patterns
+
+Combine these helpers with other Effect methods:
+
+```rust
+use stillwater::{Effect, IO};
+
+struct AppEnv {
+    db: Database,
+    max_retries: u32,
+}
+
+fn save_with_retries(data: Data) -> Effect<(), Error, AppEnv> {
+    // Get max retries from environment
+    Effect::asks(|env: &AppEnv| env.max_retries)
+        .and_then(|retries| {
+            // Use it in our logic
+            retry_operation(data, retries)
+        })
+}
+
+fn retry_operation(data: Data, max: u32) -> Effect<(), Error, AppEnv> {
+    // Implementation...
+    Effect::pure(())
+}
+```
+
+The Reader pattern is particularly useful when:
+- Multiple functions need the same configuration
+- You want to avoid passing environment through every function call
+- Testing requires different environment configurations
+- Environment needs temporary modifications for specific operations
+
+See the [Reader Pattern guide](09-reader-pattern.md) for comprehensive examples and patterns.
+
 ## Summary
 
 - **Effect** separates pure logic from I/O
@@ -448,10 +570,12 @@ For tight loops or hot paths, consider using plain Result/async fn.
 - **Imperative shell** handles I/O at boundaries
 - **Environment** provides dependency injection
 - **Composition** via map, and_then, etc.
+- **Reader pattern** helpers: ask(), asks(), local()
 
 ## Next Steps
 
 - Learn about [Error Context](04-error-context.md)
 - See the [IO Module](05-io-module.md) guide
+- Explore the [Reader Pattern](09-reader-pattern.md) in depth
 - Check out [testing_patterns example](../../examples/testing_patterns.rs)
 - Read the [API docs](https://docs.rs/stillwater)

@@ -92,10 +92,45 @@ fetch_user(id)
 //   -> Processing user data
 ```
 
+### 4. "I need clean dependency injection without passing parameters everywhere"
+
+```rust
+use stillwater::Effect;
+
+#[derive(Clone)]
+struct Config {
+    timeout: u64,
+    retries: u32,
+}
+
+// Functions don't need explicit config parameters
+fn fetch_data() -> Effect<String, String, Config> {
+    // Ask for config when needed
+    Effect::asks(|cfg: &Config| {
+        format!("Fetching with timeout={}", cfg.timeout)
+    })
+}
+
+fn fetch_with_extended_timeout() -> Effect<String, String, Config> {
+    // Temporarily modify environment for specific operations
+    Effect::local(
+        |cfg: &Config| Config { timeout: cfg.timeout * 2, ..*cfg },
+        fetch_data()
+    )
+}
+
+# tokio_test::block_on(async {
+let config = Config { timeout: 30, retries: 3 };
+let result = fetch_with_extended_timeout().run(&config).await?;
+// Uses timeout=60 without changing the original config
+# });
+```
+
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
+- **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
 - **`Monoid` trait** - Identity elements for powerful composition patterns
 - **Context chaining** - Never lose error context
