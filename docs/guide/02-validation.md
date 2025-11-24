@@ -248,6 +248,67 @@ match validate_registration("invalid", "short", 15) {
 //   - AgeTooYoung { min: 18, actual: 15 }
 ```
 
+### Batch User Registration with Traverse
+
+Extending the above example to validate multiple user registrations:
+
+```rust
+use stillwater::{Validation, traverse::traverse};
+
+#[derive(Debug)]
+struct RegistrationData {
+    email: String,
+    password: String,
+    age: u8,
+}
+
+fn validate_batch_registrations(
+    registrations: Vec<RegistrationData>
+) -> Validation<Vec<User>, Vec<ValidationError>> {
+    traverse(registrations, |data| {
+        validate_registration(&data.email, &data.password, data.age)
+    })
+}
+
+// Usage
+let batch = vec![
+    RegistrationData {
+        email: "alice@example.com".to_string(),
+        password: "securepass123".to_string(),
+        age: 25,
+    },
+    RegistrationData {
+        email: "invalid".to_string(),
+        password: "short".to_string(),
+        age: 15,
+    },
+    RegistrationData {
+        email: "bob@example.com".to_string(),
+        password: "goodpassword".to_string(),
+        age: 30,
+    },
+];
+
+match validate_batch_registrations(batch) {
+    Validation::Success(users) => {
+        println!("✓ {} users registered successfully", users.len());
+    }
+    Validation::Failure(errors) => {
+        println!("✗ Registration failed with {} errors:", errors.len());
+        for err in errors {
+            println!("  - {:?}", err);
+        }
+        // Output:
+        // ✗ Registration failed with 3 errors:
+        //   - InvalidEmail("invalid")
+        //   - PasswordTooShort { min: 8, actual: 5 }
+        //   - AgeTooYoung { min: 18, actual: 15 }
+    }
+}
+```
+
+This demonstrates how `traverse` makes it easy to validate collections while accumulating all errors across all items.
+
 ## When to Use Validation
 
 **Use Validation when**:
@@ -304,6 +365,47 @@ Validation::all((
 ```
 
 ### Validating Collections
+
+When validating collections, use `traverse` for cleaner, more efficient code:
+
+```rust
+use stillwater::{Validation, traverse::traverse};
+
+fn validate_all_items(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>> {
+    traverse(items, validate_item)
+}
+```
+
+The `traverse` function applies a validation to each element and accumulates all errors:
+
+```rust
+use stillwater::{Validation, traverse::traverse};
+
+fn validate_positive(x: i32) -> Validation<i32, Vec<String>> {
+    if x > 0 {
+        Validation::success(x)
+    } else {
+        Validation::failure(vec![format!("{} is not positive", x)])
+    }
+}
+
+// All valid
+let result = traverse(vec![1, 2, 3], validate_positive);
+assert_eq!(result, Validation::Success(vec![1, 2, 3]));
+
+// Multiple errors accumulated
+let result = traverse(vec![1, -2, -3], validate_positive);
+match result {
+    Validation::Failure(errors) => {
+        assert_eq!(errors.len(), 2); // Both negative numbers
+    }
+    _ => panic!("Expected failure"),
+}
+```
+
+For more advanced patterns, see the [Traverse Patterns guide](12-traverse-patterns.md).
+
+**Alternative using `all_vec` (less convenient)**:
 
 ```rust
 use stillwater::Validation;
