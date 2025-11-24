@@ -239,6 +239,91 @@ fn fetch_with_config(url: String) -> Effect<Response, Error, AppEnv> {
 
 See [Reader Pattern guide](docs/guide/09-reader-pattern.md) for comprehensive examples.
 
+### Parallel Effect Execution
+
+Effect supports parallel execution of independent effects, enabling concurrent operations while preserving error handling and environment access patterns.
+
+**Parallel Methods:**
+```rust
+impl<T, E, Env> Effect<T, E, Env>
+where
+    T: Send,
+    E: Send,
+    Env: Sync,
+{
+    /// Run multiple effects in parallel, collecting all results.
+    /// Accumulates all errors if any fail.
+    pub fn par_all<I>(effects: I) -> Effect<Vec<T>, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send;
+
+    /// Run effects in parallel with fail-fast semantics.
+    /// Returns error immediately when first effect fails.
+    pub fn par_try_all<I>(effects: I) -> Effect<Vec<T>, E, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send;
+
+    /// Race multiple effects, returning first successful result.
+    /// Collects all errors if all effects fail.
+    pub fn race<I>(effects: I) -> Effect<T, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send;
+
+    /// Run effects in parallel with concurrency limit.
+    /// Useful for rate limiting or resource management.
+    pub fn par_all_limit<I>(effects: I, limit: usize) -> Effect<Vec<T>, Vec<E>, Env>
+    where
+        I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+        I::IntoIter: Send;
+}
+```
+
+**Usage patterns:**
+
+```rust
+// Fetch multiple users concurrently
+fn fetch_users(ids: Vec<i32>) -> Effect<Vec<User>, DbError, AppEnv> {
+    let effects = ids.into_iter().map(|id| fetch_user(id));
+    Effect::par_all(effects)
+}
+
+// Race multiple data sources
+fn fetch_with_fallback(url: String) -> Effect<Data, Error, AppEnv> {
+    Effect::race([
+        fetch_from_cache(url.clone()),
+        fetch_from_primary(url.clone()),
+        fetch_from_backup(url),
+    ])
+}
+
+// Parallel validation with rate limiting
+fn validate_batch(items: Vec<Item>) -> Effect<Vec<Result>, Error, AppEnv> {
+    let validations = items.into_iter().map(|item| validate_item(item));
+    Effect::par_all_limit(validations, 10) // Max 10 concurrent validations
+}
+
+// Fail-fast parallel operations
+fn check_all_services() -> Effect<Vec<Status>, Error, AppEnv> {
+    Effect::par_try_all([
+        check_database(),
+        check_cache(),
+        check_queue(),
+    ])
+}
+```
+
+**Design characteristics:**
+- Environment shared across all parallel tasks (must be `Sync`)
+- True concurrency via async runtime (tokio, async-std)
+- Type-safe composition with other Effect combinators
+- Clear error semantics (accumulate vs fail-fast)
+- Zero allocation for known-size iterators
+
+See [Parallel Effects guide](docs/guide/11-parallel-effects.md) for comprehensive examples and patterns.
+
 ### IO Module
 
 Helper for creating I/O effects at boundaries.
