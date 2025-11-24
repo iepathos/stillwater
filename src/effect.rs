@@ -279,6 +279,134 @@ where
         }
     }
 
+    /// Access the entire environment (Reader pattern)
+    ///
+    /// This is the fundamental Reader operation - it gives you access to the
+    /// environment so you can extract what you need. This method implements
+    /// the `ask` operation from the Reader monad.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// #[derive(Clone)]
+    /// struct Config {
+    ///     api_key: String,
+    ///     timeout: u64,
+    /// }
+    ///
+    /// let effect = Effect::ask()
+    ///     .map(|config: Config| config.api_key.clone());
+    ///
+    /// let config = Config {
+    ///     api_key: "secret".into(),
+    ///     timeout: 30,
+    /// };
+    ///
+    /// let result = effect.run(&config).await.unwrap();
+    /// assert_eq!(result, "secret");
+    /// # });
+    /// ```
+    pub fn ask() -> Effect<Env, E, Env>
+    where
+        Env: Clone + Send,
+    {
+        Effect::from_fn(|env: &Env| Ok(env.clone()))
+    }
+
+    /// Query the environment and transform the result (Reader pattern)
+    ///
+    /// This is a convenience method equivalent to `ask().map(f)`,
+    /// useful when you only need a specific part of the environment.
+    /// This method implements the `asks` operation from the Reader monad.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// struct AppEnv {
+    ///     database: String,
+    ///     config: String,
+    /// }
+    ///
+    /// // Extract just the config
+    /// let effect = Effect::asks(|env: &AppEnv| env.config.clone());
+    ///
+    /// let env = AppEnv {
+    ///     database: "db".into(),
+    ///     config: "cfg".into(),
+    /// };
+    ///
+    /// let result = effect.run(&env).await.unwrap();
+    /// assert_eq!(result, "cfg");
+    ///
+    /// // Or query a specific field
+    /// let effect = Effect::asks(|env: &AppEnv| env.database.len());
+    /// let result = effect.run(&env).await.unwrap();
+    /// assert_eq!(result, 2);
+    /// # });
+    /// ```
+    pub fn asks<F, U>(f: F) -> Effect<U, E, Env>
+    where
+        F: FnOnce(&Env) -> U + Send + 'static,
+        U: Send + 'static,
+    {
+        Effect::from_fn(move |env| Ok(f(env)))
+    }
+
+    /// Run an effect with a modified environment (Reader pattern)
+    ///
+    /// This allows you to temporarily change the environment for a
+    /// sub-computation without affecting the rest of the chain.
+    /// This method implements the `local` operation from the Reader monad.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// #[derive(Clone)]
+    /// struct Config {
+    ///     debug: bool,
+    ///     timeout: u64,
+    /// }
+    ///
+    /// fn fetch_data() -> Effect<String, String, Config> {
+    ///     Effect::asks(|cfg: &Config| cfg.timeout)
+    ///         .map(|timeout| format!("fetched with timeout {}", timeout))
+    /// }
+    ///
+    /// // Run with modified timeout for this specific fetch
+    /// let config = Config { debug: false, timeout: 30 };
+    ///
+    /// let effect = Effect::local(
+    ///     |cfg: &Config| Config { timeout: 60, ..*cfg },
+    ///     fetch_data()
+    /// );
+    ///
+    /// let result = effect.run(&config).await.unwrap();
+    /// assert_eq!(result, "fetched with timeout 60");
+    /// // Original config still has timeout=30
+    /// # });
+    /// ```
+    pub fn local<F>(f: F, effect: Effect<T, E, Env>) -> Effect<T, E, Env>
+    where
+        F: FnOnce(&Env) -> Env + Send + 'static,
+        Env: Clone + Send,
+    {
+        Effect {
+            run_fn: Box::new(move |env| {
+                let modified_env = f(env);
+                Box::pin(async move { effect.run(&modified_env).await })
+            }),
+        }
+    }
+
     /// Chain effects
     ///
     /// If the current effect succeeds, apply the function to its result
@@ -1309,5 +1437,196 @@ mod tests {
             *log.lock().unwrap(),
             vec!["step1: 42".to_string(), "step2: 42".to_string()]
         );
+    }
+
+    // Reader pattern tests
+    #[tokio::test]
+    async fn test_ask() {
+        #[derive(Clone, PartialEq, Debug)]
+        struct TestEnv {
+            value: i32,
+        }
+
+        let env = TestEnv { value: 42 };
+        let effect: Effect<TestEnv, String, TestEnv> = Effect::<TestEnv, String, TestEnv>::ask();
+        let result = effect.run(&env).await.unwrap();
+        assert_eq!(result.value, 42);
+    }
+
+    #[tokio::test]
+    async fn test_asks() {
+        struct TestEnv {
+            value: i32,
+        }
+
+        let env = TestEnv { value: 42 };
+        let effect = Effect::<i32, String, TestEnv>::asks(|e: &TestEnv| e.value * 2);
+        let result = effect.run(&env).await.unwrap();
+        assert_eq!(result, 84);
+    }
+
+    #[tokio::test]
+    async fn test_asks_extract_field() {
+        struct AppEnv {
+            database: String,
+            config: String,
+        }
+
+        let env = AppEnv {
+            database: "db".into(),
+            config: "cfg".into(),
+        };
+
+        let effect = Effect::<String, String, AppEnv>::asks(|e: &AppEnv| e.config.clone());
+        let result = effect.run(&env).await.unwrap();
+        assert_eq!(result, "cfg");
+    }
+
+    #[tokio::test]
+    async fn test_local() {
+        #[derive(Clone)]
+        struct TestEnv {
+            value: i32,
+        }
+
+        let env = TestEnv { value: 10 };
+
+        let inner = Effect::<i32, String, TestEnv>::asks(|e: &TestEnv| e.value);
+        let outer = Effect::local(|e: &TestEnv| TestEnv { value: e.value * 2 }, inner);
+
+        let result = outer.run(&env).await.unwrap();
+        assert_eq!(result, 20);
+        assert_eq!(env.value, 10);
+    }
+
+    #[tokio::test]
+    async fn test_local_nested() {
+        #[derive(Clone)]
+        struct Config {
+            timeout: u64,
+        }
+
+        let config = Config { timeout: 30 };
+
+        let inner = Effect::<u64, String, Config>::asks(|cfg: &Config| cfg.timeout);
+        let middle = Effect::local(
+            |cfg: &Config| Config {
+                timeout: cfg.timeout * 2,
+            },
+            inner,
+        );
+        let outer = Effect::local(
+            |cfg: &Config| Config {
+                timeout: cfg.timeout + 10,
+            },
+            middle,
+        );
+
+        let result = outer.run(&config).await.unwrap();
+        assert_eq!(result, 80);
+    }
+
+    #[tokio::test]
+    async fn test_reader_pattern_composition() {
+        #[derive(Clone)]
+        struct AppEnv {
+            multiplier: i32,
+            adder: i32,
+        }
+
+        let env = AppEnv {
+            multiplier: 3,
+            adder: 5,
+        };
+
+        let effect = Effect::<i32, String, AppEnv>::asks(|e: &AppEnv| e.multiplier)
+            .map(|m| m * 10)
+            .and_then(|value| {
+                Effect::<i32, String, AppEnv>::asks(move |e: &AppEnv| value + e.adder)
+            });
+
+        let result = effect.run(&env).await.unwrap();
+        assert_eq!(result, 35);
+    }
+
+    // Reader monad laws
+    #[tokio::test]
+    async fn test_ask_pure_identity() {
+        #[derive(Clone, PartialEq, Debug)]
+        struct Env(i32);
+
+        let env = Env(42);
+
+        let e1 = Effect::<Env, String, Env>::ask().and_then(|e: Env| Effect::pure(e));
+        let e2: Effect<Env, String, Env> = Effect::pure(env.clone());
+
+        assert_eq!(e1.run(&env).await.unwrap(), e2.run(&env).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_local_identity() {
+        #[derive(Clone)]
+        struct Env(i32);
+
+        let env = Env(42);
+
+        fn get_value() -> Effect<i32, String, Env> {
+            Effect::<i32, String, Env>::asks(|e: &Env| e.0)
+        }
+
+        let e1 = Effect::local(|e: &Env| e.clone(), get_value());
+        let e2 = get_value();
+
+        assert_eq!(e1.run(&env).await.unwrap(), e2.run(&env).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_local_composition() {
+        #[derive(Clone)]
+        struct Env(i32);
+
+        let env = Env(10);
+
+        fn get_value() -> Effect<i32, String, Env> {
+            Effect::<i32, String, Env>::asks(|e: &Env| e.0)
+        }
+
+        let f = |e: &Env| Env(e.0 + 1);
+        let g = |e: &Env| Env(e.0 * 2);
+
+        let e1 = Effect::local(f, Effect::local(g, get_value()));
+        let e2 = Effect::local(move |e: &Env| g(&f(e)), get_value());
+
+        assert_eq!(e1.run(&env).await.unwrap(), e2.run(&env).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_asks_composition() {
+        #[derive(Clone)]
+        struct Env {
+            a: i32,
+            b: i32,
+        }
+
+        let env = Env { a: 10, b: 20 };
+
+        let e1 = Effect::<i32, String, Env>::asks(|e: &Env| e.a + e.b);
+        let e2 = Effect::<Env, String, Env>::ask().map(|e: Env| e.a + e.b);
+
+        assert_eq!(e1.run(&env).await.unwrap(), e2.run(&env).await.unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_local_with_error() {
+        #[derive(Clone)]
+        struct Env(i32);
+
+        let env = Env(10);
+
+        let inner = Effect::<i32, String, Env>::asks(|e: &Env| e.0)
+            .and_then(|_| Effect::<i32, String, Env>::fail("error".to_string()));
+        let outer = Effect::local(|e: &Env| Env(e.0 * 2), inner);
+
+        assert_eq!(outer.run(&env).await, Err("error".to_string()));
     }
 }
