@@ -68,7 +68,7 @@ pub use effect::{Effect, EffectContext};
 pub use io::IO;
 pub use monoid::Monoid;
 pub use nonempty::NonEmptyVec;
-pub use semigroup::Semigroup;
+pub use semigroup::{First, Intersection, Last, Semigroup};
 pub use validation::Validation;
 
 /// Prelude module for convenient imports
@@ -78,6 +78,6 @@ pub mod prelude {
     pub use crate::io::IO;
     pub use crate::monoid::Monoid;
     pub use crate::nonempty::NonEmptyVec;
-    pub use crate::semigroup::Semigroup;
+    pub use crate::semigroup::{First, Intersection, Last, Semigroup};
     pub use crate::validation::Validation;
 }

@@ -104,17 +104,7 @@ impl Monoid for String {
 }
 
 // Option monoid - None is identity (lifts inner semigroup)
-impl<T: Semigroup> Semigroup for Option<T> {
-    fn combine(self, other: Self) -> Self {
-        match (self, other) {
-            (Some(a), Some(b)) => Some(a.combine(b)),
-            (Some(a), None) => Some(a),
-            (None, Some(b)) => Some(b),
-            (None, None) => None,
-        }
-    }
-}
-
+// Note: Semigroup for Option is implemented in semigroup.rs
 impl<T: Semigroup> Monoid for Option<T> {
     fn empty() -> Self {
         None
@@ -144,6 +134,52 @@ impl_monoid_tuple!(0 T1, 1 T2, 2 T3, 3 T4, 4 T5, 5 T6, 6 T7, 7 T8, 8 T9);
 impl_monoid_tuple!(0 T1, 1 T2, 2 T3, 3 T4, 4 T5, 5 T6, 6 T7, 7 T8, 8 T9, 9 T10);
 impl_monoid_tuple!(0 T1, 1 T2, 2 T3, 3 T4, 4 T5, 5 T6, 6 T7, 7 T8, 8 T9, 9 T10, 10 T11);
 impl_monoid_tuple!(0 T1, 1 T2, 2 T3, 3 T4, 4 T5, 5 T6, 6 T7, 7 T8, 8 T9, 9 T10, 10 T11, 11 T12);
+
+// Monoid instances for collection types
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::hash::Hash;
+
+/// Monoid for HashMap - empty map is identity
+impl<K, V> Monoid for HashMap<K, V>
+where
+    K: Eq + Hash + Clone,
+    V: Semigroup + Clone,
+{
+    fn empty() -> Self {
+        HashMap::new()
+    }
+}
+
+/// Monoid for HashSet - empty set is identity
+impl<T> Monoid for HashSet<T>
+where
+    T: Eq + Hash,
+{
+    fn empty() -> Self {
+        HashSet::new()
+    }
+}
+
+/// Monoid for BTreeMap - empty map is identity
+impl<K, V> Monoid for BTreeMap<K, V>
+where
+    K: Ord + Clone,
+    V: Semigroup + Clone,
+{
+    fn empty() -> Self {
+        BTreeMap::new()
+    }
+}
+
+/// Monoid for BTreeSet - empty set is identity
+impl<T> Monoid for BTreeSet<T>
+where
+    T: Ord,
+{
+    fn empty() -> Self {
+        BTreeSet::new()
+    }
+}
 
 /// Monoid for numeric types under addition.
 ///
