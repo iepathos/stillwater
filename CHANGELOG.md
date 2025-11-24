@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-11-23
+
+### Added
+
+#### Core Traits
+- **`Monoid` trait** - Extends Semigroup with identity elements (`empty()` method)
+  - Enables folding without explicit initial values
+  - Provides foundation for powerful composition patterns
+  - Supports parallel reduction strategies
+
+#### Monoid Implementations
+- **Standard types**: `Vec<T>`, `String`, `Option<T>` (where `T: Semigroup`)
+- **Tuples**: 2-element through 12-element tuples (where each element is `Monoid`)
+- **Numeric wrappers**:
+  - `Sum<T>` - Addition monoid with 0 as identity
+  - `Product<T>` - Multiplication monoid with 1 as identity
+  - `Max<T>` - Maximum semigroup (Monoid via `Option<Max<T>>`)
+  - `Min<T>` - Minimum semigroup (Monoid via `Option<Min<T>>`)
+
+#### Helper Traits and Functions
+- **`One` trait** - Provides multiplicative identity for numeric types
+  - Implementations for all standard integer and float types
+- **`fold_all<M, I>(iter: I) -> M`** - Fold iterator using monoid identity
+- **`reduce<M, I>(iter: I) -> M`** - Alias for `fold_all`
+
+#### Testing
+- **Property-based testing** with `proptest` dependency
+  - Tests for monoid laws (left identity, right identity, associativity)
+  - Tests for Vec, String, Option, Sum, Product monoids
+  - Regression test suite for discovered edge cases
+- **41 new unit tests** covering:
+  - Identity laws for all monoid implementations
+  - Associativity verification
+  - fold_all and reduce operations
+  - Edge cases (empty collections, None values)
+
+#### Documentation
+- **`docs/guide/08-monoid.md`** - Comprehensive monoid guide (353 lines)
+  - Monoid laws and mathematical properties
+  - Examples for all provided implementations
+  - Numeric monoid patterns (Sum, Product, Max, Min)
+  - fold_all and reduce usage
+  - Real-world use cases
+- **`examples/monoid.rs`** - Complete working examples (370 lines)
+  - 10 examples covering all monoid types
+  - Real-world scenarios: log aggregation, statistics, config merging
+  - Progressive complexity from basics to advanced patterns
+- Updated README.md with monoid features and examples
+- Updated docs/guide/README.md with Chapter 8
+
+### Changed
+- Bumped version from 0.1.0 to 0.2.0
+- Test count increased from 111 to 152 unit tests
+- Documentation test count increased from 58 to 68
+
+### Technical Details
+- Uses macro-based code generation for tuple implementations
+- Zero-cost abstractions via trait monomorphization
+- Property-based tests ensure mathematical correctness
+- No new runtime dependencies (proptest is dev-only)
+
 ## [0.1.0] - 2025-11-22
 
 ### Added
@@ -85,5 +146,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/iepathos/stillwater/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/iepathos/stillwater/releases/tag/v0.1.0

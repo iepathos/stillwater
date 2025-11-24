@@ -32,6 +32,13 @@ This guide is organized into progressive chapters, each building on the previous
    - Testing effectful code
    - Async support
 
+8. **[Monoid](08-monoid.md)** - Identity elements for composition
+   - What is a Monoid?
+   - Extending Semigroup with identity
+   - Numeric monoids (Sum, Product, Max, Min)
+   - Using fold_all and reduce
+   - Real-world aggregation patterns
+
 ### Supporting Features
 
 4. **[Error Context](04-error-context.md)** - Better debugging
@@ -54,6 +61,8 @@ This guide is organized into progressive chapters, each building on the previous
    - When to enable try_trait
    - Migration path
 
+Note: Chapter 8 (Monoid) is listed under Core Concepts as it's fundamental to understanding error accumulation and composition patterns.
+
 ## How to Use This Guide
 
 ### For Beginners
@@ -71,6 +80,7 @@ All examples in this guide are runnable. You can find them in the [examples/](..
 ```bash
 cargo run --example validation
 cargo run --example effects
+cargo run --example monoid
 cargo run --example form_validation
 ```
 
@@ -85,6 +95,8 @@ cargo run --example form_validation
 | Database operations | Effect | Separate logic from I/O |
 | File operations | Effect + IO | Testable file processing |
 | Error debugging | ContextError | Add context trails |
+| Data aggregation | Monoid | Combine collections with fold_all |
+| Numeric operations | Sum/Product | Aggregate numbers with identity |
 
 ### Common Patterns
 

@@ -96,6 +96,8 @@ fetch_user(id)
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
+- **`Semigroup` trait** - Associative combination of values
+- **`Monoid` trait** - Identity elements for powerful composition patterns
 - **Context chaining** - Never lose error context
 - **Zero-cost abstractions** - Compiles to same code as hand-written
 - **Works with `?` operator** - Integrates with Rust idioms
@@ -179,10 +181,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.1"
+stillwater = "0.2"
 
 # Optional: async support
-stillwater = { version = "0.1", features = ["async"] }
+stillwater = { version = "0.2", features = ["async"] }
 ```
 
 ## Examples
@@ -200,15 +202,16 @@ Run any example with `cargo run --example <name>`:
 | [effects](examples/effects.rs) | Effect type and composition patterns |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
 | [pipeline](examples/pipeline.rs) | Data transformation pipelines |
+| [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
 
 See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.1 - Production Ready for Early Adopters**
+**Status: 0.2 - Production Ready for Early Adopters**
 
-- ✅ 111 unit tests passing
-- ✅ 58 documentation tests passing
+- ✅ 152 unit tests passing (includes property-based tests)
+- ✅ 68 documentation tests passing
 - ✅ Zero clippy warnings
 - ✅ Comprehensive examples
 - ✅ Full async support
