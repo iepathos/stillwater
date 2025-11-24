@@ -61,6 +61,15 @@ This guide is organized into progressive chapters, each building on the previous
    - When to enable try_trait
    - Migration path
 
+### Advanced Patterns
+
+12. **[Traverse Patterns](12-traverse-patterns.md)** - Working with collections
+   - Collection validation with error accumulation
+   - Effect processing over collections
+   - Batch operations
+   - Traverse vs sequence
+   - Real-world examples
+
 Note: Chapter 8 (Monoid) is listed under Core Concepts as it's fundamental to understanding error accumulation and composition patterns.
 
 ## How to Use This Guide
@@ -92,6 +101,8 @@ cargo run --example form_validation
 |----------|------|---------|
 | Form validation | Validation | Collect all field errors |
 | API request validation | Validation | Return all validation errors |
+| Collection validation | traverse | Validate multiple items, accumulate errors |
+| Batch processing | traverse_effect | Process collection with effects |
 | Database operations | Effect | Separate logic from I/O |
 | File operations | Effect + IO | Testable file processing |
 | Error debugging | ContextError | Add context trails |

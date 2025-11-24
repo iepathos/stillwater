@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2025-11-24
+
+### Added
+
+#### Traverse and Sequence Utilities (Spec 016)
+
+- **`traverse()`** - Apply a validation function over a collection
+  - Validates each element and accumulates all errors
+  - Signature: `traverse<T, U, E, F, I>(iter: I, f: F) -> Validation<Vec<U>, E>`
+  - More efficient than `map(f).sequence()` for validation workflows
+- **`sequence()`** - Convert collection of validations into validation of collection
+  - Signature: `sequence<T, E, I>(iter: I) -> Validation<Vec<T>, E>`
+  - Accumulates all errors using `Semigroup`
+  - Useful when you already have `Vec<Validation<T, E>>`
+- **`traverse_effect()`** - Apply an effect function over a collection
+  - Processes each element with fail-fast semantics
+  - Signature: `traverse_effect<T, U, E, Env, F, I>(iter: I, f: F) -> Effect<Vec<U>, E, Env>`
+  - Stops at first error for efficiency
+- **`sequence_effect()`** - Convert collection of effects into effect of collection
+  - Signature: `sequence_effect<T, E, Env, I>(iter: I) -> Effect<Vec<T>, E, Env>`
+  - Fail-fast execution for effect collections
+
+#### Documentation
+
+- **`docs/guide/12-traverse-patterns.md`** - Comprehensive guide to traverse operations (581 lines)
+  - Collection validation patterns with error accumulation
+  - Effect processing over collections
+  - Batch operations and practical examples
+  - Comparison of traverse vs sequence
+  - Real-world use cases: batch user registration, config validation, file processing
+- **Updated `docs/guide/02-validation.md`** - Added traverse examples (+102 lines)
+  - Collection validation patterns
+  - Batch user registration example
+  - Demonstrates error accumulation with traverse
+- **Updated `docs/guide/README.md`** - Added chapter 12 and updated quick reference
+  - New "Advanced Patterns" section with traverse chapter
+  - Added collection validation and batch processing to quick reference table
+- **`examples/traverse.rs`** - 7 comprehensive examples (450+ lines)
+  - Basic traverse with validation
+  - Sequencing existing validations
+  - Batch user validation with error accumulation
+  - Effect traverse for processing
+  - Batch file processing simulation
+  - Sequence effect patterns
+  - Config validation example
+- Updated README.md with traverse features and example reference
+
+#### Module and Exports
+
+- **New `src/traverse.rs` module** - All traverse/sequence implementations (400 lines)
+  - Full documentation with examples
+  - Comprehensive test coverage (18 tests)
+- **Exported in prelude** - `traverse`, `sequence`, `traverse_effect`, `sequence_effect`
+  - Available via `use stillwater::prelude::*;`
+  - Direct access via `stillwater::traverse::{...}`
+
 ## [0.5.0] - 2025-11-23
 
 ### Added

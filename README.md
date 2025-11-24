@@ -132,6 +132,9 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
 - **Parallel effect execution** - Run independent effects concurrently with `par_all()`, `race()`, and `par_all_limit()`
+- **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
+  - Validate entire collections with error accumulation
+  - Process collections with effects using fail-fast semantics
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
   - Extended implementations for `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `Option`
@@ -220,10 +223,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.4"
+stillwater = "0.6"
 
 # Optional: async support
-stillwater = { version = "0.4", features = ["async"] }
+stillwater = { version = "0.6", features = ["async"] }
 ```
 
 ## Examples
@@ -244,6 +247,7 @@ Run any example with `cargo run --example <name>`:
 | [parallel_effects](examples/parallel_effects.rs) | Parallel execution with par_all, race, and par_all_limit |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
 | [pipeline](examples/pipeline.rs) | Data transformation pipelines |
+| [traverse](examples/traverse.rs) | Traverse and sequence for collections of validations and effects |
 | [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
 | [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
 
@@ -251,10 +255,10 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.4 - Production Ready for Early Adopters**
+**Status: 0.6 - Production Ready for Early Adopters**
 
-- ✅ 181 unit tests passing (includes property-based tests)
-- ✅ 72 documentation tests passing
+- ✅ 235 unit tests passing (includes property-based tests)
+- ✅ 108 documentation tests passing
 - ✅ Zero clippy warnings
 - ✅ Comprehensive examples
 - ✅ Full async support
