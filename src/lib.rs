@@ -59,6 +59,7 @@ pub mod io;
 pub mod monoid;
 pub mod nonempty;
 pub mod semigroup;
+pub mod traverse;
 pub mod validation;
 
 // Re-exports
@@ -78,5 +79,6 @@ pub mod prelude {
     pub use crate::monoid::Monoid;
     pub use crate::nonempty::NonEmptyVec;
     pub use crate::semigroup::{First, Intersection, Last, Semigroup};
+    pub use crate::traverse::{sequence, sequence_effect, traverse, traverse_effect};
     pub use crate::validation::Validation;
 }
