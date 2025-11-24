@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Homogeneous Validation (Spec 021)
+
+- **`validation::homogeneous` module** - Type-safe validation for discriminated unions
+  - `validate_homogeneous()` - Ensures all items have same discriminant before combining
+  - `combine_homogeneous()` - Safe combination after homogeneity validation
+  - Prevents runtime panics from combining incompatible enum variants
+  - Follows "pure core, imperative shell" - validates at boundaries
+  - Accumulates ALL type mismatches, not just first one
+- **Real-world use cases**:
+  - MapReduce aggregations with heterogeneous input
+  - Event stream validation
+  - Configuration validation with typed values
+  - Database query result validation
+- **Documentation**:
+  - Comprehensive guide in `docs/guide/09-homogeneous-validation.md`
+  - API comparison table showing validation vs panic approaches
+  - Property-based tests verifying correctness
+  - Integration tests with real-world scenarios
+- **Testing**:
+  - Property-based tests with proptest
+  - Integration tests demonstrating practical patterns
+  - Edge case coverage (empty, single item, all same, mixed types)
+
 #### Testing Utilities (Spec 018)
 
 - **`MockEnv` builder** - Composable test environment builder

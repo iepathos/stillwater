@@ -38,7 +38,42 @@ let user = Validation::all((
 // Returns: Err(vec![EmailError, AgeError, NameError])
 ```
 
-### 2. "How do I test code with database calls?"
+### 2. "How do I validate that all items have the same type before combining?"
+
+```rust
+use stillwater::validation::homogeneous::validate_homogeneous;
+use std::mem::discriminant;
+
+#[derive(Clone, Debug, PartialEq)]
+enum Aggregate {
+    Sum(f64),     // Can combine Sum + Sum
+    Count(usize), // Can combine Count + Count
+    // But Sum + Count is a type error!
+}
+
+// Without validation: runtime panic 💥
+let mixed = vec![Aggregate::Count(5), Aggregate::Sum(10.0)];
+// items.into_iter().reduce(|a, b| a.combine(b))  // PANIC!
+
+// With validation: type-safe error accumulation ✓
+let result = validate_homogeneous(
+    mixed,
+    |a| discriminant(a),
+    |idx, _, _| format!("Type mismatch at index {}", idx),
+);
+
+match result {
+    Validation::Success(items) => {
+        // Safe to combine - all same type!
+        let total = items.into_iter().reduce(|a, b| a.combine(b));
+    }
+    Validation::Failure(errors) => {
+        // All mismatches reported: ["Type mismatch at index 1"]
+    }
+}
+```
+
+### 3. "How do I test code with database calls?"
 
 ```rust
 use stillwater::Effect;
@@ -75,7 +110,7 @@ fn test_with_mock_db() {
 }
 ```
 
-### 3. "My errors lose context as they bubble up"
+### 4. "My errors lose context as they bubble up"
 
 ```rust
 use stillwater::Effect;
@@ -92,7 +127,7 @@ fetch_user(id)
 //   -> Processing user data
 ```
 
-### 4. "I need clean dependency injection without passing parameters everywhere"
+### 5. "I need clean dependency injection without passing parameters everywhere"
 
 ```rust
 use stillwater::Effect;
