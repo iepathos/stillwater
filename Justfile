@@ -39,19 +39,19 @@ clean:
 test:
     cargo build
     @echo "Running tests..."
-    cargo test
+    cargo nextest run
 
 # Run tests with output
 test-verbose:
-    cargo test --nocapture
+    cargo nextest run --success-output immediate --failure-output immediate
 
 # Run tests with specific pattern
 test-pattern PATTERN:
-    cargo test {{PATTERN}}
+    cargo nextest run {{PATTERN}}
 
 # Run tests and watch for changes
 test-watch:
-    cargo watch -x test
+    cargo watch -x "nextest run"
 
 # Run tests with coverage using llvm-cov
 coverage:
@@ -61,7 +61,7 @@ coverage:
     echo "Cleaning previous coverage data..."
     cargo llvm-cov clean
     echo "Generating code coverage report with llvm-cov..."
-    cargo llvm-cov --features async --lib --html --output-dir target/coverage
+    cargo llvm-cov nextest --features async --lib --html --output-dir target/coverage
     echo "Coverage report generated at target/coverage/html/index.html"
 
 # Run tests with coverage (lcov format)
@@ -75,7 +75,7 @@ coverage-lcov:
     # Ensure target/coverage directory exists
     mkdir -p target/coverage
     echo "Generating code coverage report with llvm-cov (lcov format)..."
-    cargo llvm-cov --features async --lib --lcov --output-path target/coverage/lcov.info
+    cargo llvm-cov nextest --features async --lib --lcov --output-path target/coverage/lcov.info
     echo "Coverage report generated at target/coverage/lcov.info"
     # Verify the file was actually created
     if [ ! -f target/coverage/lcov.info ]; then
@@ -91,7 +91,7 @@ coverage-check:
     echo "Checking code coverage threshold..."
     cargo llvm-cov clean
     mkdir -p target/coverage
-    cargo llvm-cov --features async --lib --json --output-path target/coverage/coverage.json
+    cargo llvm-cov nextest --features async --lib --json --output-path target/coverage/coverage.json
     COVERAGE=$(cat target/coverage/coverage.json | jq -r '.data[0].totals.lines.percent')
     echo "Current coverage: ${COVERAGE}%"
     if (( $(echo "$COVERAGE < 80" | bc -l) )); then
@@ -107,7 +107,7 @@ coverage-open: coverage
 
 # Run integration tests only
 test-integration:
-    cargo test --test '*'
+    cargo nextest run --test '*'
 
 # Run benchmarks
 bench:
@@ -115,7 +115,8 @@ bench:
 
 # Run all tests including doc tests
 test-all:
-    cargo test --all-features
+    cargo nextest run --all-features
+    cargo test --doc --all-features
 
 # === CODE QUALITY ===
 
@@ -222,7 +223,7 @@ ci:
      export RUSTFLAGS="-Dwarnings" && \
      export RUST_BACKTRACE=1 && \
      echo "Running tests..." && \
-     cargo test --features async && \
+     cargo nextest run --features async && \
      echo "Running doctests..." && \
      cargo test --doc --features async && \
      echo "Running clippy..." && \
@@ -246,7 +247,8 @@ ci-build:
     @echo "Building project..."
     cargo build --release
     @echo "Running tests..."
-    cargo test --all
+    cargo nextest run --all
+    cargo test --doc --all
     @echo "Build successful!"
 
 # Pre-commit hook simulation

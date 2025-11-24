@@ -32,6 +32,9 @@ jobs:
       with:
         components: rustfmt, clippy
 
+    - name: Install nextest
+      uses: taiki-e/install-action@nextest
+
     - name: Install Claude CLI
       run: |
         # Create a mock claude command that just exits successfully
@@ -42,9 +45,12 @@ jobs:
         chmod +x $HOME/.local/bin/claude
         echo "$HOME/.local/bin" >> $GITHUB_PATH
       shell: bash
-    
+
     - name: Run tests
-      run: cargo test --features async
+      run: cargo nextest run --features async
+
+    - name: Run doc tests
+      run: cargo test --doc --features async
     
     - name: Run clippy
       run: cargo clippy --all-targets --features async -- -D warnings
