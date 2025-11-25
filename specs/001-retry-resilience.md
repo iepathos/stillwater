@@ -104,48 +104,56 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 
 #### FR-5: Effect Integration
 ```rust
-// Primary API: combinator on Effect
-let effect = fetch_data()
-    .with_retry(RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3));
+// Primary API: factory function pattern
+// Each retry creates a fresh effect - semantically correct for I/O operations
+let effect = Effect::retry(
+    || fetch_data(),
+    RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3)
+);
 
-// Alternative: wrap existing effect
-let effect = Effect::retry(fetch_data(), policy);
+// With captured variables
+let user_id = 42;
+let effect = Effect::retry(
+    move || fetch_user(user_id),
+    policy
+);
 
-// With condition
-let effect = fetch_data()
-    .retry_if(
-        RetryPolicy::exponential(Duration::from_millis(100)),
-        |err| err.is_transient()
-    );
+// With condition - only retry transient errors
+let effect = Effect::retry_if(
+    || fetch_data(),
+    RetryPolicy::exponential(Duration::from_millis(100)),
+    |err| err.is_transient()
+);
 ```
 
 #### FR-6: Retry Events and Observability
 ```rust
 // Hook into retry lifecycle for logging/metrics
-let effect = fetch_data()
-    .with_retry(policy)
-    .on_retry(|event: RetryEvent<E>| {
+let effect = Effect::retry_with_hooks(
+    || fetch_data(),
+    policy,
+    |event: &RetryEvent<E>| {
         log::warn!(
             "Retry attempt {} after {:?}: {:?}",
             event.attempt,
-            event.delay,
+            event.next_delay,
             event.error
         );
-        Effect::pure(())
-    });
+    }
+);
 ```
 
 #### FR-7: Timeout Integration
 ```rust
-// Timeout for individual attempts
-let effect = fetch_data()
-    .with_timeout(Duration::from_secs(5))
-    .with_retry(policy);
+// Timeout for individual attempts (applied to each retry)
+let effect = Effect::retry(
+    || fetch_data().with_timeout(Duration::from_secs(5)),
+    policy
+);
 
 // Timeout for entire retry sequence
-let effect = fetch_data()
-    .with_retry(policy)
-    .with_total_timeout(Duration::from_secs(60));
+let effect = Effect::retry(|| fetch_data(), policy)
+    .with_timeout(Duration::from_secs(60));
 ```
 
 #### FR-8: Circuit Breaker (Phase 2)
@@ -185,11 +193,11 @@ let effect = fetch_data()
 - [ ] `RetryPolicy` struct with builder pattern for configuration
 - [ ] Constant, linear, exponential, and Fibonacci backoff strategies
 - [ ] Jitter support (proportional, full, decorrelated)
-- [ ] `with_retry` combinator on `Effect<T, E, Env>`
-- [ ] `retry_if` combinator with predicate for conditional retry
-- [ ] `with_timeout` combinator for per-attempt timeout
-- [ ] `on_retry` hook for observability
-- [ ] `RetryError<E>` type that wraps the final error with attempt count
+- [ ] `Effect::retry(factory, policy)` - factory-based retry
+- [ ] `Effect::retry_if(factory, policy, predicate)` - conditional retry
+- [ ] `Effect::retry_with_hooks(factory, policy, on_retry)` - retry with observability
+- [ ] `effect.with_timeout(duration)` - per-effect timeout
+- [ ] `RetryExhausted<E>` type with final error, attempt count, and duration
 - [ ] Comprehensive unit tests for all retry strategies
 - [ ] Property-based tests for backoff calculations
 - [ ] Integration tests demonstrating real-world patterns
@@ -273,11 +281,17 @@ where
     E: Send + 'static,
     Env: Sync + 'static,
 {
-    /// Retry this effect according to the given policy.
+    /// Retry an operation using a factory function.
     ///
-    /// On failure, the effect will be re-executed after a delay determined
-    /// by the policy. Retries continue until success or the policy's limits
-    /// are reached.
+    /// Each retry creates a fresh effect via the factory. This is semantically
+    /// correct for I/O operations which should be recreated (fresh connections,
+    /// new request IDs, etc.) rather than "cloned."
+    ///
+    /// # Why a factory function?
+    ///
+    /// Effects use `FnOnce` internally and are consumed on execution. Rather
+    /// than adding complexity to make effects cloneable, we embrace Rust's
+    /// ownership model: retry means "try this operation again from scratch."
     ///
     /// # Examples
     ///
@@ -285,26 +299,49 @@ where
     /// use stillwater::{Effect, RetryPolicy};
     /// use std::time::Duration;
     ///
-    /// let effect = fetch_remote_data()
-    ///     .with_retry(
-    ///         RetryPolicy::exponential(Duration::from_millis(100))
-    ///             .with_max_retries(3)
-    ///     );
+    /// let effect = Effect::retry(
+    ///     || fetch_remote_data(),
+    ///     RetryPolicy::exponential(Duration::from_millis(100))
+    ///         .with_max_retries(3)
+    /// );
     /// ```
-    pub fn with_retry(self, policy: RetryPolicy) -> Effect<T, RetryExhausted<E>, Env>
+    pub fn retry<F>(make_effect: F, policy: RetryPolicy) -> Effect<T, RetryExhausted<E>, Env>
     where
-        Self: Clone,
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
     {
         // Implementation
     }
 
-    /// Retry this effect only when the predicate returns true.
+    /// Retry only when the predicate returns true for the error.
     ///
-    /// Non-retryable errors immediately propagate without retry.
-    pub fn retry_if<P>(self, policy: RetryPolicy, predicate: P) -> Effect<T, E, Env>
+    /// Non-retryable errors immediately propagate without retry attempts.
+    /// Useful for distinguishing transient errors (retry) from permanent
+    /// errors (fail fast).
+    pub fn retry_if<F, P>(
+        make_effect: F,
+        policy: RetryPolicy,
+        should_retry: P,
+    ) -> Effect<T, E, Env>
     where
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
         P: Fn(&E) -> bool + Send + Sync + 'static,
-        Self: Clone,
+    {
+        // Implementation
+    }
+
+    /// Retry with hooks for observability.
+    ///
+    /// The `on_retry` callback is invoked before each retry attempt,
+    /// receiving information about the failed attempt. The callback
+    /// is synchronous and should not block; use it for logging/metrics.
+    pub fn retry_with_hooks<F, H>(
+        make_effect: F,
+        policy: RetryPolicy,
+        on_retry: H,
+    ) -> Effect<T, RetryExhausted<E>, Env>
+    where
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
+        H: Fn(&RetryEvent<'_, E>) + Send + Sync + 'static,
     {
         // Implementation
     }
@@ -314,16 +351,6 @@ where
     /// If the effect doesn't complete within the duration, it fails
     /// with a timeout error.
     pub fn with_timeout(self, duration: Duration) -> Effect<T, TimeoutError<E>, Env> {
-        // Implementation
-    }
-
-    /// Execute a side effect on each retry attempt.
-    ///
-    /// Useful for logging, metrics, or other observability.
-    pub fn on_retry<F>(self, f: F) -> Self
-    where
-        F: Fn(RetryEvent<'_, E>) -> Effect<(), E, Env> + Send + Sync + 'static,
-    {
         // Implementation
     }
 }
@@ -457,10 +484,13 @@ impl RetryPolicy {
 
 ```rust
 impl<T, E, Env> Effect<T, E, Env> {
-    pub fn with_retry(self, policy: RetryPolicy) -> Effect<T, RetryExhausted<E>, Env>;
-    pub fn retry_if<P>(self, policy: RetryPolicy, predicate: P) -> Effect<T, E, Env>;
+    // Factory-based retry (creates fresh effect each attempt)
+    pub fn retry<F>(make_effect: F, policy: RetryPolicy) -> Effect<T, RetryExhausted<E>, Env>;
+    pub fn retry_if<F, P>(make_effect: F, policy: RetryPolicy, should_retry: P) -> Effect<T, E, Env>;
+    pub fn retry_with_hooks<F, H>(make_effect: F, policy: RetryPolicy, on_retry: H) -> Effect<T, RetryExhausted<E>, Env>;
+
+    // Timeout (instance method - consumes self)
     pub fn with_timeout(self, duration: Duration) -> Effect<T, TimeoutError<E>, Env>;
-    pub fn on_retry<F>(self, f: F) -> Self;
 }
 ```
 
@@ -519,34 +549,83 @@ mod tests {
 #[tokio::test]
 async fn test_retry_succeeds_on_third_attempt() {
     let attempts = Arc::new(AtomicU32::new(0));
-    let attempts_clone = attempts.clone();
 
-    let effect = Effect::from_async(move |_: &()| {
-        let attempts = attempts_clone.clone();
-        async move {
-            let n = attempts.fetch_add(1, Ordering::SeqCst);
-            if n < 2 {
-                Err("transient failure")
-            } else {
-                Ok("success")
+    let effect = Effect::retry(
+        {
+            let attempts = attempts.clone();
+            move || {
+                let attempts = attempts.clone();
+                Effect::from_async(move |_: &()| {
+                    let attempts = attempts.clone();
+                    async move {
+                        let n = attempts.fetch_add(1, Ordering::SeqCst);
+                        if n < 2 {
+                            Err("transient failure")
+                        } else {
+                            Ok("success")
+                        }
+                    }
+                })
             }
-        }
-    });
+        },
+        RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(5),
+    );
 
-    let result = effect
-        .with_retry(RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(5))
-        .run(&())
-        .await;
+    let result = effect.run(&()).await;
 
-    assert_eq!(result, Ok("success"));
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), "success");
     assert_eq!(attempts.load(Ordering::SeqCst), 3);
 }
 
 #[tokio::test]
-async fn test_retry_exhausted_returns_final_error();
+async fn test_retry_exhausted_returns_final_error() {
+    let effect = Effect::retry(
+        || Effect::<(), _, ()>::fail("always fails"),
+        RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(3),
+    );
+
+    let result = effect.run(&()).await;
+
+    assert!(result.is_err());
+    let exhausted = result.unwrap_err();
+    assert_eq!(exhausted.attempts, 4); // 1 initial + 3 retries
+    assert_eq!(exhausted.final_error, "always fails");
+}
 
 #[tokio::test]
-async fn test_retry_if_skips_non_retryable_errors();
+async fn test_retry_if_skips_non_retryable_errors() {
+    #[derive(Debug, PartialEq)]
+    enum TestError {
+        Transient,
+        Permanent,
+    }
+
+    let attempts = Arc::new(AtomicU32::new(0));
+
+    let effect = Effect::retry_if(
+        {
+            let attempts = attempts.clone();
+            move || {
+                let attempts = attempts.clone();
+                Effect::from_async(move |_: &()| {
+                    let attempts = attempts.clone();
+                    async move {
+                        attempts.fetch_add(1, Ordering::SeqCst);
+                        Err::<(), _>(TestError::Permanent)
+                    }
+                })
+            }
+        },
+        RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(5),
+        |err| matches!(err, TestError::Transient),
+    );
+
+    let result = effect.run(&()).await;
+
+    assert_eq!(result, Err(TestError::Permanent));
+    assert_eq!(attempts.load(Ordering::SeqCst), 1); // No retries for permanent error
+}
 
 #[tokio::test]
 async fn test_timeout_triggers_correctly();
@@ -621,20 +700,23 @@ async fn test_no_overhead_for_successful_effects() {
     }
     let baseline = start.elapsed();
 
-    // Measure with retry (no actual retries)
+    // Measure with retry (no actual retries - succeeds on first attempt)
     let start = Instant::now();
     let policy = RetryPolicy::exponential(Duration::from_millis(100));
     for _ in 0..10000 {
-        Effect::<_, String, ()>::pure(42)
-            .with_retry(policy.clone())
-            .run(&())
-            .await
-            .unwrap();
+        Effect::retry(
+            || Effect::<_, String, ()>::pure(42),
+            policy.clone()
+        )
+        .run(&())
+        .await
+        .unwrap();
     }
     let with_retry = start.elapsed();
 
-    // Should be within 2x (generous margin for measurement noise)
-    assert!(with_retry < baseline * 2);
+    // Factory overhead should be minimal - within 3x baseline
+    // (factory call + one effect creation per iteration)
+    assert!(with_retry < baseline * 3);
 }
 ```
 
@@ -656,31 +738,46 @@ async fn test_no_overhead_for_successful_effects() {
 
 ## Implementation Notes
 
-### Cloning Effects for Retry
+### Why Factory Functions for Retry
 
-The `with_retry` combinator requires the effect to be clonable. Since `Effect` contains a `Box<dyn FnOnce>`, we need to either:
+Effect uses `Box<dyn FnOnce>` internally - effects are consumed when run. This is a deliberate
+design choice that aligns with Rust's ownership model. For retry, we use factory functions
+rather than attempting to clone effects.
 
-1. **Option A**: Require `Clone` bound on the effect (user must create cloneable effects)
-2. **Option B**: Take a factory function instead of an effect
-3. **Option C**: Use `Arc<dyn Fn>` internally for retryable effects
+**Philosophical alignment with stillwater:**
 
-**Recommendation**: Option B for ergonomics:
+From `PHILOSOPHY.md`: *"We're not trying to be Haskell. We're trying to be better Rust."*
+and *"Work with ownership (not fight the borrow checker)."*
+
+**Why factory functions are the right choice:**
+
+1. **Works with ownership**: No need to change Effect internals or add `Clone` bounds
+2. **Semantically correct**: Real I/O operations *should* be recreated on retry
+   - HTTP requests need fresh request IDs, timestamps
+   - Database queries need fresh connections from pool
+   - File operations should re-open handles
+3. **Explicit intent**: The factory makes it clear each retry is a fresh attempt
+4. **Simple types**: No dual Effect types, no `Arc<Fn>` complexity
+
+**The pattern:**
 
 ```rust
-// Instead of cloning the effect, take a factory
-pub fn with_retry<F>(factory: F, policy: RetryPolicy) -> Effect<T, RetryExhausted<E>, Env>
-where
-    F: Fn() -> Effect<T, E, Env> + Send + 'static
+// The retry policy is pure data (the "still" core)
+let policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(3);
+
+// The factory creates fresh effects (the "water" shell)
+let effect = Effect::retry(
+    move || fetch_user(user_id),  // Fresh effect each attempt
+    policy
+);
 ```
 
-Or provide both APIs:
-```rust
-// For clonable effects
-effect.with_retry(policy)
+**Alternatives considered and rejected:**
 
-// For non-clonable effects
-Effect::retry_with(|| fetch_data(), policy)
-```
+- **Option A (Clone bound)**: Would require changing Effect to use `Arc<dyn Fn>`, breaking
+  effects that consume captured values and adding `Sync` bounds everywhere.
+- **Option C (Dual types)**: Adds type complexity, violates "types guide, don't restrict."
 
 ### Jitter Implementation
 
@@ -693,6 +790,39 @@ jitter = ["dep:rand"]
 ```
 
 Without the feature, jitter methods compile but log a warning and return unjittered delays.
+
+**Jitter formulas:**
+
+```rust
+impl JitterStrategy {
+    fn apply(&self, base_delay: Duration, prev_delay: Option<Duration>) -> Duration {
+        match self {
+            JitterStrategy::None => base_delay,
+
+            // Proportional: delay ± (delay * factor)
+            JitterStrategy::Proportional(factor) => {
+                let jitter = base_delay.mul_f64(*factor);
+                let min = base_delay.saturating_sub(jitter);
+                let max = base_delay.saturating_add(jitter);
+                rand_between(min, max)
+            }
+
+            // Full: random between 0 and delay (AWS recommended)
+            JitterStrategy::Full => {
+                rand_between(Duration::ZERO, base_delay)
+            }
+
+            // Decorrelated: sleep = min(cap, rand(base, prev_sleep * 3))
+            // See: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+            JitterStrategy::Decorrelated => {
+                let prev = prev_delay.unwrap_or(base_delay);
+                let max = prev.saturating_mul(3);
+                rand_between(base_delay, max)
+            }
+        }
+    }
+}
+```
 
 ### Timeout Implementation
 
@@ -747,4 +877,4 @@ These would be separate specifications building on this foundation.
 
 ---
 
-*"Retry policies are just data. Retry execution is just an effect. Keep them separate, keep them composable."*
+*"Retry policies are pure data—the still core. Effect factories create fresh attempts—the flowing water. Embrace ownership, don't fight it."*
