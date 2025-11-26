@@ -983,6 +983,7 @@ where
     /// assert_eq!(result.into_value(), 42);
     /// # });
     /// ```
+    #[cfg(feature = "async")]
     pub fn retry<F>(
         make_effect: F,
         policy: crate::retry::RetryPolicy,
@@ -1066,6 +1067,7 @@ where
     /// assert_eq!(result, Err(AppError::Permanent));
     /// # });
     /// ```
+    #[cfg(feature = "async")]
     pub fn retry_if<F, P>(
         make_effect: F,
         policy: crate::retry::RetryPolicy,
@@ -1140,6 +1142,7 @@ where
     /// );
     /// # });
     /// ```
+    #[cfg(feature = "async")]
     pub fn retry_with_hooks<F, H>(
         make_effect: F,
         policy: crate::retry::RetryPolicy,
@@ -1232,6 +1235,7 @@ where
     /// }
     /// # });
     /// ```
+    #[cfg(feature = "async")]
     pub fn with_timeout(
         self,
         duration: std::time::Duration,
