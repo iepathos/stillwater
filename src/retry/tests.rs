@@ -1,4 +1,9 @@
 //! Integration tests for retry functionality.
+//!
+//! These tests require the `async` feature because `Effect::retry`, `Effect::retry_if`,
+//! `Effect::retry_with_hooks`, and `Effect::with_timeout` are gated behind that feature.
+
+#![cfg(feature = "async")]
 
 use super::*;
 use crate::Effect;

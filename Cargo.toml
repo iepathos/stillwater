@@ -29,3 +29,7 @@ try_trait = []
 proptest = ["dep:proptest"]
 jitter = ["dep:rand"]
 
+[[example]]
+name = "retry_patterns"
+required-features = ["async"]
+

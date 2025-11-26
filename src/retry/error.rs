@@ -8,7 +8,8 @@ use std::time::Duration;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
+/// // Note: Requires the `async` feature to be enabled
 /// use stillwater::{Effect, RetryPolicy, RetryExhausted};
 /// use std::time::Duration;
 ///
@@ -90,7 +91,8 @@ impl<E: std::error::Error + 'static> std::error::Error for RetryExhausted<E> {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,ignore
+/// // Note: Requires the `async` feature to be enabled
 /// use stillwater::{Effect, TimeoutError};
 /// use std::time::Duration;
 ///

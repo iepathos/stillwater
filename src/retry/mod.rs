@@ -9,7 +9,8 @@
 //!
 //! # Quick Start
 //!
-//! ```rust
+//! ```rust,ignore
+//! // Note: Requires the `async` feature to be enabled
 //! use stillwater::{Effect, RetryPolicy};
 //! use std::time::Duration;
 //!
