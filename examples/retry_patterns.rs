@@ -373,7 +373,6 @@ async fn example_http_pattern() {
 
     // Simulated HTTP response
     #[derive(Debug, Clone)]
-    #[allow(dead_code)]
     enum HttpError {
         Timeout,
         ServerError(u16),
@@ -430,6 +429,40 @@ async fn example_http_pattern() {
         Ok(body) => println!("\nResponse: {}", body),
         Err(e) => println!("\nRequest failed: {}", e),
     }
+
+    // Now demonstrate that client errors (4xx) are NOT retried
+    println!("\n--- Client Error (should NOT retry) ---");
+    let attempts = Arc::new(AtomicU32::new(0));
+
+    let effect = Effect::retry_if(
+        {
+            let attempts = attempts.clone();
+            move || {
+                let attempts = attempts.clone();
+                Effect::from_async(move |_: &()| {
+                    let attempts = attempts.clone();
+                    async move {
+                        attempts.fetch_add(1, Ordering::SeqCst);
+                        println!("  HTTP request attempt");
+                        // Client error - bad request, should NOT be retried
+                        Err::<&str, _>(HttpError::ClientError(400))
+                    }
+                })
+            }
+        },
+        RetryPolicy::exponential(Duration::from_millis(100))
+            .with_max_retries(5)
+            .with_max_delay(Duration::from_secs(2)),
+        is_retryable,
+    );
+
+    let result = effect.run(&()).await;
+
+    match result {
+        Ok(body) => println!("\nResponse: {}", body),
+        Err(e) => println!("\nRequest failed (no retries for client error): {}", e),
+    }
+    println!("Total attempts: {}", attempts.load(Ordering::SeqCst));
 }
 
 #[tokio::main]

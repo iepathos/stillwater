@@ -54,32 +54,20 @@ fn example_testing_validations() {
 
 // ==================== Testing Effects with Mock Environment ====================
 
-/// Example service that we'll mock for testing
+/// Example service trait for testing
+///
+/// In a real application, you would have:
+/// - A trait like this defining the interface
+/// - A production implementation (e.g., PostgresStorage with real DB queries)
+/// - A mock implementation for testing (shown below)
+///
+/// This separation enables testing business logic without real infrastructure.
 trait Storage {
     fn get(&self, key: &str) -> Option<String>;
     fn set(&self, key: &str, value: String);
 }
 
-/// Production implementation (real database)
-#[allow(dead_code)]
-struct PostgresStorage {
-    // connection details, etc.
-}
-
-#[allow(dead_code)]
-impl Storage for PostgresStorage {
-    fn get(&self, key: &str) -> Option<String> {
-        // Real database query
-        unimplemented!("Would query real database for key: {}", key)
-    }
-
-    fn set(&self, key: &str, value: String) {
-        // Real database write
-        unimplemented!("Would write to database: {} = {}", key, value)
-    }
-}
-
-/// Test implementation (in-memory mock)
+/// Mock implementation (in-memory) for testing
 struct MockStorage {
     data: Arc<Mutex<std::collections::HashMap<String, String>>>,
 }
