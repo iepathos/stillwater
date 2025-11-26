@@ -477,7 +477,6 @@ mod tests {
     #[cfg(feature = "proptest")]
     mod proptest_tests {
         use super::*;
-        use proptest::prelude::*;
 
         proptest! {
             #[test]
