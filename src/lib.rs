@@ -59,6 +59,7 @@ pub mod effect;
 pub mod io;
 pub mod monoid;
 pub mod nonempty;
+pub mod retry;
 pub mod semigroup;
 pub mod testing;
 pub mod traverse;
@@ -70,6 +71,9 @@ pub use effect::{Effect, EffectContext};
 pub use io::IO;
 pub use monoid::Monoid;
 pub use nonempty::NonEmptyVec;
+pub use retry::{
+    JitterStrategy, RetryEvent, RetryExhausted, RetryPolicy, RetryStrategy, TimeoutError,
+};
 pub use semigroup::{First, Intersection, Last, Semigroup};
 pub use validation::Validation;
 
@@ -80,6 +84,7 @@ pub mod prelude {
     pub use crate::io::IO;
     pub use crate::monoid::Monoid;
     pub use crate::nonempty::NonEmptyVec;
+    pub use crate::retry::{RetryEvent, RetryExhausted, RetryPolicy, TimeoutError};
     pub use crate::semigroup::{First, Intersection, Last, Semigroup};
     pub use crate::testing::{MockEnv, TestEffect};
     pub use crate::traverse::{sequence, sequence_effect, traverse, traverse_effect};
