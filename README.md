@@ -167,6 +167,7 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
 - **Parallel effect execution** - Run independent effects concurrently with `par_all()`, `race()`, and `par_all_limit()`
+- **Retry and resilience** - Configurable retry policies with exponential, linear, constant, and Fibonacci backoff strategies, plus timeout support
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
   - Validate entire collections with error accumulation
   - Process collections with effects using fail-fast semantics
@@ -292,6 +293,7 @@ Run any example with `cargo run --example <name>`:
 | [validation](examples/validation.rs) | Validation type and error accumulation patterns |
 | [effects](examples/effects.rs) | Effect type and composition patterns |
 | [parallel_effects](examples/parallel_effects.rs) | Parallel execution with par_all, race, and par_all_limit |
+| [retry_patterns](examples/retry_patterns.rs) | Retry policies, backoff strategies, timeouts, and resilience patterns |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
 | [pipeline](examples/pipeline.rs) | Data transformation pipelines |
 | [traverse](examples/traverse.rs) | Traverse and sequence for collections of validations and effects |

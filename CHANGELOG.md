@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### Retry and Resilience Patterns (Spec 001)
+
+- **`retry` module** - Comprehensive retry and resilience support for Effect-based computations
+  - `RetryPolicy` - Configurable retry policies with builder pattern
+  - Multiple backoff strategies: `constant`, `linear`, `exponential`, `fibonacci`
+  - `with_max_retries()` - Limit number of retry attempts
+  - `with_max_delay()` - Cap maximum delay between retries
+  - `with_jitter()` - Add randomness to prevent thundering herd (requires `jitter` feature)
+- **Effect retry methods**:
+  - `Effect::retry()` - Retry with a policy until success or exhaustion
+  - `Effect::retry_if()` - Conditional retry based on error predicate
+  - `Effect::retry_with_hooks()` - Retry with observability callbacks for logging/metrics
+  - `Effect::with_timeout()` - Add timeout to any effect
+- **Error types**:
+  - `RetryExhausted<E>` - Contains final error, attempt count, and total elapsed time
+  - `RetrySuccess<T>` - Contains value and retry metadata
+  - `TimeoutError<E>` - Wraps timeout or inner error
+  - `RetryEvent` - Passed to hooks with attempt info, error, and timing
+- **New Cargo features**:
+  - `jitter` - Enable jitter support for retry policies (adds `rand` dependency)
+- **Documentation**:
+  - Comprehensive example in `examples/retry_patterns.rs` (8 patterns demonstrated)
+  - API documentation with usage examples
+  - Guide in `docs/guide/15-retry.md`
+
 ## [0.8.0] - 2025-11-24
 
 ### Added

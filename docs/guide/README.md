@@ -70,6 +70,13 @@ This guide is organized into progressive chapters, each building on the previous
    - Traverse vs sequence
    - Real-world examples
 
+15. **[Retry and Resilience](15-retry.md)** - Handling transient failures
+   - Retry policies and backoff strategies
+   - Conditional retry with retry_if
+   - Observability hooks for logging/metrics
+   - Timeout support
+   - Combining retry with timeout
+
 ### Testing & Quality
 
 14. **[Testing](14-testing.md)** - Testing utilities and patterns
@@ -117,6 +124,9 @@ cargo run --example form_validation
 | Error debugging | ContextError | Add context trails |
 | Data aggregation | Monoid | Combine collections with fold_all |
 | Numeric operations | Sum/Product | Aggregate numbers with identity |
+| Retry transient errors | Effect::retry | Retry with backoff strategies |
+| Conditional retry | Effect::retry_if | Retry only on certain errors |
+| Timeout operations | Effect::with_timeout | Prevent hanging operations |
 | Testing validations | assert_success! / assert_failure! | Concise test assertions |
 | Testing effects | TestEffect | Deterministic effect testing |
 | Mock environments | MockEnv | Build test dependencies |
