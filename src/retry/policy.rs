@@ -411,6 +411,7 @@ impl JitterStrategy {
     pub fn apply(
         &self,
         base_delay: Duration,
+        #[cfg_attr(not(feature = "jitter"), allow(unused_variables))]
         prev_delay: Option<Duration>,
         max_delay: Option<Duration>,
     ) -> Duration {
