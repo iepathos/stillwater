@@ -953,6 +953,303 @@ where
             }),
         }
     }
+
+    /// Retry an operation using a factory function.
+    ///
+    /// Each retry creates a fresh effect via the factory. This is semantically
+    /// correct for I/O operations which should be recreated (fresh connections,
+    /// new request IDs, etc.) rather than "cloned."
+    ///
+    /// # Why a factory function?
+    ///
+    /// Effects use `FnOnce` internally and are consumed on execution. Rather
+    /// than adding complexity to make effects cloneable, we embrace Rust's
+    /// ownership model: retry means "try this operation again from scratch."
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use stillwater::{Effect, RetryPolicy};
+    /// use std::time::Duration;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::retry(
+    ///     || Effect::<_, String, ()>::pure(42),
+    ///     RetryPolicy::exponential(Duration::from_millis(100))
+    ///         .with_max_retries(3)
+    /// );
+    ///
+    /// let result = effect.run(&()).await.unwrap();
+    /// assert_eq!(result.into_value(), 42);
+    /// # });
+    /// ```
+    pub fn retry<F>(
+        make_effect: F,
+        policy: crate::retry::RetryPolicy,
+    ) -> Effect<crate::retry::RetryExhausted<T>, crate::retry::RetryExhausted<E>, Env>
+    where
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
+    {
+        use crate::retry::RetryExhausted;
+        use std::time::{Duration, Instant};
+
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    let start = Instant::now();
+                    let mut attempt = 0u32;
+                    let mut prev_delay: Option<Duration> = None;
+
+                    loop {
+                        let effect = make_effect();
+                        match effect.run(env).await {
+                            Ok(value) => {
+                                return Ok(RetryExhausted::new(
+                                    value,
+                                    attempt + 1,
+                                    start.elapsed(),
+                                ));
+                            }
+                            Err(error) => {
+                                let delay = policy.delay_with_jitter(attempt, prev_delay);
+
+                                match delay {
+                                    Some(d) => {
+                                        tokio::time::sleep(d).await;
+                                        prev_delay = Some(d);
+                                        attempt += 1;
+                                    }
+                                    None => {
+                                        // No more retries
+                                        return Err(RetryExhausted::new(
+                                            error,
+                                            attempt + 1,
+                                            start.elapsed(),
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }),
+        }
+    }
+
+    /// Retry only when the predicate returns true for the error.
+    ///
+    /// Non-retryable errors immediately propagate without retry attempts.
+    /// Useful for distinguishing transient errors (retry) from permanent
+    /// errors (fail fast).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use stillwater::{Effect, RetryPolicy};
+    /// use std::time::Duration;
+    ///
+    /// #[derive(Debug, PartialEq, Clone)]
+    /// enum AppError {
+    ///     Transient,
+    ///     Permanent,
+    /// }
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::retry_if(
+    ///     || Effect::<(), _, ()>::fail(AppError::Permanent),
+    ///     RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(3),
+    ///     |err| matches!(err, AppError::Transient)
+    /// );
+    ///
+    /// // Permanent errors are not retried
+    /// let result = effect.run(&()).await;
+    /// assert_eq!(result, Err(AppError::Permanent));
+    /// # });
+    /// ```
+    pub fn retry_if<F, P>(
+        make_effect: F,
+        policy: crate::retry::RetryPolicy,
+        should_retry: P,
+    ) -> Effect<T, E, Env>
+    where
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
+        P: Fn(&E) -> bool + Send + Sync + 'static,
+    {
+        use std::time::{Duration, Instant};
+
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    let _start = Instant::now();
+                    let mut attempt = 0u32;
+                    let mut prev_delay: Option<Duration> = None;
+
+                    loop {
+                        let effect = make_effect();
+                        match effect.run(env).await {
+                            Ok(value) => return Ok(value),
+                            Err(error) => {
+                                // Check if we should retry this error
+                                if !should_retry(&error) {
+                                    return Err(error);
+                                }
+
+                                let delay = policy.delay_with_jitter(attempt, prev_delay);
+
+                                match delay {
+                                    Some(d) => {
+                                        tokio::time::sleep(d).await;
+                                        prev_delay = Some(d);
+                                        attempt += 1;
+                                    }
+                                    None => {
+                                        // No more retries, return the final error
+                                        return Err(error);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }),
+        }
+    }
+
+    /// Retry with hooks for observability.
+    ///
+    /// The `on_retry` callback is invoked before each retry attempt,
+    /// receiving information about the failed attempt. The callback
+    /// is synchronous and should not block; use it for logging/metrics.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use stillwater::{Effect, RetryPolicy, RetryEvent};
+    /// use std::time::Duration;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::retry_with_hooks(
+    ///     || Effect::<_, String, ()>::pure(42),
+    ///     RetryPolicy::exponential(Duration::from_millis(10)).with_max_retries(3),
+    ///     |event: &RetryEvent<'_, String>| {
+    ///         println!(
+    ///             "Attempt {} failed: {:?}, next delay: {:?}",
+    ///             event.attempt, event.error, event.next_delay
+    ///         );
+    ///     }
+    /// );
+    /// # });
+    /// ```
+    pub fn retry_with_hooks<F, H>(
+        make_effect: F,
+        policy: crate::retry::RetryPolicy,
+        on_retry: H,
+    ) -> Effect<crate::retry::RetryExhausted<T>, crate::retry::RetryExhausted<E>, Env>
+    where
+        F: Fn() -> Effect<T, E, Env> + Send + 'static,
+        H: Fn(&crate::retry::RetryEvent<'_, E>) + Send + Sync + 'static,
+    {
+        use crate::retry::{RetryEvent, RetryExhausted};
+        use std::time::{Duration, Instant};
+
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    let start = Instant::now();
+                    let mut attempt = 0u32;
+                    let mut prev_delay: Option<Duration> = None;
+
+                    loop {
+                        let effect = make_effect();
+                        match effect.run(env).await {
+                            Ok(value) => {
+                                return Ok(RetryExhausted::new(
+                                    value,
+                                    attempt + 1,
+                                    start.elapsed(),
+                                ));
+                            }
+                            Err(error) => {
+                                let delay = policy.delay_with_jitter(attempt, prev_delay);
+
+                                // Call the hook before retrying (in its own scope)
+                                {
+                                    let event = RetryEvent {
+                                        attempt: attempt + 1,
+                                        error: &error,
+                                        next_delay: delay,
+                                        elapsed: start.elapsed(),
+                                    };
+                                    on_retry(&event);
+                                }
+
+                                match delay {
+                                    Some(d) => {
+                                        tokio::time::sleep(d).await;
+                                        prev_delay = Some(d);
+                                        attempt += 1;
+                                    }
+                                    None => {
+                                        // No more retries
+                                        return Err(RetryExhausted::new(
+                                            error,
+                                            attempt + 1,
+                                            start.elapsed(),
+                                        ));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                })
+            }),
+        }
+    }
+
+    /// Add a timeout to this effect.
+    ///
+    /// If the effect doesn't complete within the duration, it fails
+    /// with a timeout error.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use stillwater::{Effect, TimeoutError};
+    /// use std::time::Duration;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::from_async(|_: &()| async {
+    ///     tokio::time::sleep(Duration::from_secs(10)).await;
+    ///     Ok::<_, String>(42)
+    /// })
+    /// .with_timeout(Duration::from_millis(10));
+    ///
+    /// match effect.run(&()).await {
+    ///     Err(TimeoutError::Timeout { duration }) => {
+    ///         assert_eq!(duration, Duration::from_millis(10));
+    ///     }
+    ///     _ => panic!("Expected timeout"),
+    /// }
+    /// # });
+    /// ```
+    pub fn with_timeout(
+        self,
+        duration: std::time::Duration,
+    ) -> Effect<T, crate::retry::TimeoutError<E>, Env> {
+        use crate::retry::TimeoutError;
+
+        Effect {
+            run_fn: Box::new(move |env| {
+                Box::pin(async move {
+                    match tokio::time::timeout(duration, (self.run_fn)(env)).await {
+                        Ok(Ok(value)) => Ok(value),
+                        Ok(Err(e)) => Err(TimeoutError::Inner(e)),
+                        Err(_) => Err(TimeoutError::Timeout { duration }),
+                    }
+                })
+            }),
+        }
+    }
 }
 
 // Extension trait for adding context - workaround for lack of specialization
