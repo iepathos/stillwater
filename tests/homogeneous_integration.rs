@@ -136,7 +136,6 @@ fn test_validation_composition() {
 #[test]
 fn test_json_like_enum_validation() {
     #[derive(Clone, Debug, PartialEq)]
-    #[allow(dead_code)]
     enum Value {
         Null,
         Bool(bool),
@@ -178,6 +177,37 @@ fn test_json_like_enum_validation() {
                 Value::Object(_) => "Object",
             }
         }
+    }
+
+    // Test mixing primitive JSON types (Null vs Bool)
+    let mixed_primitives = vec![Value::Null, Value::Bool(true), Value::Null];
+
+    let result = validate_homogeneous(mixed_primitives, discriminant, TypeMismatchError::new);
+
+    match result {
+        Validation::Failure(errors) => {
+            assert_eq!(errors.len(), 1);
+            assert_eq!(errors[0].expected, "Null");
+            assert_eq!(errors[0].got, "Bool");
+        }
+        _ => panic!("Expected failure for mixed Null/Bool"),
+    }
+
+    // Test homogeneous Bools validate successfully
+    let bools = vec![Value::Bool(true), Value::Bool(false), Value::Bool(true)];
+    let result = validate_homogeneous(bools, discriminant, TypeMismatchError::new);
+    assert!(matches!(result, Validation::Success(_)));
+
+    // Test combining Strings
+    let strings = vec![
+        Value::String("hello".to_string()),
+        Value::String(" ".to_string()),
+        Value::String("world".to_string()),
+    ];
+    let result = combine_homogeneous(strings, discriminant, TypeMismatchError::new);
+    match result {
+        Validation::Success(Value::String(s)) => assert_eq!(s, "hello world"),
+        _ => panic!("Expected combined string"),
     }
 
     // Test mixing JSON types

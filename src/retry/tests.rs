@@ -11,6 +11,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
+/// Error type for retry_if tests - models retryable vs non-retryable errors
+#[derive(Debug, PartialEq, Clone)]
+enum RetryTestError {
+    Transient,
+    Permanent,
+}
+
 #[tokio::test]
 async fn test_retry_succeeds_on_third_attempt() {
     let attempts = Arc::new(AtomicU32::new(0));
@@ -60,13 +67,6 @@ async fn test_retry_exhausted_returns_final_error() {
 
 #[tokio::test]
 async fn test_retry_if_skips_non_retryable_errors() {
-    #[derive(Debug, PartialEq, Clone)]
-    #[allow(dead_code)]
-    enum TestError {
-        Transient,
-        Permanent,
-    }
-
     let attempts = Arc::new(AtomicU32::new(0));
 
     let effect = Effect::retry_if(
@@ -78,30 +78,23 @@ async fn test_retry_if_skips_non_retryable_errors() {
                     let attempts = attempts.clone();
                     async move {
                         attempts.fetch_add(1, Ordering::SeqCst);
-                        Err::<(), _>(TestError::Permanent)
+                        Err::<(), _>(RetryTestError::Permanent)
                     }
                 })
             }
         },
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(5),
-        |err| matches!(err, TestError::Transient),
+        |err| matches!(err, RetryTestError::Transient),
     );
 
     let result = effect.run(&()).await;
 
-    assert_eq!(result, Err(TestError::Permanent));
+    assert_eq!(result, Err(RetryTestError::Permanent));
     assert_eq!(attempts.load(Ordering::SeqCst), 1); // No retries for permanent error
 }
 
 #[tokio::test]
 async fn test_retry_if_retries_transient_errors() {
-    #[derive(Debug, PartialEq, Clone)]
-    enum TestError {
-        Transient,
-        #[allow(dead_code)]
-        Permanent,
-    }
-
     let attempts = Arc::new(AtomicU32::new(0));
 
     let effect = Effect::retry_if(
@@ -114,7 +107,7 @@ async fn test_retry_if_retries_transient_errors() {
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
                         if n < 2 {
-                            Err::<&str, _>(TestError::Transient)
+                            Err::<&str, _>(RetryTestError::Transient)
                         } else {
                             Ok("success")
                         }
@@ -123,7 +116,7 @@ async fn test_retry_if_retries_transient_errors() {
             }
         },
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(5),
-        |err| matches!(err, TestError::Transient),
+        |err| matches!(err, RetryTestError::Transient),
     );
 
     let result = effect.run(&()).await;

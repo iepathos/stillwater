@@ -1789,7 +1789,6 @@ mod tests {
     #[tokio::test]
     async fn test_and_then_auto_success() {
         #[derive(Debug, PartialEq)]
-        #[allow(dead_code)]
         enum Error1 {
             Fail,
         }
@@ -1805,22 +1804,25 @@ mod tests {
             }
         }
 
+        // Test success path
         let effect =
             Effect::<_, Error2, ()>::pure(42).and_then_auto(|_| Effect::<_, Error1, ()>::pure(100));
-
         assert_eq!(effect.run(&()).await, Ok(100));
+
+        // Test error conversion path
+        let effect = Effect::<_, Error2, ()>::pure(42)
+            .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
+        assert_eq!(effect.run(&()).await, Err(Error2::Other(Error1::Fail)));
     }
 
     #[tokio::test]
     async fn test_and_then_auto_chain() {
         #[derive(Debug, PartialEq)]
-        #[allow(dead_code)]
         enum ValidationError {
             Invalid,
         }
 
         #[derive(Debug, PartialEq)]
-        #[allow(dead_code)]
         enum DbError {
             NotFound,
         }
@@ -1843,11 +1845,28 @@ mod tests {
             }
         }
 
+        // Test success path
         let effect = Effect::<_, AppError, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100))
             .and_then_auto(|_| Effect::<i32, DbError, ()>::pure(200));
-
         assert_eq!(effect.run(&()).await, Ok(200));
+
+        // Test ValidationError conversion
+        let effect = Effect::<_, AppError, ()>::pure(42)
+            .and_then_auto(|_| Effect::<i32, ValidationError, ()>::fail(ValidationError::Invalid));
+        assert_eq!(
+            effect.run(&()).await,
+            Err(AppError::Validation(ValidationError::Invalid))
+        );
+
+        // Test DbError conversion
+        let effect = Effect::<_, AppError, ()>::pure(42)
+            .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100))
+            .and_then_auto(|_| Effect::<i32, DbError, ()>::fail(DbError::NotFound));
+        assert_eq!(
+            effect.run(&()).await,
+            Err(AppError::Database(DbError::NotFound))
+        );
     }
 
     #[tokio::test]
