@@ -27,14 +27,3 @@ async = ["tokio"]
 try_trait = []
 proptest = ["dep:proptest"]
 
-[[example]]
-name = "validation"
-path = "examples/validation.rs"
-
-[[example]]
-name = "effects"
-path = "examples/effects.rs"
-
-[[example]]
-name = "pipeline"
-path = "examples/pipeline.rs"

@@ -106,6 +106,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 ```rust
 // Primary API: factory function pattern
 // Each retry creates a fresh effect - semantically correct for I/O operations
+// Returns RetryExhausted<E> on failure (wraps final error with metadata)
 let effect = Effect::retry(
     || fetch_data(),
     RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3)
@@ -119,12 +120,20 @@ let effect = Effect::retry(
 );
 
 // With condition - only retry transient errors
+// Returns E directly - non-retryable errors pass through unwrapped
+// Retryable errors that exhaust retries also return E (final error)
 let effect = Effect::retry_if(
     || fetch_data(),
     RetryPolicy::exponential(Duration::from_millis(100)),
     |err| err.is_transient()
 );
 ```
+
+**Return type rationale:**
+- `retry` → `RetryExhausted<E>`: Always wraps errors with attempt metadata
+- `retry_if` → `E`: Preserves original error type for seamless error handling
+  - Non-retryable errors pass through immediately (no wrapping)
+  - Exhausted retryable errors return the final `E` (caller can't distinguish, but that's intentional—if you need metadata, use `retry_with_hooks`)
 
 #### FR-6: Retry Events and Observability
 ```rust
@@ -191,13 +200,15 @@ let effect = fetch_data()
 ## Acceptance Criteria
 
 - [ ] `RetryPolicy` struct with builder pattern for configuration
+- [ ] Policy validation: at least one bound (`max_retries` or `max_delay`) required
 - [ ] Constant, linear, exponential, and Fibonacci backoff strategies
 - [ ] Jitter support (proportional, full, decorrelated)
-- [ ] `Effect::retry(factory, policy)` - factory-based retry
-- [ ] `Effect::retry_if(factory, policy, predicate)` - conditional retry
+- [ ] `Effect::retry(factory, policy)` → `Effect<T, RetryExhausted<E>, Env>`
+- [ ] `Effect::retry_if(factory, policy, predicate)` → `Effect<T, E, Env>`
 - [ ] `Effect::retry_with_hooks(factory, policy, on_retry)` - retry with observability
 - [ ] `effect.with_timeout(duration)` - per-effect timeout
 - [ ] `RetryExhausted<E>` type with final error, attempt count, and duration
+- [ ] Cancellation-safe: dropping futures stops retry loop cleanly
 - [ ] Comprehensive unit tests for all retry strategies
 - [ ] Property-based tests for backoff calculations
 - [ ] Integration tests demonstrating real-world patterns
@@ -214,11 +225,21 @@ let effect = fetch_data()
 /// A retry policy describing how to retry failed operations.
 ///
 /// Policies are pure data - they describe retry behavior but don't execute it.
+///
+/// # Bounds Behavior
+///
+/// At least one bound MUST be set, or the policy will panic at construction:
+/// - `max_retries`: Maximum number of retry attempts (not including initial attempt)
+/// - `max_delay`: Maximum delay cap (also acts as implicit bound for exponential/fibonacci)
+///
+/// **Rationale**: Unbounded retries are almost always a bug. Requiring explicit bounds
+/// forces intentional decisions about retry limits. If you truly need unbounded retries
+/// (rare), use `max_retries(u32::MAX)` to make the intent explicit.
 #[derive(Debug, Clone, PartialEq)]
 pub struct RetryPolicy {
     strategy: RetryStrategy,
-    max_retries: Option<u32>,
-    max_delay: Option<Duration>,
+    max_retries: Option<u32>,  // None only valid if max_delay is Some
+    max_delay: Option<Duration>,  // None only valid if max_retries is Some
     jitter: JitterStrategy,
     // Note: retry_if predicate stored separately due to Fn trait object requirements
 }
@@ -814,6 +835,8 @@ impl JitterStrategy {
 
             // Decorrelated: sleep = min(cap, rand(base, prev_sleep * 3))
             // See: https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+            // Note: prev_delay is passed by the retry executor, which tracks state.
+            // The policy itself remains stateless - state lives in the executor.
             JitterStrategy::Decorrelated => {
                 let prev = prev_delay.unwrap_or(base_delay);
                 let max = prev.saturating_mul(3);
@@ -823,6 +846,10 @@ impl JitterStrategy {
     }
 }
 ```
+
+**State ownership**: `JitterStrategy` is stateless data. For `Decorrelated` jitter, the retry
+executor tracks the previous delay and passes it to `apply()`. This maintains the "pure policy,
+stateful executor" separation.
 
 ### Timeout Implementation
 
@@ -846,6 +873,33 @@ pub fn with_timeout(self, duration: Duration) -> Effect<T, TimeoutError<E>, Env>
 - `RetryEvent` contains a reference, lifetime-bound to retry loop
 - All combinators maintain `Send + 'static` bounds
 
+### Cancellation Semantics
+
+Retry operations respect standard Rust async cancellation:
+
+1. **Dropping the future cancels the retry loop**: If the future returned by `Effect::retry(...).run(&env)` is dropped, the retry loop stops. No further attempts are made.
+
+2. **In-progress delays are cancellable**: Delays use `tokio::time::sleep`, which is cancellation-safe. Dropping during a delay simply stops waiting.
+
+3. **In-progress effects follow effect cancellation rules**: Whatever cancellation semantics the inner effect has are preserved. The retry combinator doesn't add special cancellation handling.
+
+4. **Timeout interaction**: When a retry sequence has `with_timeout(duration)`:
+   - The timeout applies to the entire retry sequence (all attempts + delays)
+   - Individual attempt timeouts should be set on the factory effect
+   - On timeout, the retry loop stops immediately (no final error from attempts)
+
+```rust
+// Recommended pattern: both per-attempt and total timeout
+let effect = Effect::retry(
+    || fetch_data().with_timeout(Duration::from_secs(5)),  // Per-attempt: 5s
+    policy
+).with_timeout(Duration::from_secs(60));  // Total: 60s for all retries
+```
+
+**No `CancellationToken` integration**: We rely on standard async drop semantics rather than
+explicit cancellation tokens. This is simpler and sufficient for most use cases. If explicit
+cancellation is needed, users can use `tokio_util::sync::CancellationToken` externally.
+
 ## Migration and Compatibility
 
 ### Breaking Changes
@@ -854,10 +908,13 @@ None - this is a purely additive feature.
 ### Feature Flags
 ```toml
 [features]
-default = ["retry"]
-retry = []           # Core retry functionality
-jitter = ["retry", "dep:rand"]  # Jitter support
+default = []          # Opt-in to retry features
+jitter = ["dep:rand"] # Jitter support (rand dependency)
 ```
+
+**Design decision**: Retry is part of core stillwater (no feature flag needed). Only `jitter`
+requires a feature flag due to the `rand` dependency. Without `jitter` enabled, jitter methods
+compile but return unjittered delays with a debug log warning.
 
 ### Deprecations
 None.
@@ -866,12 +923,26 @@ None.
 
 These are explicitly NOT part of this specification but may be added later:
 
+### Resilience Patterns (Separate Specs)
 1. **Circuit Breaker**: Fail fast when downstream is unhealthy
 2. **Bulkhead**: Limit concurrent executions
 3. **Rate Limiter**: Control request rate
 4. **Retry Budgets**: Limit total retries across all operations
 5. **Hedged Requests**: Send parallel requests, take first success
 6. **Adaptive Retry**: Adjust policy based on observed success rates
+
+### Potential Enhancements to This Spec
+7. **Error accumulation**: Option to collect all errors, not just the final one
+   ```rust
+   pub struct RetryExhaustedWithHistory<E> {
+       pub errors: Vec<(E, Duration)>,  // All errors with timestamps
+       pub final_error: E,
+       // ...
+   }
+   ```
+8. **Owned `RetryEvent`**: For sending events to channels (requires `E: Clone`)
+9. **Policy composition**: Chaining policies (e.g., `policy1.then(policy2)`)
+10. **Retry context in environment**: Inject attempt number into effect environment
 
 These would be separate specifications building on this foundation.
 
