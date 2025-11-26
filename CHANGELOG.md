@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2025-11-26
+
 ### Added
 
 #### Retry and Resilience Patterns (Spec 001)
@@ -33,6 +35,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive example in `examples/retry_patterns.rs` (8 patterns demonstrated)
   - API documentation with usage examples
   - Guide in `docs/guide/15-retry.md`
+
+### Changed
+
+#### Code Quality Improvements
+
+- **Eliminated all `#[allow(dead_code)]` annotations** - Improved test coverage instead of suppressing warnings
+  - `tests/homogeneous_integration.rs` - Added test cases for `Null`, `Bool`, `String` variants
+  - `src/retry/tests.rs` - Shared `RetryTestError` enum across retry_if tests
+  - `src/effect.rs` - Added error-path assertions to `and_then_auto` tests
+  - Removed unused test infrastructure (EmailService, Logger, Database::save)
+  - Tests now exercise both success and error paths
 
 ## [0.8.0] - 2025-11-24
 
@@ -532,7 +545,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/iepathos/stillwater/compare/v0.8.0...v0.9.0
+[0.8.0]: https://github.com/iepathos/stillwater/compare/v0.6.0...v0.8.0
+[0.6.0]: https://github.com/iepathos/stillwater/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/iepathos/stillwater/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/iepathos/stillwater/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/iepathos/stillwater/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/iepathos/stillwater/compare/v0.1.0...v0.2.0
