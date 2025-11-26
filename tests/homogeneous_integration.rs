@@ -222,23 +222,18 @@ fn test_json_like_enum_validation() {
 #[test]
 fn test_mapreduce_aggregation_pattern() {
     // Simulate MapReduce aggregation where workers return results
-    #[allow(dead_code)]
     struct Worker {
-        id: usize,
         result: AggregateResult,
     }
 
     let workers = vec![
         Worker {
-            id: 1,
             result: AggregateResult::Sum(10.0),
         },
         Worker {
-            id: 2,
             result: AggregateResult::Sum(20.0),
         },
         Worker {
-            id: 3,
             result: AggregateResult::Sum(30.0),
         },
     ];

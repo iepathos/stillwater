@@ -9,12 +9,10 @@ struct User {
 }
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 enum AppError {
     AgeTooYoung,
     EmailExists,
     DbError,
-    LoggingError,
 }
 
 struct Database {
@@ -25,48 +23,10 @@ impl Database {
     fn email_exists(&self, email: &str) -> bool {
         self.users.iter().any(|u| u.email == email)
     }
-
-    #[allow(dead_code)]
-    fn save(&mut self, user: &User) -> Result<(), String> {
-        self.users.push(user.clone());
-        Ok(())
-    }
-}
-
-struct Logger {
-    logs: Vec<String>,
-}
-
-impl Logger {
-    #[allow(dead_code)]
-    fn info(&mut self, msg: String) {
-        self.logs.push(format!("INFO: {}", msg));
-    }
-
-    #[allow(dead_code)]
-    fn warn(&mut self, msg: String) {
-        self.logs.push(format!("WARN: {}", msg));
-    }
-}
-
-struct EmailService {
-    #[allow(dead_code)]
-    sent_emails: Vec<String>,
-}
-
-impl EmailService {
-    #[allow(dead_code)]
-    fn send_welcome(&mut self, email: &str) -> Result<(), String> {
-        self.sent_emails.push(email.to_string());
-        Ok(())
-    }
 }
 
 struct Env {
     db: Database,
-    logger: Logger,
-    #[allow(dead_code)]
-    email_service: EmailService,
 }
 
 #[tokio::test]
@@ -80,25 +40,15 @@ async fn test_user_registration_workflow() {
 
     let env = Env {
         db: Database { users: vec![] },
-        logger: Logger { logs: vec![] },
-        email_service: EmailService {
-            sent_emails: vec![],
-        },
     };
 
     let effect = Effect::pure(user.clone())
         // Validate age using check()
         .check(|u| u.age >= 18, || AppError::AgeTooYoung)
-        // Log the validation using tap()
+        // Demonstrate tap() for side effects (logging, metrics, etc.)
         .tap(|u| {
-            let user_id = u.id;
-            Effect::from_fn(move |env: &Env| {
-                let _ = env
-                    .logger
-                    .logs
-                    .contains(&format!("INFO: Validated user: {}", user_id));
-                Ok::<_, AppError>(())
-            })
+            let _user_id = u.id;
+            Effect::from_fn(move |_env: &Env| Ok::<_, AppError>(()))
         })
         // Check if email exists using and_then_ref()
         .and_then_ref(|u| {
@@ -136,10 +86,6 @@ async fn test_user_registration_age_validation_fails() {
 
     let env = Env {
         db: Database { users: vec![] },
-        logger: Logger { logs: vec![] },
-        email_service: EmailService {
-            sent_emails: vec![],
-        },
     };
 
     let effect = Effect::pure(user)
@@ -179,10 +125,6 @@ async fn test_user_registration_email_exists() {
         db: Database {
             users: vec![existing_user],
         },
-        logger: Logger { logs: vec![] },
-        email_service: EmailService {
-            sent_emails: vec![],
-        },
     };
 
     let effect = Effect::pure(new_user)
@@ -213,10 +155,6 @@ async fn test_composition_with_multiple_helpers() {
 
     let env = Env {
         db: Database { users: vec![] },
-        logger: Logger { logs: vec![] },
-        email_service: EmailService {
-            sent_emails: vec![],
-        },
     };
 
     let effect = Effect::pure(user)
@@ -240,18 +178,12 @@ async fn test_composition_with_multiple_helpers() {
 }
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
 enum ValidationError {
     InvalidEmail,
-    InvalidAge,
 }
 
 #[derive(Debug, PartialEq)]
-#[allow(dead_code)]
-enum DbError {
-    ConnectionFailed,
-    QueryFailed,
-}
+struct DbError;
 
 #[derive(Debug, PartialEq)]
 enum ServiceError {
@@ -305,10 +237,6 @@ async fn test_complex_workflow_with_all_combinators() {
 
     let env = Env {
         db: Database { users: vec![] },
-        logger: Logger { logs: vec![] },
-        email_service: EmailService {
-            sent_emails: vec![],
-        },
     };
 
     let effect = Effect::pure(user)
