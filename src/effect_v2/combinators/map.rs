@@ -20,6 +20,15 @@ pub struct Map<Inner, F> {
     pub(crate) f: F,
 }
 
+impl<Inner, F> std::fmt::Debug for Map<Inner, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Map")
+            .field("inner", &"<effect>")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<Inner, F, U> Effect for Map<Inner, F>
 where
     Inner: Effect,
@@ -30,13 +39,11 @@ where
     type Error = Inner::Error;
     type Env = Inner::Env;
 
-    fn run(
+    async fn run(
         self,
         env: &Self::Env,
-    ) -> impl std::future::Future<Output = Result<U, Self::Error>> + Send {
-        async move {
-            let value = self.inner.run(env).await?;
-            Ok((self.f)(value))
-        }
+    ) -> Result<U, Self::Error> {
+        let value = self.inner.run(env).await?;
+        Ok((self.f)(value))
     }
 }

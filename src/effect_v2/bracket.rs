@@ -32,6 +32,16 @@ pub struct Bracket<Acquire, Use, Release> {
     release: Release,
 }
 
+impl<Acquire, Use, Release> std::fmt::Debug for Bracket<Acquire, Use, Release> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Bracket")
+            .field("acquire", &"<effect>")
+            .field("use_fn", &"<function>")
+            .field("release", &"<function>")
+            .finish()
+    }
+}
+
 impl<Acquire, Use, Release> Bracket<Acquire, Use, Release> {
     /// Create a new Bracket.
     pub fn new(acquire: Acquire, use_fn: Use, release: Release) -> Self {
@@ -60,21 +70,19 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, env: &Self::Env) -> impl std::future::Future<Output = Result<T, E>> + Send {
-        async move {
-            // Acquire the resource
-            let resource = self.acquire.run(env).await?;
+    async fn run(self, env: &Self::Env) -> Result<T, E> {
+        // Acquire the resource
+        let resource = self.acquire.run(env).await?;
 
-            // Use the resource (store result to return later)
-            let result = (self.use_fn)(resource.clone()).run(env).await;
+        // Use the resource (store result to return later)
+        let result = (self.use_fn)(resource.clone()).run(env).await;
 
-            // Release runs regardless of use result
-            // We ignore release errors to always return the use result
-            // (a real implementation might want to combine errors)
-            let _ = (self.release)(resource).run(env).await;
+        // Release runs regardless of use result
+        // We ignore release errors to always return the use result
+        // (a real implementation might want to combine errors)
+        let _ = (self.release)(resource).run(env).await;
 
-            result
-        }
+        result
     }
 }
 
@@ -187,12 +195,10 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, env: &Self::Env) -> impl std::future::Future<Output = Result<T, E>> + Send {
-        async move {
-            let resource = self.acquire.run(env).await?;
-            let result = (self.use_fn)(resource.clone()).run(env).await;
-            (self.release_fn)(resource);
-            result
-        }
+    async fn run(self, env: &Self::Env) -> Result<T, E> {
+        let resource = self.acquire.run(env).await?;
+        let result = (self.use_fn)(resource.clone()).run(env).await;
+        (self.release_fn)(resource);
+        result
     }
 }

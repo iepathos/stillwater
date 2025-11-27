@@ -25,6 +25,15 @@ pub struct OrElse<Inner, F> {
     pub(crate) f: F,
 }
 
+impl<Inner, F> std::fmt::Debug for OrElse<Inner, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OrElse")
+            .field("inner", &"<effect>")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<Inner, F, E2> Effect for OrElse<Inner, F>
 where
     Inner: Effect,
@@ -35,15 +44,13 @@ where
     type Error = E2::Error;
     type Env = Inner::Env;
 
-    fn run(
+    async fn run(
         self,
         env: &Self::Env,
-    ) -> impl std::future::Future<Output = Result<Self::Output, Self::Error>> + Send {
-        async move {
-            match self.inner.run(env).await {
-                Ok(value) => Ok(value),
-                Err(e) => (self.f)(e).run(env).await,
-            }
+    ) -> Result<Self::Output, Self::Error> {
+        match self.inner.run(env).await {
+            Ok(value) => Ok(value),
+            Err(e) => (self.f)(e).run(env).await,
         }
     }
 }

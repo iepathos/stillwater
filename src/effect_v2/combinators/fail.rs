@@ -43,7 +43,5 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, _env: &Self::Env) -> impl std::future::Future<Output = Result<T, E>> + Send {
-        async move { Err(self.error) }
-    }
+    async fn run(self, _env: &Self::Env) -> Result<T, E> { Err(self.error) }
 }

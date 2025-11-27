@@ -25,6 +25,18 @@ pub struct FromResult<T, E, Env> {
     pub(crate) _phantom: PhantomData<Env>,
 }
 
+impl<T, E, Env> std::fmt::Debug for FromResult<T, E, Env>
+where
+    T: std::fmt::Debug,
+    E: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FromResult")
+            .field("result", &self.result)
+            .finish()
+    }
+}
+
 impl<T, E, Env> FromResult<T, E, Env> {
     /// Create a new FromResult effect.
     pub fn new(result: Result<T, E>) -> Self {
@@ -45,7 +57,5 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, _env: &Env) -> impl std::future::Future<Output = Result<T, E>> + Send {
-        async move { self.result }
-    }
+    async fn run(self, _env: &Env) -> Result<T, E> { self.result }
 }

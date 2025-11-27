@@ -21,6 +21,15 @@ pub struct MapErr<Inner, F> {
     pub(crate) f: F,
 }
 
+impl<Inner, F> std::fmt::Debug for MapErr<Inner, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MapErr")
+            .field("inner", &"<effect>")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<Inner, F, E2> Effect for MapErr<Inner, F>
 where
     Inner: Effect,
@@ -31,10 +40,8 @@ where
     type Error = E2;
     type Env = Inner::Env;
 
-    fn run(
+    async fn run(
         self,
         env: &Self::Env,
-    ) -> impl std::future::Future<Output = Result<Self::Output, E2>> + Send {
-        async move { self.inner.run(env).await.map_err(self.f) }
-    }
+    ) -> Result<Self::Output, E2> { self.inner.run(env).await.map_err(self.f) }
 }

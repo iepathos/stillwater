@@ -107,6 +107,7 @@ where
 /// Use `BoxedLocalEffect` when your effect contains non-Send types
 /// and you don't need to run it across threads.
 pub struct BoxedLocalEffect<T, E, Env> {
+    #[allow(clippy::type_complexity)]
     run_fn: Box<dyn FnOnce(Env) -> Pin<Box<dyn Future<Output = Result<T, E>> + 'static>>>,
     _phantom: PhantomData<Env>,
 }

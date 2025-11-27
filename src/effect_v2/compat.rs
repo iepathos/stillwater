@@ -113,6 +113,7 @@ impl<T, E, Env> LegacyConstructors<T, E, Env> for BoxedEffect<T, E, Env> {
 }
 
 /// Extension trait for running effects with unit environment.
+#[allow(async_fn_in_trait)]
 pub trait RunStandalone: crate::effect_v2::trait_def::Effect<Env = ()> {
     /// Run an effect that doesn't require an environment.
     ///

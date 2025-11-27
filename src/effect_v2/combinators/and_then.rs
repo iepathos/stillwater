@@ -31,6 +31,15 @@ pub struct AndThen<Inner, F> {
     pub(crate) f: F,
 }
 
+impl<Inner, F> std::fmt::Debug for AndThen<Inner, F> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AndThen")
+            .field("inner", &"<effect>")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<Inner, F, E2> Effect for AndThen<Inner, F>
 where
     Inner: Effect,
@@ -41,13 +50,11 @@ where
     type Error = Inner::Error;
     type Env = Inner::Env;
 
-    fn run(
+    async fn run(
         self,
         env: &Self::Env,
-    ) -> impl std::future::Future<Output = Result<Self::Output, Self::Error>> + Send {
-        async move {
-            let value = self.inner.run(env).await?;
-            (self.f)(value).run(env).await
-        }
+    ) -> Result<Self::Output, Self::Error> {
+        let value = self.inner.run(env).await?;
+        (self.f)(value).run(env).await
     }
 }

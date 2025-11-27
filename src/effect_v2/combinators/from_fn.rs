@@ -25,6 +25,14 @@ pub struct FromFn<F, Env> {
     pub(crate) _phantom: PhantomData<Env>,
 }
 
+impl<F, Env> std::fmt::Debug for FromFn<F, Env> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FromFn")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<F, Env> FromFn<F, Env> {
     /// Create a new FromFn effect.
     pub fn new(f: F) -> Self {
@@ -46,7 +54,5 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, env: &Env) -> impl std::future::Future<Output = Result<T, E>> + Send {
-        async move { (self.f)(env) }
-    }
+    async fn run(self, env: &Env) -> Result<T, E> { (self.f)(env) }
 }

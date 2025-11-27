@@ -171,6 +171,7 @@ pub trait EffectExt: Effect {
     /// let result = pure::<_, String, ()>(42).execute(&()).await;
     /// assert_eq!(result, Ok(42));
     /// ```
+    #[allow(async_fn_in_trait)]
     async fn execute(self, env: &Self::Env) -> Result<Self::Output, Self::Error> {
         self.run(env).await
     }

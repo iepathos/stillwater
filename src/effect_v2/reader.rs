@@ -30,6 +30,12 @@ pub struct Ask<E, Env> {
     _phantom: PhantomData<(E, Env)>,
 }
 
+impl<E, Env> std::fmt::Debug for Ask<E, Env> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ask").finish()
+    }
+}
+
 impl<E, Env> Ask<E, Env> {
     /// Create a new Ask effect.
     pub fn new() -> Self {
@@ -81,6 +87,14 @@ pub struct Asks<F, E, Env> {
     _phantom: PhantomData<(E, Env)>,
 }
 
+impl<F, E, Env> std::fmt::Debug for Asks<F, E, Env> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Asks")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<F, E, Env> Asks<F, E, Env> {
     /// Create a new Asks effect.
     pub fn new(f: F) -> Self {
@@ -102,9 +116,7 @@ where
     type Error = E;
     type Env = Env;
 
-    fn run(self, env: &Env) -> impl std::future::Future<Output = Result<U, E>> + Send {
-        async move { Ok((self.f)(env)) }
-    }
+    async fn run(self, env: &Env) -> Result<U, E> { Ok((self.f)(env)) }
 }
 
 /// Run an effect with a modified environment.
@@ -134,6 +146,15 @@ pub struct Local<Inner, F, Env2> {
     pub(crate) inner: Inner,
     pub(crate) f: F,
     pub(crate) _phantom: PhantomData<Env2>,
+}
+
+impl<Inner, F, Env2> std::fmt::Debug for Local<Inner, F, Env2> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Local")
+            .field("inner", &"<effect>")
+            .field("f", &"<function>")
+            .finish()
+    }
 }
 
 impl<Inner, F, Env2> Local<Inner, F, Env2> {

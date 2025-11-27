@@ -24,6 +24,14 @@ pub struct FromAsync<F, Env> {
     pub(crate) _phantom: PhantomData<Env>,
 }
 
+impl<F, Env> std::fmt::Debug for FromAsync<F, Env> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FromAsync")
+            .field("f", &"<function>")
+            .finish()
+    }
+}
+
 impl<F, Env> FromAsync<F, Env> {
     /// Create a new FromAsync effect.
     pub fn new(f: F) -> Self {
