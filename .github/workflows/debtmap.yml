@@ -1,0 +1,49 @@
+name: Debtmap Analysis
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  analyze:
+    name: Analyze Technical Debt
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: llvm-tools-preview
+
+    - name: Install cargo-llvm-cov
+      uses: taiki-e/install-action@cargo-llvm-cov
+
+    - name: Install just
+      uses: extractions/setup-just@v3
+
+    - name: Generate coverage data
+      run: just coverage-lcov
+
+    - name: Analyze tech debt with coverage correlation
+      uses: iepathos/debtmap-action@v1
+      with:
+        coverage-file: target/coverage/lcov.info
+        command: analyze
+        format: html
+
+    # Optional: Uncomment to enforce tech debt thresholds
+    # - name: Validate tech debt thresholds
+    #   uses: iepathos/debtmap-action@v1
+    #   with:
+    #     coverage-file: target/coverage/lcov.info
+    #     command: validate
+    #     format: json
+    #     fail-on-threshold: true
