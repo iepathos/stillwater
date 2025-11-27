@@ -341,6 +341,7 @@ mod tests {
     #[tokio::test]
     async fn test_retry_if_non_retryable() {
         #[derive(Debug, PartialEq, Clone)]
+        #[allow(dead_code)]
         enum TestError {
             Transient,
             Permanent,
