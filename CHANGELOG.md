@@ -7,6 +7,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2025-11-27
+
+### Breaking Changes
+
+This release introduces a **zero-cost Effect API** following the `futures` crate pattern. This is a breaking change from the boxed-by-default approach in 0.10.x. See [MIGRATION.md](docs/MIGRATION.md) for upgrade instructions.
+
+### Added
+
+#### Zero-Cost Effect Trait (Spec 024)
+
+- **`Effect` trait** - Core abstraction replacing the boxed struct
+  - Combinators return concrete types instead of boxed trait objects
+  - Zero heap allocations for effect chains by default
+  - Associated types: `Output`, `Error`, `Env`
+  - Pattern follows `Future` and `Iterator` traits
+
+- **Free-standing constructor functions** - Ergonomic effect creation
+  - `pure(value)` - Create effect with success value
+  - `fail(error)` - Create effect with failure
+  - `from_fn(f)` - Create effect from sync function
+  - `from_async(f)` - Create effect from async function
+  - `from_result(result)` - Create effect from Result
+  - `from_option(option, err_fn)` - Create effect from Option with error
+
+- **Reader pattern constructors** - Environment access
+  - `ask()` - Get entire environment
+  - `asks(f)` - Extract from environment
+  - `local(f, effect)` - Run with modified environment
+
+- **`EffectExt` trait** - Extension methods for all effects
+  - `.map()`, `.map_err()` - Transform success/error values
+  - `.and_then()`, `.or_else()` - Chain dependent effects
+  - `.with()`, `.tap()`, `.check()` - Additional combinators
+  - `.context()` - Add error context
+  - `.boxed()` - Opt-in type erasure for `BoxedEffect`
+
+- **`BoxedEffect<T, E, Env>`** - Type-erased effect for dynamic dispatch
+  - Use when storing effects in collections
+  - Required for recursive effect types
+  - Created via `.boxed()` method
+
+- **Parallel execution functions**
+  - `par_all(effects, env)` - Run all, collect results or errors
+  - `par_try_all(effects, env)` - Run all, fail-fast on first error
+  - `race(effects, env)` - Return first to succeed
+
+#### Module Reorganization (Spec 033)
+
+- **Modular effect implementation** - Split into focused submodules
+  - `src/effect/trait_def.rs` - Core `Effect` trait definition
+  - `src/effect/combinators/` - Individual combinator types
+  - `src/effect/constructors.rs` - Free-standing constructor functions
+  - `src/effect/boxed.rs` - `BoxedEffect` type and boxing logic
+  - `src/effect/ext.rs` - `EffectExt` extension trait
+  - `src/effect/reader.rs` - Reader pattern combinators
+  - `src/effect/parallel.rs` - Parallel execution functions
+  - `src/effect/compat.rs` - Legacy compatibility layer
+
+- **New prelude** - Convenient imports
+  - `use stillwater::prelude::*;` - All commonly used types
+  - `use stillwater::effect::prelude::*;` - Effect-specific imports
+
+#### Documentation (Spec 025)
+
+- **Migration Guide** - `docs/MIGRATION.md` (280 lines)
+  - Step-by-step upgrade instructions from 0.10.x
+  - Before/after code examples
+  - Common issues and solutions
+  - Performance implications
+
+- **Boxing Decisions Example** - `examples/boxing_decisions.rs` (259 lines)
+  - When to use zero-cost vs boxed effects
+  - Recursive effects requiring boxing
+  - Collections of effects
+  - Conditional effect branches
+
+- **Updated effects guide** - `docs/guide/03-effects.md` rewritten for new API
+- **Updated FAQ** - Common questions about the new API
+- **Updated DESIGN.md** - Architecture rationale for zero-cost approach
+
+### Changed
+
+#### API Changes
+
+- **Constructor syntax** - Methods to functions
+  - `Effect::pure(x)` → `pure(x)`
+  - `Effect::fail(e)` → `fail(e)`
+  - `Effect::from_fn(f)` → `from_fn(f)`
+
+- **Return types** - Concrete to opaque
+  - Functions return `impl Effect<...>` instead of boxed `Effect<...>`
+  - Use `.boxed()` when type erasure is needed
+
+- **Execution** - Same interface
+  - `.run(&env).await` works on both trait and boxed effects
+  - `.execute(&env).await` added as convenience method
+
+#### Examples Updated
+
+All examples updated to use new zero-cost API:
+- `effects.rs`, `pipeline.rs`, `user_registration.rs`
+- `parallel_effects.rs`, `retry_patterns.rs`
+- `tracing_demo.rs`, `traverse.rs`
+- `reader_pattern.rs`, `testing_patterns.rs`
+- `data_pipeline.rs`, `error_context.rs`, `io_patterns.rs`
+
+### Deprecated
+
+- **`LegacyEffect`** type alias - Use `BoxedEffect` directly
+- **`LegacyConstructors`** trait - Use free-standing functions
+
+### Performance
+
+Zero-cost effect chains eliminate heap allocations:
+
+| Scenario | 0.10.x | 0.11.0 |
+|----------|--------|--------|
+| 10-combinator chain | 10 allocations | 0 allocations |
+| Stored in collection | 1 per effect | 1 per effect |
+| Recursive effects | N allocations | N allocations |
+
 ## [0.10.0] - 2025-11-27
 
 ### Added
@@ -584,7 +705,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/iepathos/stillwater/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/iepathos/stillwater/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/iepathos/stillwater/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/iepathos/stillwater/compare/v0.6.0...v0.8.0
