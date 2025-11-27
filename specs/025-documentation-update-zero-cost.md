@@ -103,7 +103,7 @@ Update all documentation to accurately reflect the new zero-cost Effect API, pro
 
 #### FR7: Migration Guide
 
-- **MUST** create docs/MIGRATION.md for 0.7.x to 0.8.x migration
+- **MUST** create docs/MIGRATION.md for 0.10.x to 0.11.0 migration
 - **MUST** document all breaking changes
 - **MUST** provide before/after code examples
 - **MUST** explain compatibility module usage
@@ -203,7 +203,7 @@ fn create_user(email: String) -> Effect<User, AppError, AppEnv> {
 
 **After (example):**
 ```rust
-use stillwater::effect::prelude::*;
+use stillwater::prelude::*;  // or use stillwater::effect::prelude::*;
 
 fn create_user(email: String) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
     pure(email)
@@ -232,6 +232,8 @@ Stillwater follows the **`futures` crate pattern**: zero-cost by default, explic
 Each combinator returns a concrete type that encodes the operation:
 
 ```rust
+use stillwater::prelude::*;
+
 pure(42)            // Type: Pure<i32, E, Env>
     .map(|x| x + 1) // Type: Map<Pure<i32, E, Env>, impl FnOnce...>
     .and_then(...)  // Type: AndThen<Map<...>, impl FnOnce...>
@@ -244,6 +246,8 @@ No heap allocation occurs. The compiler can inline everything.
 Use `.boxed()` when you need type erasure:
 
 ```rust
+use stillwater::prelude::*;
+
 // Store different effects in a collection
 let effects: Vec<BoxedEffect<i32, E, Env>> = vec![
     pure(1).boxed(),
@@ -283,20 +287,23 @@ fn get_user(source: Source) -> BoxedEffect<User, E, Env> {
 #### New Migration Guide
 
 ```markdown
-# Migration Guide: Stillwater 0.7.x to 0.8.x
+# Migration Guide: Stillwater 0.10.x to 0.11.0
 
 ## Overview
 
-Stillwater 0.8.0 introduces a zero-cost Effect API, following the `futures` crate pattern. This is a breaking change that requires updating your code.
+Stillwater 0.11.0 introduces a zero-cost Effect API, following the `futures` crate pattern. This is a breaking change that requires updating your code.
 
 ## Key Changes
 
-| 0.7.x | 0.8.x |
-|-------|-------|
+| 0.10.x | 0.11.0 |
+|--------|--------|
 | `Effect<T, E, Env>` struct | `impl Effect<Output=T, Error=E, Env=Env>` trait |
-| `Effect::pure(x)` | `pure::<_, E, Env>(x)` |
-| `Effect::fail(e)` | `fail::<T, _, Env>(e)` |
+| `Effect::pure(x)` | `pure(x)` or `pure::<_, E, Env>(x)` |
+| `Effect::fail(e)` | `fail(e)` or `fail::<T, _, Env>(e)` |
 | `Effect::from_fn(f)` | `from_fn(f)` |
+| N/A | `from_async(f)`, `from_result(r)`, `from_option(o, err)` |
+| N/A | `ask()`, `asks(f)`, `local(f, effect)` |
+| `.run(&env).await` | `.run(&env).await` or `.execute(&env).await` |
 | Always boxed | Zero-cost, opt-in `.boxed()` |
 
 ## Migration Steps
@@ -307,8 +314,13 @@ Stillwater 0.8.0 introduces a zero-cost Effect API, following the `futures` crat
 // Before
 use stillwater::Effect;
 
-// After
+// After - Option A: Use prelude (recommended)
+use stillwater::prelude::*;
+// or
 use stillwater::effect::prelude::*;
+
+// After - Option B: Direct imports
+use stillwater::{pure, fail, from_fn, Effect, EffectExt, BoxedEffect};
 ```
 
 ### Step 2: Update Return Types
@@ -325,9 +337,13 @@ fn my_effect() -> impl Effect<Output = i32, Error = String, Env = ()> {
 }
 
 // After - Option B: Boxed (when needed)
-fn my_effect() -> BoxedEffect<i32, String, ()> {
+fn my_effect_boxed() -> BoxedEffect<i32, String, ()> {
     pure(42).boxed()
 }
+
+// Running effects - both work:
+let result = my_effect().run(&()).await;      // From Effect trait
+let result = my_effect().execute(&()).await;  // Convenience method
 ```
 
 ### Step 3: Update Constructor Calls
@@ -338,10 +354,18 @@ Effect::pure(42)
 Effect::fail("error")
 Effect::from_fn(|env| Ok(env.value))
 
-// After
+// After - basic constructors
 pure(42)
 fail("error")
 from_fn(|env| Ok(env.value))
+
+// After - additional constructors available
+from_async(|env| async { Ok(value) })  // For async operations
+from_result(Ok(42))                     // From Result
+from_option(Some(42), || "missing")     // From Option with error
+ask()                                   // Get entire environment
+asks(|env| env.config.clone())          // Extract from environment
+local(|env| modified_env, inner_effect) // Run with modified env
 ```
 
 ### Step 4: Add `.boxed()` Where Needed
@@ -370,15 +394,16 @@ fn recursive(n: i32) -> BoxedEffect<i32, String, ()> {
 For gradual migration, use the compatibility module:
 
 ```rust
-use stillwater::compat::Effect; // Type alias for BoxedEffect
+#[allow(deprecated)]
+use stillwater::LegacyEffect; // Type alias for BoxedEffect
 
-// Old code continues to work (with deprecation warnings)
-fn my_effect() -> Effect<i32, String, ()> {
-    Effect::pure(42)
+// Old-style code (with deprecation warnings)
+fn my_effect() -> LegacyEffect<i32, String, ()> {
+    stillwater::pure(42).boxed()
 }
 ```
 
-This is deprecated and will be removed in 0.9.0. Migrate to the new API as soon as possible.
+The `LegacyEffect` type alias and `LegacyConstructors` trait are deprecated. Migrate to the new API as soon as possible.
 
 ## Common Issues
 
@@ -417,7 +442,7 @@ let value = *some_local_ref;
 //!
 //! Run with: cargo run --example boxing_decisions
 
-use stillwater::effect::prelude::*;
+use stillwater::prelude::*;
 
 // ============================================================================
 // ZERO-COST: Simple effect chains
@@ -496,9 +521,16 @@ fn fetch_data(source: DataSource) -> BoxedEffect<String, String, ()> {
 async fn main() {
     println!("=== Zero-Cost Effect Demo ===\n");
 
-    // Zero-cost chain
+    // Zero-cost chain - using .execute() convenience method
     let result = zero_cost_example().execute(&()).await;
     println!("Zero-cost chain: {:?}", result);
+
+    // Or using .run() directly:
+    // let result = zero_cost_example().run(&()).await;
+
+    // For effects with Env = (), you can also use run_standalone():
+    // use stillwater::RunStandalone;
+    // let result = zero_cost_example().run_standalone().await;
 
     // Collection of effects
     let effects = collection_example();
