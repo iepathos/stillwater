@@ -3,7 +3,7 @@ number: 31
 title: Effect Do-Notation Macro
 category: foundation
 priority: medium
-status: draft
+status: reviewed
 dependencies: []
 created: 2025-11-27
 revised: 2025-11-27
@@ -13,7 +13,7 @@ revised: 2025-11-27
 
 **Category**: foundation
 **Priority**: medium
-**Status**: draft
+**Status**: reviewed
 **Dependencies**: None (builds on existing Effect type)
 
 ## Context
@@ -481,8 +481,8 @@ mod tests {
         struct Env { multiplier: i32 }
 
         let result = effect! {
-            x <- Effect::pure(10);
-            m <- Effect::from_env(|env: &Env| Ok(env.multiplier));
+            x <- Effect::<_, String, Env>::pure(10);
+            m <- Effect::asks(|env: &Env| env.multiplier);
             Effect::pure(x * m)
         }
         .run(&Env { multiplier: 5 })
@@ -499,13 +499,41 @@ Using `trybuild` or similar for compile-time error testing:
 
 ```rust
 // tests/ui/effect_macro_no_final_expr.rs
-// This should fail to compile
+// This should fail to compile - missing final expression
 
 fn main() {
     let _ = effect! {
         x <- Effect::pure(42);
         y <- Effect::pure(x);
         // Missing final expression!
+    };
+}
+```
+
+```rust
+// tests/ui/effect_macro_trailing_semicolon.rs
+// This should fail to compile - trailing semicolon on final expression
+
+fn main() {
+    let _ = effect! {
+        x <- Effect::pure(42);
+        Effect::pure(x);  // Error: semicolon makes this a statement, not expression
+    };
+}
+```
+
+```rust
+// tests/ui/effect_macro_type_mismatch.rs
+// This should fail to compile - incompatible environment types
+
+fn main() {
+    struct EnvA;
+    struct EnvB;
+
+    let _ = effect! {
+        x <- Effect::<_, String, EnvA>::pure(42);
+        y <- Effect::<_, String, EnvB>::pure(10);  // Error: EnvB != EnvA
+        Effect::pure(x + y)
     };
 }
 ```
@@ -529,6 +557,26 @@ This macro is designed to compose with future macros:
 
 - `bracket!` macro can use `effect!` internally for the use function
 - `scoped!` macro will build on both `effect!` and `bracket!`
+
+### Nested effect! Macros
+
+Nested `effect!` macros are supported and work as expected:
+
+```rust
+effect! {
+    x <- get_x();
+    y <- effect! {
+        a <- get_a();
+        b <- get_b();
+        Effect::pure(a + b)
+    };
+    Effect::pure(x * y)
+}
+```
+
+The inner `effect!` expands first, producing an Effect that the outer macro
+binds via `and_then`. This is useful for grouping related operations or
+creating inline helper effects.
 
 ### IDE Support Tips
 
