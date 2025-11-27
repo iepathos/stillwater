@@ -279,31 +279,63 @@ The builder generates nested brackets internally - no runtime overhead, just erg
 #### Core Types
 
 ```rust
+use std::future::Future;
+
 /// Error type for bracket operations with explicit error handling.
+///
+/// This enum design ensures all states are valid - no `(None, None)` case possible.
 #[derive(Debug, Clone)]
-pub struct BracketError<E> {
-    /// The error from the use function, if any.
-    pub use_error: Option<E>,
-    /// The error from cleanup, if any.
-    pub cleanup_error: Option<E>,
+pub enum BracketError<E> {
+    /// The use function failed, cleanup succeeded.
+    UseError(E),
+    /// The use function succeeded, cleanup failed.
+    CleanupError(E),
+    /// Both use and cleanup failed.
+    Both {
+        use_error: E,
+        cleanup_error: E,
+    },
+}
+
+impl<E> BracketError<E> {
+    /// Returns the use error, if any.
+    pub fn use_error(&self) -> Option<&E> {
+        match self {
+            BracketError::UseError(e) => Some(e),
+            BracketError::Both { use_error, .. } => Some(use_error),
+            BracketError::CleanupError(_) => None,
+        }
+    }
+
+    /// Returns the cleanup error, if any.
+    pub fn cleanup_error(&self) -> Option<&E> {
+        match self {
+            BracketError::CleanupError(e) => Some(e),
+            BracketError::Both { cleanup_error, .. } => Some(cleanup_error),
+            BracketError::UseError(_) => None,
+        }
+    }
 }
 
 impl<E: std::fmt::Display> std::fmt::Display for BracketError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match (&self.use_error, &self.cleanup_error) {
-            (Some(use_err), Some(cleanup_err)) => {
-                write!(f, "use failed: {}; cleanup also failed: {}", use_err, cleanup_err)
+        match self {
+            BracketError::UseError(e) => write!(f, "{}", e),
+            BracketError::CleanupError(e) => write!(f, "cleanup failed: {}", e),
+            BracketError::Both { use_error, cleanup_error } => {
+                write!(f, "use failed: {}; cleanup also failed: {}", use_error, cleanup_error)
             }
-            (Some(use_err), None) => write!(f, "{}", use_err),
-            (None, Some(cleanup_err)) => write!(f, "cleanup failed: {}", cleanup_err),
-            (None, None) => write!(f, "unknown bracket error"),
         }
     }
 }
 
 impl<E: std::error::Error + 'static> std::error::Error for BracketError<E> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        self.use_error.as_ref().map(|e| e as &(dyn std::error::Error + 'static))
+        match self {
+            BracketError::UseError(e) => Some(e),
+            BracketError::Both { use_error, .. } => Some(use_error),
+            BracketError::CleanupError(e) => Some(e),
+        }
     }
 }
 ```
@@ -503,12 +535,10 @@ where
                 let env = unsafe { &*env_ptr };
 
                 // Acquire - map error to BracketError
+                // Note: Acquire failure is treated as UseError since we never got to use the resource
                 let resource = match acquire_effect.run(env).await {
                     Ok(r) => r,
-                    Err(e) => return Err(BracketError {
-                        use_error: Some(e),
-                        cleanup_error: None,
-                    }),
+                    Err(e) => return Err(BracketError::UseError(e)),
                 };
 
                 // Use resource
@@ -520,17 +550,11 @@ where
                 // Combine results
                 match (use_result, release_result) {
                     (Ok(value), Ok(())) => Ok(value),
-                    (Ok(_), Err(cleanup_err)) => Err(BracketError {
-                        use_error: None,
-                        cleanup_error: Some(cleanup_err),
-                    }),
-                    (Err(use_err), Ok(())) => Err(BracketError {
-                        use_error: Some(use_err),
-                        cleanup_error: None,
-                    }),
-                    (Err(use_err), Err(cleanup_err)) => Err(BracketError {
-                        use_error: Some(use_err),
-                        cleanup_error: Some(cleanup_err),
+                    (Ok(_), Err(cleanup_err)) => Err(BracketError::CleanupError(cleanup_err)),
+                    (Err(use_err), Ok(())) => Err(BracketError::UseError(use_err)),
+                    (Err(use_err), Err(cleanup_err)) => Err(BracketError::Both {
+                        use_error: use_err,
+                        cleanup_error: cleanup_err,
                     }),
                 }
             }
@@ -662,6 +686,28 @@ where
 #### Builder Pattern (Acquiring)
 
 The builder provides a flat API that generates nested brackets at compile time.
+
+**Important: Tuple Nesting Behavior**
+
+When chaining multiple `.and()` calls, the resources are nested as right-associated tuples:
+- One resource: `T`
+- Two resources: `(T1, T2)`
+- Three resources: `(T1, (T2, T3))` - note the nesting!
+- Four resources: `(T1, (T2, (T3, T4)))`
+
+This is because each `.and()` combines the current resource with the next via `Resource::both`.
+
+To access resources in the `with` closure, you have two options:
+
+```rust
+// Option 1: Match the nested structure directly
+.with(|(a, (b, c))| { ... })
+
+// Option 2: Use with_flat for ergonomic access (3-4 resources)
+.with_flat(|a, b, c| { ... })
+```
+
+The `with_flat` method is provided for common cases (3-4 resources) to avoid nested destructuring.
 
 ```rust
 /// Builder for acquiring multiple resources with guaranteed cleanup.
@@ -833,7 +879,13 @@ src/
   - `effect.rs` - Add bracket methods
   - `lib.rs` - Re-export resource types
 - **External Dependencies**:
-  - `tracing` (existing, for logging cleanup errors)
+  - `tracing` (new dependency, for logging cleanup errors)
+
+Add to `Cargo.toml`:
+```toml
+[dependencies]
+tracing = "0.1"
+```
 
 ## Testing Strategy
 
@@ -844,6 +896,29 @@ src/
 mod tests {
     use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
     use std::sync::Arc;
+
+    #[tokio::test]
+    async fn bracket_returns_error_on_acquire_failure() {
+        let released = Arc::new(AtomicBool::new(false));
+        let released_clone = released.clone();
+
+        let result = Effect::<i32, String, ()>::bracket(
+            Effect::fail("acquire failed".to_string()),
+            move |_| {
+                released_clone.store(true, Ordering::SeqCst);
+                async { Ok(()) }
+            },
+            |val| Effect::pure(*val * 2),
+        )
+        .run(&())
+        .await;
+
+        assert_eq!(result, Err("acquire failed".to_string()));
+        assert!(
+            !released.load(Ordering::SeqCst),
+            "cleanup must NOT run when acquire fails"
+        );
+    }
 
     #[tokio::test]
     async fn bracket_releases_on_success() {
@@ -960,8 +1035,47 @@ mod tests {
         .await;
 
         let err = result.unwrap_err();
-        assert!(err.use_error.is_some());
-        assert!(err.cleanup_error.is_some());
+        match err {
+            BracketError::Both { use_error, cleanup_error } => {
+                assert_eq!(use_error, "use failed");
+                assert_eq!(cleanup_error, "cleanup failed");
+            }
+            _ => panic!("expected BracketError::Both"),
+        }
+    }
+
+    #[tokio::test]
+    async fn bracket_full_returns_use_error_only() {
+        let result = Effect::bracket_full(
+            Effect::<_, String, ()>::pure(42),
+            |_| async { Ok(()) },
+            |_| Effect::<i32, String, ()>::fail("use failed".to_string()),
+        )
+        .run(&())
+        .await;
+
+        let err = result.unwrap_err();
+        match err {
+            BracketError::UseError(e) => assert_eq!(e, "use failed"),
+            _ => panic!("expected BracketError::UseError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn bracket_full_returns_cleanup_error_only() {
+        let result = Effect::bracket_full(
+            Effect::<_, String, ()>::pure(42),
+            |_| async { Err("cleanup failed".to_string()) },
+            |_| Effect::<i32, String, ()>::pure(84),
+        )
+        .run(&())
+        .await;
+
+        let err = result.unwrap_err();
+        match err {
+            BracketError::CleanupError(e) => assert_eq!(e, "cleanup failed"),
+            _ => panic!("expected BracketError::CleanupError"),
+        }
     }
 
     #[tokio::test]
