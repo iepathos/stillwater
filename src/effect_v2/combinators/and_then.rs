@@ -50,10 +50,7 @@ where
     type Error = Inner::Error;
     type Env = Inner::Env;
 
-    async fn run(
-        self,
-        env: &Self::Env,
-    ) -> Result<Self::Output, Self::Error> {
+    async fn run(self, env: &Self::Env) -> Result<Self::Output, Self::Error> {
         let value = self.inner.run(env).await?;
         (self.f)(value).run(env).await
     }

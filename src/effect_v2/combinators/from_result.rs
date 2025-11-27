@@ -57,5 +57,7 @@ where
     type Error = E;
     type Env = Env;
 
-    async fn run(self, _env: &Env) -> Result<T, E> { self.result }
+    async fn run(self, _env: &Env) -> Result<T, E> {
+        self.result
+    }
 }

@@ -89,9 +89,7 @@ pub struct Asks<F, E, Env> {
 
 impl<F, E, Env> std::fmt::Debug for Asks<F, E, Env> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Asks")
-            .field("f", &"<function>")
-            .finish()
+        f.debug_struct("Asks").field("f", &"<function>").finish()
     }
 }
 
@@ -116,7 +114,9 @@ where
     type Error = E;
     type Env = Env;
 
-    async fn run(self, env: &Env) -> Result<U, E> { Ok((self.f)(env)) }
+    async fn run(self, env: &Env) -> Result<U, E> {
+        Ok((self.f)(env))
+    }
 }
 
 /// Run an effect with a modified environment.

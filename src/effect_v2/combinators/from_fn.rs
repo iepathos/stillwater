@@ -27,9 +27,7 @@ pub struct FromFn<F, Env> {
 
 impl<F, Env> std::fmt::Debug for FromFn<F, Env> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("FromFn")
-            .field("f", &"<function>")
-            .finish()
+        f.debug_struct("FromFn").field("f", &"<function>").finish()
     }
 }
 
@@ -54,5 +52,7 @@ where
     type Error = E;
     type Env = Env;
 
-    async fn run(self, env: &Env) -> Result<T, E> { (self.f)(env) }
+    async fn run(self, env: &Env) -> Result<T, E> {
+        (self.f)(env)
+    }
 }

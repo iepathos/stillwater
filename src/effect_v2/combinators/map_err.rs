@@ -40,8 +40,7 @@ where
     type Error = E2;
     type Env = Inner::Env;
 
-    async fn run(
-        self,
-        env: &Self::Env,
-    ) -> Result<Self::Output, E2> { self.inner.run(env).await.map_err(self.f) }
+    async fn run(self, env: &Self::Env) -> Result<Self::Output, E2> {
+        self.inner.run(env).await.map_err(self.f)
+    }
 }
