@@ -17,6 +17,32 @@ created: 2025-11-26
 
 ## Context
 
+### Design Decision: Environment Cloning
+
+**Decision**: The environment (`Env`) must implement `Clone`.
+
+**Rationale**: The core tension in this design is between zero-cost abstractions and type erasure. When we box an effect, we lose static lifetime information. The future returned by `BoxedEffect::run` cannot borrow from the environment because `BoxFuture<'static, ...>` requires no borrowed data.
+
+Three options were considered:
+
+| Option | Tradeoff |
+|--------|----------|
+| `Env: Clone` | Simple API, slight clone overhead, works everywhere |
+| `Arc<Env>` parameter | Zero-copy but changes all signatures, less ergonomic |
+| Lifetime parameter on `BoxedEffect<'env, ...>` | Complex, lifetime pollution throughout API |
+
+**Why Clone wins**: Real-world environments are typically composed of `Arc`-wrapped resources (`Arc<DbPool>`, `Arc<Config>`, etc.) making `Clone` essentially free. The simplicity benefit outweighs the theoretical overhead.
+
+```rust
+// Typical environment - Clone is cheap (just Arc ref counts)
+#[derive(Clone)]
+struct AppEnv {
+    db: Arc<DatabasePool>,
+    config: Arc<Config>,
+    http: Arc<HttpClient>,
+}
+```
+
 ### The Current Problem
 
 Stillwater's current `Effect` type uses boxing for every combinator:
@@ -167,7 +193,7 @@ Redesign Stillwater's Effect system to be **zero-cost by default** with **opt-in
 pub trait Effect: Sized + Send {
     type Output: Send;
     type Error: Send;
-    type Env: Sync;
+    type Env: Clone + Send + Sync;  // Clone required for boxing
 
     fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send;
 }
@@ -181,28 +207,58 @@ pub trait Effect: Sized + Send {
 - **MUST** provide `MapErr<Inner, F>` for mapping error values
 - **MUST** provide `AndThen<Inner, F>` for chaining effects
 - **MUST** provide `OrElse<Inner, F>` for error recovery
-- **MUST** provide `FromFn<F, Env>` for effects from functions
-- **MUST** provide `FromAsync<F, Env>` for effects from async functions
+- **MUST** provide `FromFn<F, Env>` for effects from synchronous functions
+- **MUST** provide `FromAsync<F, Fut, Env>` for effects from async functions
+- **MUST** provide `FromResult<T, E, Env>` for effects from Result values
+- **MUST** provide `Ask<E, Env>` for accessing the full environment
+- **MUST** provide `Asks<F, U, E, Env>` for querying the environment
+- **MUST** provide `Local<Inner, F>` for modified environment execution
 - **MUST NOT** allocate heap memory for these types
 
 #### FR3: Extension Trait for Combinators
 
 - **MUST** provide `EffectExt` trait with combinator methods
-- **MUST** have `map`, `map_err`, `and_then`, `or_else` methods
+- **MUST** have `map`, `map_err`, `and_then`, `or_else`, `local` methods
 - **MUST** return concrete types (not boxed) from combinators
 - **MUST** be automatically implemented for all `Effect` types
+- **MUST** allow error type changes via `map_err` for flexible composition
 
 ```rust
 pub trait EffectExt: Effect {
     fn map<U, F>(self, f: F) -> Map<Self, F>
     where
-        F: FnOnce(Self::Output) -> U + Send;
+        F: FnOnce(Self::Output) -> U + Send,
+        U: Send;
+
+    fn map_err<E2, F>(self, f: F) -> MapErr<Self, F>
+    where
+        F: FnOnce(Self::Error) -> E2 + Send,
+        E2: Send;
 
     fn and_then<E2, F>(self, f: F) -> AndThen<Self, F>
     where
         E2: Effect<Error = Self::Error, Env = Self::Env>,
         F: FnOnce(Self::Output) -> E2 + Send;
+
+    fn or_else<E2, F>(self, f: F) -> OrElse<Self, F>
+    where
+        E2: Effect<Output = Self::Output, Env = Self::Env>,
+        F: FnOnce(Self::Error) -> E2 + Send;
+
+    fn local<F, Env2>(self, f: F) -> Local<Self, F>
+    where
+        F: FnOnce(&Env2) -> Self::Env + Send,
+        Env2: Clone + Send + Sync;
 }
+```
+
+**Note on Error Types**: The `and_then` constraint `E2::Error = Self::Error` means error types must match in a chain. Use `map_err` to convert errors before chaining:
+
+```rust
+// Convert errors to enable chaining with different error types
+fetch_user(id)                           // Error = DbError
+    .map_err(AppError::from)             // Error = AppError
+    .and_then(|user| send_email(user))   // Error = AppError (via Into)
 ```
 
 #### FR4: Boxed Effect Type (Opt-In)
@@ -210,11 +266,31 @@ pub trait EffectExt: Effect {
 - **MUST** provide `BoxedEffect<T, E, Env>` for type-erased effects
 - **MUST** provide `.boxed()` method on `EffectExt` to convert to boxed
 - **MUST** implement `Effect` trait for `BoxedEffect`
+- **MUST** clone the environment into the boxed future (required for `'static`)
 - **SHOULD** provide `BoxedLocalEffect` for non-Send effects
 
 ```rust
+/// Type-erased effect. Clones the environment into the future.
 pub struct BoxedEffect<T, E, Env> {
-    run_fn: Box<dyn FnOnce(&Env) -> BoxFuture<'static, Result<T, E>> + Send>,
+    // Takes owned Env (cloned from reference) to produce 'static future
+    run_fn: Box<dyn FnOnce(Env) -> BoxFuture<'static, Result<T, E>> + Send>,
+    _phantom: PhantomData<Env>,
+}
+
+impl<T, E, Env> Effect for BoxedEffect<T, E, Env>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = T;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<T, E>> + Send {
+        let env_owned = env.clone();  // Clone here to get 'static
+        (self.run_fn)(env_owned)
+    }
 }
 
 impl<E: Effect> EffectExt for E {
@@ -226,6 +302,8 @@ impl<E: Effect> EffectExt for E {
     }
 }
 ```
+
+**Why Clone?** The `BoxFuture<'static, ...>` returned by boxed effects cannot borrow from the environment. By cloning `Env` into the closure, the future becomes `'static` and can be stored, returned from functions, or used in recursive effects. Since environments typically contain `Arc`-wrapped resources, this clone is cheap.
 
 #### FR5: Constructor Functions
 
@@ -248,7 +326,95 @@ impl<E: Effect> EffectExt for E {
 - **MUST** provide `par_all` for parallel execution with error accumulation
 - **MUST** provide `par_try_all` for parallel execution with fail-fast
 - **MUST** provide `race` for racing multiple effects
-- **MUST** work with concrete effect types via trait bounds
+- **MUST** work with homogeneous collections via `BoxedEffect`
+- **SHOULD** provide tuple-based variants for heterogeneous parallel execution
+
+```rust
+/// Execute effects in parallel, collecting all results or all errors.
+/// Requires boxed effects for homogeneous collection.
+pub async fn par_all<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<Vec<T>, Vec<E>>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync;
+
+/// Execute effects in parallel, fail-fast on first error.
+pub async fn par_try_all<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<Vec<T>, E>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync;
+
+/// Race effects, returning the first to complete.
+pub async fn race<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<T, E>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync;
+
+/// Tuple-based parallel execution for heterogeneous effects (via macro).
+/// par2!, par3!, par4! macros for 2-4 effects with different output types.
+```
+
+**Design Note**: Parallel execution requires type erasure because `Vec<T>` needs homogeneous types. The tuple-based variants (`par2!`, etc.) allow heterogeneous effects without boxing but require macro generation for each arity.
+
+#### FR8: Resource Management (Bracket)
+
+- **MUST** provide `bracket` for acquire/use/release pattern
+- **MUST** guarantee release runs even on error or panic
+- **MUST** work with the Effect trait
+- **SHOULD** integrate with existing resource scope system (Spec 002)
+
+```rust
+/// Bracket pattern for safe resource management.
+///
+/// Acquires a resource, uses it, and guarantees release.
+pub fn bracket<Acquire, Use, Release, R, T, E, Env>(
+    acquire: Acquire,
+    use_resource: Use,
+    release: Release,
+) -> Bracket<Acquire, Use, Release>
+where
+    Acquire: Effect<Output = R, Error = E, Env = Env>,
+    Use: FnOnce(R) -> impl Effect<Output = T, Error = E, Env = Env>,
+    Release: FnOnce(R) -> impl Effect<Output = (), Error = E, Env = Env>;
+
+/// Bracket combinator type
+pub struct Bracket<Acquire, Use, Release> {
+    acquire: Acquire,
+    use_fn: Use,
+    release: Release,
+}
+
+impl<Acquire, Use, Release, R, T, E, Env> Effect for Bracket<Acquire, Use, Release>
+where
+    Acquire: Effect<Output = R, Error = E, Env = Env>,
+    // ... bounds
+{
+    type Output = T;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<T, E>> + Send {
+        async move {
+            let resource = self.acquire.run(env).await?;
+            let result = (self.use_fn)(resource.clone()).run(env).await;
+            // Release runs regardless of use result
+            let _ = (self.release)(resource).run(env).await;
+            result
+        }
+    }
+}
+```
 
 ### Non-Functional Requirements
 
@@ -318,6 +484,9 @@ use std::future::Future;
 /// - Combinators return concrete types (zero-cost)
 /// - Use `.boxed()` when you need type erasure
 ///
+/// **Note**: `Env` requires `Clone` to enable boxing. This is typically cheap
+/// when environments contain `Arc`-wrapped resources.
+///
 /// # Example
 ///
 /// ```rust
@@ -335,8 +504,9 @@ pub trait Effect: Sized + Send {
     /// The error type that may be produced
     type Error: Send;
 
-    /// The environment type required to run this effect
-    type Env: Sync;
+    /// The environment type required to run this effect.
+    /// Must be Clone to support boxing (cloning is deferred until boxing).
+    type Env: Clone + Send + Sync;
 
     /// Execute this effect with the given environment.
     ///
@@ -465,6 +635,255 @@ where
         }
     }
 }
+
+// src/effect/map_err.rs
+
+/// MapErr combinator - transforms the error value.
+///
+/// Zero-cost: no heap allocation.
+pub struct MapErr<Inner, F> {
+    inner: Inner,
+    f: F,
+}
+
+impl<Inner, F, E2> Effect for MapErr<Inner, F>
+where
+    Inner: Effect,
+    F: FnOnce(Inner::Error) -> E2 + Send,
+    E2: Send,
+{
+    type Output = Inner::Output;
+    type Error = E2;
+    type Env = Inner::Env;
+
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, E2>> + Send {
+        async move {
+            self.inner.run(env).await.map_err(self.f)
+        }
+    }
+}
+
+// src/effect/or_else.rs
+
+/// OrElse combinator - recovers from errors.
+///
+/// Zero-cost: no heap allocation.
+pub struct OrElse<Inner, F> {
+    inner: Inner,
+    f: F,
+}
+
+impl<Inner, F, E2> Effect for OrElse<Inner, F>
+where
+    Inner: Effect,
+    E2: Effect<Output = Inner::Output, Env = Inner::Env>,
+    F: FnOnce(Inner::Error) -> E2 + Send,
+{
+    type Output = Inner::Output;
+    type Error = E2::Error;
+    type Env = Inner::Env;
+
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
+        async move {
+            match self.inner.run(env).await {
+                Ok(value) => Ok(value),
+                Err(e) => (self.f)(e).run(env).await,
+            }
+        }
+    }
+}
+
+// src/effect/from_fn.rs
+
+/// Effect from a synchronous function.
+///
+/// Zero-cost: no heap allocation.
+pub struct FromFn<F, Env> {
+    f: F,
+    _phantom: PhantomData<Env>,
+}
+
+impl<F, Env> FromFn<F, Env> {
+    pub fn new(f: F) -> Self {
+        FromFn { f, _phantom: PhantomData }
+    }
+}
+
+impl<F, T, E, Env> Effect for FromFn<F, Env>
+where
+    F: FnOnce(&Env) -> Result<T, E> + Send,
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = T;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<T, E>> + Send {
+        async move { (self.f)(env) }
+    }
+}
+
+// src/effect/from_async.rs
+
+/// Effect from an async function.
+///
+/// Zero-cost: no heap allocation (beyond the future itself).
+pub struct FromAsync<F, Env> {
+    f: F,
+    _phantom: PhantomData<Env>,
+}
+
+impl<F, Env> FromAsync<F, Env> {
+    pub fn new(f: F) -> Self {
+        FromAsync { f, _phantom: PhantomData }
+    }
+}
+
+impl<F, Fut, T, E, Env> Effect for FromAsync<F, Env>
+where
+    F: FnOnce(&Env) -> Fut + Send,
+    Fut: Future<Output = Result<T, E>> + Send,
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = T;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<T, E>> + Send {
+        (self.f)(env)
+    }
+}
+
+// src/effect/from_result.rs
+
+/// Effect from a Result value.
+///
+/// Zero-cost: no heap allocation.
+pub struct FromResult<T, E, Env> {
+    result: Result<T, E>,
+    _phantom: PhantomData<Env>,
+}
+
+impl<T, E, Env> FromResult<T, E, Env> {
+    pub fn new(result: Result<T, E>) -> Self {
+        FromResult { result, _phantom: PhantomData }
+    }
+}
+
+impl<T, E, Env> Effect for FromResult<T, E, Env>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = T;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, _env: &Env) -> impl Future<Output = Result<T, E>> + Send {
+        async move { self.result }
+    }
+}
+
+// src/effect/reader.rs
+
+/// Get the entire environment (cloned).
+///
+/// Zero-cost struct, but clones Env at runtime.
+pub struct Ask<E, Env> {
+    _phantom: PhantomData<(E, Env)>,
+}
+
+impl<E, Env> Ask<E, Env> {
+    pub fn new() -> Self {
+        Ask { _phantom: PhantomData }
+    }
+}
+
+impl<E, Env> Default for Ask<E, Env> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<E, Env> Effect for Ask<E, Env>
+where
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = Env;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<Env, E>> + Send {
+        let env_clone = env.clone();
+        async move { Ok(env_clone) }
+    }
+}
+
+/// Query a value from the environment.
+///
+/// Zero-cost: no heap allocation.
+pub struct Asks<F, E, Env> {
+    f: F,
+    _phantom: PhantomData<(E, Env)>,
+}
+
+impl<F, E, Env> Asks<F, E, Env> {
+    pub fn new(f: F) -> Self {
+        Asks { f, _phantom: PhantomData }
+    }
+}
+
+impl<F, U, E, Env> Effect for Asks<F, E, Env>
+where
+    F: FnOnce(&Env) -> U + Send,
+    U: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    type Output = U;
+    type Error = E;
+    type Env = Env;
+
+    fn run(self, env: &Env) -> impl Future<Output = Result<U, E>> + Send {
+        async move { Ok((self.f)(env)) }
+    }
+}
+
+/// Run an effect with a modified environment.
+///
+/// Zero-cost: no heap allocation.
+pub struct Local<Inner, F> {
+    inner: Inner,
+    f: F,
+}
+
+impl<Inner, F> Local<Inner, F> {
+    pub fn new(inner: Inner, f: F) -> Self {
+        Local { inner, f }
+    }
+}
+
+impl<Inner, F, Env2> Effect for Local<Inner, F>
+where
+    Inner: Effect,
+    F: FnOnce(&Env2) -> Inner::Env + Send,
+    Env2: Clone + Send + Sync,
+{
+    type Output = Inner::Output;
+    type Error = Inner::Error;
+    type Env = Env2;
+
+    fn run(self, env: &Env2) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
+        let inner_env = (self.f)(env);
+        async move { self.inner.run(&inner_env).await }
+    }
+}
 ```
 
 #### Phase 3: Extension Trait
@@ -565,6 +984,7 @@ impl<E: Effect> EffectExt for E {}
 // src/effect/boxed.rs
 
 use futures::future::BoxFuture;
+use std::marker::PhantomData;
 
 /// A type-erased effect.
 ///
@@ -572,6 +992,9 @@ use futures::future::BoxFuture;
 /// - Store different effect types in a collection
 /// - Return different effects from match arms
 /// - Create recursive effect functions
+///
+/// **Note**: Boxing clones the environment to achieve `'static` lifetime.
+/// This is cheap when `Env` contains `Arc`-wrapped resources.
 ///
 /// # Example
 ///
@@ -594,24 +1017,30 @@ use futures::future::BoxFuture;
 /// }
 /// ```
 pub struct BoxedEffect<T, E, Env> {
-    run_fn: Box<dyn FnOnce(&Env) -> BoxFuture<'static, Result<T, E>> + Send>,
+    // Takes OWNED Env (cloned from reference at run time)
+    run_fn: Box<dyn FnOnce(Env) -> BoxFuture<'static, Result<T, E>> + Send>,
+    _phantom: PhantomData<Env>,
 }
 
 impl<T, E, Env> BoxedEffect<T, E, Env>
 where
     T: Send + 'static,
     E: Send + 'static,
-    Env: Sync + 'static,
+    Env: Clone + Send + Sync + 'static,
 {
     /// Create a boxed effect from any effect.
+    ///
+    /// The environment will be cloned when the effect is run.
     pub fn new<Eff>(effect: Eff) -> Self
     where
         Eff: Effect<Output = T, Error = E, Env = Env> + 'static,
     {
         BoxedEffect {
-            run_fn: Box::new(move |env| {
-                Box::pin(async move { effect.run(env).await })
+            run_fn: Box::new(move |env: Env| {
+                // env is now owned, so the async block is 'static
+                Box::pin(async move { effect.run(&env).await })
             }),
+            _phantom: PhantomData,
         }
     }
 }
@@ -620,14 +1049,15 @@ impl<T, E, Env> Effect for BoxedEffect<T, E, Env>
 where
     T: Send,
     E: Send,
-    Env: Sync,
+    Env: Clone + Send + Sync,
 {
     type Output = T;
     type Error = E;
     type Env = Env;
 
     fn run(self, env: &Env) -> impl Future<Output = Result<T, E>> + Send {
-        (self.run_fn)(env)
+        let env_owned = env.clone();  // Clone here for 'static lifetime
+        (self.run_fn)(env_owned)
     }
 }
 ```
@@ -720,6 +1150,152 @@ where
 {
     Asks::new(f)
 }
+
+/// Run an effect with a modified environment.
+pub fn local<Inner, F, Env2>(f: F, inner: Inner) -> Local<Inner, F>
+where
+    Inner: Effect,
+    F: FnOnce(&Env2) -> Inner::Env + Send,
+    Env2: Clone + Send + Sync,
+{
+    Local::new(inner, f)
+}
+```
+
+#### Phase 6: Parallel Execution
+
+```rust
+// src/effect/parallel.rs
+
+use futures::future::{join_all, select_all};
+
+/// Execute boxed effects in parallel, collecting all results or all errors.
+///
+/// Returns `Ok(results)` if all effects succeed, `Err(errors)` if any fail.
+/// All effects run to completion regardless of individual failures.
+pub async fn par_all<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<Vec<T>, Vec<E>>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    let futures: Vec<_> = effects
+        .into_iter()
+        .map(|eff| eff.run(env))
+        .collect();
+
+    let results: Vec<Result<T, E>> = join_all(futures).await;
+
+    let mut successes = Vec::new();
+    let mut failures = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(value) => successes.push(value),
+            Err(e) => failures.push(e),
+        }
+    }
+
+    if failures.is_empty() {
+        Ok(successes)
+    } else {
+        Err(failures)
+    }
+}
+
+/// Execute boxed effects in parallel, fail-fast on first error.
+///
+/// Returns `Ok(results)` if all succeed, `Err(first_error)` on first failure.
+/// Note: Other effects may continue running after the first error.
+pub async fn par_try_all<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<Vec<T>, E>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    let futures: Vec<_> = effects
+        .into_iter()
+        .map(|eff| eff.run(env))
+        .collect();
+
+    let results: Vec<Result<T, E>> = join_all(futures).await;
+
+    results.into_iter().collect()
+}
+
+/// Race effects, returning the first to complete successfully.
+///
+/// Returns the result of the first effect to complete.
+/// Other effects are dropped (cancelled).
+pub async fn race<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<T, E>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    if effects.is_empty() {
+        panic!("race called with empty effects vec");
+    }
+
+    let futures: Vec<_> = effects
+        .into_iter()
+        .map(|eff| Box::pin(eff.run(env)))
+        .collect();
+
+    let (result, _index, _remaining) = select_all(futures).await;
+    result
+}
+
+/// Execute two effects in parallel (heterogeneous).
+///
+/// Zero-cost when effects have concrete types.
+pub async fn par2<E1, E2>(
+    e1: E1,
+    e2: E2,
+    env: &E1::Env,
+) -> (Result<E1::Output, E1::Error>, Result<E2::Output, E2::Error>)
+where
+    E1: Effect,
+    E2: Effect<Env = E1::Env>,
+{
+    futures::join!(e1.run(env), e2.run(env))
+}
+
+/// Execute three effects in parallel (heterogeneous).
+pub async fn par3<E1, E2, E3>(
+    e1: E1,
+    e2: E2,
+    e3: E3,
+    env: &E1::Env,
+) -> (
+    Result<E1::Output, E1::Error>,
+    Result<E2::Output, E2::Error>,
+    Result<E3::Output, E3::Error>,
+)
+where
+    E1: Effect,
+    E2: Effect<Env = E1::Env>,
+    E3: Effect<Env = E1::Env>,
+{
+    futures::join!(e1.run(env), e2.run(env), e3.run(env))
+}
+
+// Macro for arbitrary parallel execution with tuple return
+#[macro_export]
+macro_rules! par {
+    ($env:expr; $($effect:expr),+ $(,)?) => {
+        futures::join!($($effect.run($env)),+)
+    };
+}
 ```
 
 ### Module Structure
@@ -728,26 +1304,29 @@ where
 src/
 ├── lib.rs
 ├── effect/
-│   ├── mod.rs           # Module root, re-exports
-│   ├── trait.rs         # Effect trait definition
-│   ├── ext.rs           # EffectExt extension trait
-│   ├── boxed.rs         # BoxedEffect type
-│   ├── constructors.rs  # pure, fail, from_fn, etc.
+│   ├── mod.rs              # Module root, re-exports
+│   ├── trait.rs            # Effect trait definition
+│   ├── ext.rs              # EffectExt extension trait
+│   ├── boxed.rs            # BoxedEffect type
+│   ├── constructors.rs     # pure, fail, from_fn, etc.
 │   ├── combinators/
 │   │   ├── mod.rs
-│   │   ├── pure.rs      # Pure<T, E, Env>
-│   │   ├── fail.rs      # Fail<T, E, Env>
-│   │   ├── map.rs       # Map<Inner, F>
-│   │   ├── map_err.rs   # MapErr<Inner, F>
-│   │   ├── and_then.rs  # AndThen<Inner, F>
-│   │   ├── or_else.rs   # OrElse<Inner, F>
-│   │   └── ...
-│   ├── reader.rs        # ask, asks, local
-│   ├── parallel.rs      # par_all, par_try_all, race
-│   └── prelude.rs       # Common imports
-├── compat/              # Backward compatibility
+│   │   ├── pure.rs         # Pure<T, E, Env>
+│   │   ├── fail.rs         # Fail<T, E, Env>
+│   │   ├── map.rs          # Map<Inner, F>
+│   │   ├── map_err.rs      # MapErr<Inner, F>
+│   │   ├── and_then.rs     # AndThen<Inner, F>
+│   │   ├── or_else.rs      # OrElse<Inner, F>
+│   │   ├── from_fn.rs      # FromFn<F, Env>
+│   │   ├── from_async.rs   # FromAsync<F, Env>
+│   │   └── from_result.rs  # FromResult<T, E, Env>
+│   ├── reader.rs           # Ask, Asks, Local, ask(), asks(), local()
+│   ├── parallel.rs         # par_all, par_try_all, race, par2, par3, par!
+│   ├── bracket.rs          # Bracket, bracket()
+│   └── prelude.rs          # Common imports
+├── compat/                 # Backward compatibility
 │   ├── mod.rs
-│   └── legacy.rs        # Old Effect struct as type alias
+│   └── legacy.rs           # Old Effect struct as type alias
 └── ...
 ```
 
@@ -757,11 +1336,11 @@ src/
 // src/effect/prelude.rs
 
 pub use crate::effect::{
-    // Trait
+    // Traits
     Effect,
     EffectExt,
 
-    // Types
+    // Combinator Types (for advanced use, usually impl Effect suffices)
     BoxedEffect,
     Pure,
     Fail,
@@ -769,6 +1348,13 @@ pub use crate::effect::{
     MapErr,
     AndThen,
     OrElse,
+    FromFn,
+    FromAsync,
+    FromResult,
+    Ask,
+    Asks,
+    Local,
+    Bracket,
 
     // Constructors
     pure,
@@ -779,12 +1365,20 @@ pub use crate::effect::{
     ask,
     asks,
     local,
+    bracket,
 
-    // Parallel
+    // Parallel (homogeneous, requires boxing)
     par_all,
     par_try_all,
     race,
+
+    // Parallel (heterogeneous, zero-cost)
+    par2,
+    par3,
 };
+
+// Re-export the par! macro
+pub use crate::par;
 ```
 
 ## Dependencies
@@ -876,6 +1470,155 @@ mod tests {
 
         assert_eq!(get_value(true).execute(&()).await, Ok(42));
         assert_eq!(get_value(false).execute(&()).await, Ok(42));
+    }
+
+    // === New tests for added functionality ===
+
+    #[tokio::test]
+    async fn map_err_transforms_error() {
+        let effect = fail::<i32, _, ()>("error")
+            .map_err(|e: &str| format!("wrapped: {}", e));
+        assert_eq!(effect.execute(&()).await, Err("wrapped: error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn map_err_preserves_success() {
+        let effect = pure::<_, &str, ()>(42)
+            .map_err(|e| format!("wrapped: {}", e));
+        assert_eq!(effect.execute(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn or_else_recovers_from_error() {
+        let effect = fail::<i32, _, ()>("error")
+            .or_else(|_| pure(42));
+        assert_eq!(effect.execute(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn or_else_preserves_success() {
+        let effect = pure::<_, String, ()>(42)
+            .or_else(|_| pure(0));
+        assert_eq!(effect.execute(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn from_fn_accesses_environment() {
+        #[derive(Clone)]
+        struct Env { value: i32 }
+
+        let effect = from_fn::<_, String, _, _>(|env: &Env| Ok(env.value * 2));
+        assert_eq!(effect.execute(&Env { value: 21 }).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn from_async_works() {
+        let effect = from_async::<_, String, (), _, _>(|_| async { Ok(42) });
+        assert_eq!(effect.execute(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn from_result_ok() {
+        let effect = from_result::<_, String, ()>(Ok(42));
+        assert_eq!(effect.execute(&()).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn from_result_err() {
+        let effect = from_result::<i32, _, ()>(Err("error".to_string()));
+        assert_eq!(effect.execute(&()).await, Err("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn ask_clones_environment() {
+        #[derive(Clone, PartialEq, Debug)]
+        struct Env { value: i32 }
+
+        let effect = ask::<String, Env>();
+        assert_eq!(effect.execute(&Env { value: 42 }).await, Ok(Env { value: 42 }));
+    }
+
+    #[tokio::test]
+    async fn asks_queries_environment() {
+        #[derive(Clone)]
+        struct Env { value: i32 }
+
+        let effect = asks::<_, String, _, _>(|env: &Env| env.value * 2);
+        assert_eq!(effect.execute(&Env { value: 21 }).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn local_modifies_environment() {
+        #[derive(Clone)]
+        struct OuterEnv { multiplier: i32 }
+        #[derive(Clone)]
+        struct InnerEnv { value: i32 }
+
+        let inner_effect = asks::<_, String, InnerEnv, _>(|env| env.value);
+        let effect = local(
+            |outer: &OuterEnv| InnerEnv { value: 21 * outer.multiplier },
+            inner_effect,
+        );
+
+        assert_eq!(effect.execute(&OuterEnv { multiplier: 2 }).await, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn par_all_collects_successes() {
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+            pure(1).boxed(),
+            pure(2).boxed(),
+            pure(3).boxed(),
+        ];
+
+        let result = par_all(effects, &()).await;
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+    }
+
+    #[tokio::test]
+    async fn par_all_collects_errors() {
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+            pure(1).boxed(),
+            fail("error1".to_string()).boxed(),
+            fail("error2".to_string()).boxed(),
+        ];
+
+        let result = par_all(effects, &()).await;
+        assert_eq!(result, Err(vec!["error1".to_string(), "error2".to_string()]));
+    }
+
+    #[tokio::test]
+    async fn par_try_all_succeeds() {
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+            pure(1).boxed(),
+            pure(2).boxed(),
+        ];
+
+        let result = par_try_all(effects, &()).await;
+        assert_eq!(result, Ok(vec![1, 2]));
+    }
+
+    #[tokio::test]
+    async fn par2_runs_heterogeneous_effects() {
+        let e1 = pure::<_, String, ()>(42);
+        let e2 = pure::<_, String, ()>("hello".to_string());
+
+        let (r1, r2) = par2(e1, e2, &()).await;
+        assert_eq!(r1, Ok(42));
+        assert_eq!(r2, Ok("hello".to_string()));
+    }
+
+    #[tokio::test]
+    async fn error_type_conversion_chain() {
+        // Demonstrates the pattern for chaining effects with different error types
+        #[derive(Debug, PartialEq)]
+        enum AppError { Db(String), Network(String) }
+
+        let effect = pure::<_, String, ()>(42)
+            .map_err(AppError::Db)
+            .and_then(|x| pure::<_, String, ()>(x * 2).map_err(AppError::Network));
+
+        assert_eq!(effect.execute(&()).await, Ok(84));
     }
 }
 ```

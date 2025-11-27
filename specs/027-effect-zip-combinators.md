@@ -3,16 +3,17 @@ number: 027
 title: Effect zip/zip_with Combinators
 category: foundation
 priority: high
-status: draft
+status: refined
 dependencies: [024]
 created: 2025-11-27
+updated: 2025-11-27
 ---
 
 # Specification 027: Effect zip/zip_with Combinators
 
 **Category**: foundation
 **Priority**: high
-**Status**: draft
+**Status**: refined
 **Dependencies**: Spec 024 (Zero-Cost Effect Trait)
 
 ## Context
@@ -72,6 +73,27 @@ This pattern is universal in FP:
 - **Rust futures**: `join!`, `try_join!`, `Future::zip`
 - **Rust iterators**: `Iterator::zip`
 
+### Relationship to `with` Combinator
+
+The existing `with` combinator is similar but serves a different purpose:
+
+| Aspect | `zip` | `with` |
+|--------|-------|--------|
+| Independence | Both effects are independent | Second effect may depend on first's value |
+| Signature | `zip(other: E2)` | `with(f: FnOnce(&T) -> E2)` |
+| First value | Consumed | Passed by reference, then cloned |
+| Use case | Combine unrelated effects | Access first result to compute second |
+
+```rust
+// zip: independent effects
+fetch_user(id).zip(fetch_settings(id))
+
+// with: second effect uses first's value by reference
+fetch_user(id).with(|user| fetch_avatar(&user.avatar_url))
+```
+
+Use `zip` when effects are truly independent. Use `with` when the second effect needs to reference the first result.
+
 ## Objective
 
 Add `zip` and `zip_with` combinators to `Effect` that enable clean composition of independent effects, following the zero-cost pattern established in Spec 024.
@@ -83,7 +105,7 @@ Add `zip` and `zip_with` combinators to `Effect` that enable clean composition o
 #### FR1: Basic zip Combinator
 
 - **MUST** provide `zip(self, other) -> Effect<(T, U), E, Env>` method
-- **MUST** run effects in an unspecified order (implementation may parallelize)
+- **MUST** execute effects sequentially (first, then second) for predictable behavior
 - **MUST** return both values as a tuple on success
 - **MUST** fail fast on first error
 - **MUST** return a concrete type (zero-cost) per Spec 024
@@ -94,6 +116,8 @@ fn zip<E2>(self, other: E2) -> Zip<Self, E2>
 where
     E2: Effect<Error = Self::Error, Env = Self::Env>;
 ```
+
+**Note on Execution Order**: Although `zip` semantically expresses *independence* (neither effect depends on the other's result), the implementation executes sequentially for simplicity and predictability. Use `zip_par` when concurrent execution is desired.
 
 #### FR2: zip_with Combinator
 
@@ -111,16 +135,17 @@ where
 
 #### FR3: Tuple zip Functions
 
-- **MUST** provide `zip3(e1, e2, e3) -> Effect<(T1, T2, T3), E, Env>`
-- **MUST** provide `zip4(e1, e2, e3, e4) -> Effect<(T1, T2, T3, T4), E, Env>`
-- **SHOULD** provide up to `zip8` for common use cases
+- **MUST** provide `zip3(e1, e2, e3) -> Zip3<E1, E2, E3>` returning concrete type
+- **MUST** provide `zip4(e1, e2, e3, e4) -> Zip4<E1, E2, E3, E4>` returning concrete type
+- **SHOULD** provide up to `zip8` for common use cases (all as concrete types)
 - **MUST** require all effects have same `Error` and `Env` types
+- **MUST** return flat tuples `(T1, T2, T3)` not nested `((T1, T2), T3)`
 
 #### FR4: Parallel Semantics (Optional Enhancement)
 
-- **SHOULD** provide `zip_par` variant that guarantees parallel execution
-- **MAY** implement `zip` as sequential in initial version
-- **MUST** document execution semantics clearly
+- **SHOULD** provide `zip_par` variant that guarantees concurrent execution via `tokio::join!`
+- **SHOULD** provide `zip3_par`, `zip4_par` etc. for multi-way concurrent zips
+- **MUST** document execution semantics clearly for both sequential and parallel variants
 
 #### FR5: Error Handling
 
@@ -164,21 +189,22 @@ where
 
 ### Tuple zips
 
-- [ ] **AC9**: `zip3` function exists and works
-- [ ] **AC10**: `zip4` function exists and works
-- [ ] **AC11**: `zip3(pure(1), pure(2), pure(3))` returns `pure((1, 2, 3))`
+- [ ] **AC9**: `zip3` function exists and returns concrete `Zip3<E1, E2, E3>` type
+- [ ] **AC10**: `zip4` function exists and returns concrete `Zip4<E1, E2, E3, E4>` type
+- [ ] **AC11**: `zip3(pure(1), pure(2), pure(3))` returns `pure((1, 2, 3))` - flat tuple, not nested
+- [ ] **AC12**: `Zip3`, `Zip4`, etc. implement `Effect` trait directly (not via composition)
 
 ### Zero-Cost
 
-- [ ] **AC12**: `Zip<Pure<i32>, Pure<i32>>` is stack-allocated
-- [ ] **AC13**: Chaining 5 zips produces no heap allocations
-- [ ] **AC14**: Benchmark shows zip chains equivalent to manual async
+- [ ] **AC13**: `Zip<Pure<i32>, Pure<i32>>` is stack-allocated
+- [ ] **AC14**: Chaining 5 zips produces no heap allocations
+- [ ] **AC15**: Benchmark shows zip chains equivalent to manual async
 
 ### Integration
 
-- [ ] **AC15**: Works with `BoxedEffect` via `.boxed()`
-- [ ] **AC16**: Works with environment access (`asks`)
-- [ ] **AC17**: Works with `and_then` in same chain
+- [ ] **AC16**: Works with `BoxedEffect` via `.boxed()`
+- [ ] **AC17**: Works with environment access (`asks`)
+- [ ] **AC18**: Works with `and_then` in same chain
 
 ## Technical Details
 
@@ -300,7 +326,76 @@ impl<E: Effect> EffectExt for E {
 }
 ```
 
-#### Tuple zip Functions
+#### Tuple zip Functions (Concrete Types)
+
+```rust
+// src/effect/combinators/zip.rs
+
+/// Combines three effects into a flat tuple.
+pub struct Zip3<E1, E2, E3> {
+    e1: E1,
+    e2: E2,
+    e3: E3,
+}
+
+impl<E1, E2, E3> Zip3<E1, E2, E3> {
+    pub fn new(e1: E1, e2: E2, e3: E3) -> Self {
+        Zip3 { e1, e2, e3 }
+    }
+}
+
+impl<E1, E2, E3> Effect for Zip3<E1, E2, E3>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    type Output = (E1::Output, E2::Output, E3::Output);
+    type Error = E1::Error;
+    type Env = E1::Env;
+
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
+        async move {
+            let r1 = self.e1.run(env).await?;
+            let r2 = self.e2.run(env).await?;
+            let r3 = self.e3.run(env).await?;
+            Ok((r1, r2, r3))
+        }
+    }
+}
+
+/// Combines four effects into a flat tuple.
+pub struct Zip4<E1, E2, E3, E4> {
+    e1: E1,
+    e2: E2,
+    e3: E3,
+    e4: E4,
+}
+
+impl<E1, E2, E3, E4> Effect for Zip4<E1, E2, E3, E4>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    type Output = (E1::Output, E2::Output, E3::Output, E4::Output);
+    type Error = E1::Error;
+    type Env = E1::Env;
+
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
+        async move {
+            let r1 = self.e1.run(env).await?;
+            let r2 = self.e2.run(env).await?;
+            let r3 = self.e3.run(env).await?;
+            let r4 = self.e4.run(env).await?;
+            Ok((r1, r2, r3, r4))
+        }
+    }
+}
+
+// Continue pattern for Zip5 through Zip8...
+```
 
 ```rust
 // src/effect/constructors.rs
@@ -315,69 +410,38 @@ impl<E: Effect> EffectExt for E {
 ///     fetch_orders(id),
 ///     fetch_preferences(id),
 /// );
-/// // Returns Effect<(User, Vec<Order>, Preferences), Error, Env>
+/// // Returns Zip3<...> with Output = (User, Vec<Order>, Preferences)
 /// ```
-pub fn zip3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> impl Effect<
-    Output = (E1::Output, E2::Output, E3::Output),
-    Error = E1::Error,
-    Env = E1::Env,
->
+pub fn zip3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Zip3<E1, E2, E3>
 where
     E1: Effect,
     E2: Effect<Error = E1::Error, Env = E1::Env>,
     E3: Effect<Error = E1::Error, Env = E1::Env>,
 {
-    e1.zip(e2).zip(e3).map(|((a, b), c)| (a, b, c))
+    Zip3::new(e1, e2, e3)
 }
 
 /// Combine four effects into a tuple.
-pub fn zip4<E1, E2, E3, E4>(e1: E1, e2: E2, e3: E3, e4: E4) -> impl Effect<
-    Output = (E1::Output, E2::Output, E3::Output, E4::Output),
-    Error = E1::Error,
-    Env = E1::Env,
->
+pub fn zip4<E1, E2, E3, E4>(e1: E1, e2: E2, e3: E3, e4: E4) -> Zip4<E1, E2, E3, E4>
 where
     E1: Effect,
     E2: Effect<Error = E1::Error, Env = E1::Env>,
     E3: Effect<Error = E1::Error, Env = E1::Env>,
     E4: Effect<Error = E1::Error, Env = E1::Env>,
 {
-    e1.zip(e2).zip(e3).zip(e4).map(|(((a, b), c), d)| (a, b, c, d))
+    Zip4::new(e1, e2, e3, e4)
 }
 
 // Continue pattern for zip5 through zip8...
 ```
 
-#### Macro for zip_all (Optional Enhancement)
+#### Macro for zip_all (Deferred)
 
-```rust
-/// Zip any number of effects together.
-///
-/// # Example
-///
-/// ```rust
-/// let effect = zip_all!(
-///     fetch_user(id),
-///     fetch_orders(id),
-///     fetch_preferences(id),
-///     fetch_notifications(id),
-/// );
-/// ```
-#[macro_export]
-macro_rules! zip_all {
-    ($e1:expr, $e2:expr $(,)?) => {
-        $e1.zip($e2)
-    };
-    ($e1:expr, $e2:expr, $($rest:expr),+ $(,)?) => {
-        $e1.zip($e2)$(.zip($rest))+
-            .map(|nested| zip_all!(@flatten nested))
-    };
-    // Flatten helper
-    (@flatten (($a:ident, $b:ident), $c:ident)) => { ($a, $b, $c) };
-    (@flatten ((($a:ident, $b:ident), $c:ident), $d:ident)) => { ($a, $b, $c, $d) };
-    // etc.
-}
-```
+A `zip_all!` macro for arbitrary arity is deferred to a future enhancement. The complexity of tuple flattening in declarative macros makes this better suited for:
+1. A procedural macro, or
+2. Manual `zip3`-`zip8` functions (recommended approach)
+
+The concrete `Zip3`, `Zip4`, etc. types cover most practical use cases without macro complexity.
 
 ### Parallel zip Variant (Future Enhancement)
 
@@ -438,6 +502,10 @@ src/effect/
 - `tokio` for parallel variant (optional)
 
 ## Testing Strategy
+
+**Note on API**: Tests use `.execute(&env)` which is a convenience wrapper around `.run(env).await`. Both are equivalent:
+- `effect.run(&env).await` - direct trait method
+- `effect.execute(&env).await` - ergonomic helper (if provided)
 
 ### Unit Tests
 
@@ -716,17 +784,20 @@ let orders = fetch_user(id)
 
 | Decision | Rationale |
 |----------|-----------|
-| Sequential execution default | Simpler, no runtime dependency, easy to reason about |
-| Separate `zip_par` for parallel | Explicit about execution semantics |
-| `zip_with` as separate type | More efficient than `zip().map()` |
+| Sequential execution for `zip` | Simpler, predictable ordering, no runtime dependency, easy to reason about |
+| Separate `zip_par` for concurrent | Explicit about execution semantics; users opt-in to concurrency |
+| Concrete `ZipN` types (not `impl Effect`) | Enables type naming, consistent with `Zip<E1, E2>` pattern |
+| `zip_with` as separate type | More efficient than `zip().map()` - single combinator struct |
 | zipN functions up to 8 | Covers most practical cases without macro complexity |
+| Flat tuples `(a, b, c)` not nested | Ergonomic access; consistent with FP conventions |
 
 ### Future Enhancements
 
-1. **`zip_par` combinator**: Parallel execution via `tokio::join!`
-2. **`zip_all!` macro**: Arbitrary arity with auto-flattening
-3. **HList-based zip**: Type-safe arbitrary arity (complex)
-4. **Applicative syntax**: `(effect1, effect2, effect3).tupled()`
+1. **`zip_par` combinator**: Concurrent execution via `tokio::join!` (defined in spec, implement when needed)
+2. **`zip_all!` procedural macro**: Arbitrary arity with auto-flattening (deferred - concrete types preferred)
+3. **HList-based zip**: Type-safe arbitrary arity (complex, low priority)
+4. **Applicative syntax**: `(effect1, effect2, effect3).tupled()` via trait extension
+5. **`zip_into` variant**: Combine effects with different error types via `Into<E>` conversion
 
 ## Migration and Compatibility
 
