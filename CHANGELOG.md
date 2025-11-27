@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2025-11-27
+
+### Added
+
+#### Effect Ergonomics (Spec 022)
+
+- **`Effect::run_standalone()`** - Convenience method for effects with unit environment
+  - Eliminates boilerplate `run(&())` for effects that don't need dependencies
+  - Available on `Effect<T, E, ()>` types only
+  - Cleaner code for examples, tests, and standalone effects
+  - Example: `Effect::pure(42).run_standalone().await` instead of `Effect::pure(42).run(&()).await`
+
+#### Effect Tracing Integration (Spec 023)
+
+- **`Effect::instrument(span)`** - Attach tracing spans to effect execution
+  - Follows standard `tracing::Instrument` pattern for async code
+  - Spans are entered on execution and exited on completion
+  - Works with all `tracing` span types (`info_span!`, `debug_span!`, etc.)
+  - Composes naturally with effect chains and parallel execution
+  - Requires `tracing` feature flag
+- **`examples/tracing_demo.rs`** - Production-grade tracing patterns
+  - Semantic spans with business data (user_id, order_id)
+  - Context chains for error narratives
+  - Quiet happy path, verbose error patterns
+
+### Changed
+
+#### Tracing API Simplification
+
+- **Refactored tracing to use standard `instrument()` pattern**
+  - Replaced custom tracing implementation with standard `tracing::Instrument`
+  - Single method instead of multiple: just use `effect.instrument(span)`
+  - Better interoperability with existing tracing ecosystem
+
+#### Documentation
+
+- **Enhanced README retry/resilience section** - Added policy-as-data explanation for retry patterns
+- **Updated box allocation cost documentation** - Transparency about current allocation overhead
+
 ## [0.9.0] - 2025-11-26
 
 ### Added
@@ -545,7 +584,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/iepathos/stillwater/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/iepathos/stillwater/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/iepathos/stillwater/compare/v0.6.0...v0.8.0
 [0.6.0]: https://github.com/iepathos/stillwater/compare/v0.5.0...v0.6.0
