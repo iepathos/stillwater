@@ -58,7 +58,7 @@ For async Effects, yes (or async-std). For sync-only code, no runtime needed.
 
 ### Can I use Effect with sync code?
 
-Yes! Use `Effect::from_fn()` for sync operations. They'll be wrapped in ready futures.
+Yes! Use `from_fn()` for sync operations. They'll be wrapped in ready futures.
 
 ### How do I test Effects?
 
@@ -66,7 +66,50 @@ Create simple mock environments (just data structures). Pure functions in your E
 
 ### Does Effect have performance overhead?
 
-Minimal. Each combinator (`.map()`, `.and_then()`, etc.) allocates one small Box. For a chain of 10 combinators, that's 10 allocations. This is negligible for I/O-bound work where API calls take milliseconds to seconds. Effect compiles to efficient code similar to hand-written async functions.
+No! Stillwater follows the `futures` crate pattern: **zero-cost by default**. Each combinator returns a concrete type (like `Map`, `AndThen`) that the compiler can fully inline. No heap allocations occur for effect chains.
+
+When you need type erasure (collections, recursion, match arms), use `.boxed()` which allocates once. For I/O-bound work, this is negligible.
+
+### When should I use `.boxed()`?
+
+Use `.boxed()` in exactly three cases:
+
+1. **Collections**: Storing different effects in `Vec`, `HashMap`, etc.
+2. **Recursion**: Breaking infinite type recursion
+3. **Match arms**: When different branches return different effect types
+
+```rust
+// Collections
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    pure(2).map(|x| x * 2).boxed(),
+];
+
+// Recursion
+fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
+    if n <= 0 { pure(0).boxed() }
+    else { pure(n).and_then(move |_| countdown(n - 1)).boxed() }
+}
+```
+
+### Why did the API change in 0.11.0?
+
+Version 0.11.0 introduced a zero-cost Effect design following the `futures` crate pattern. The old API boxed every combinator; the new API uses concrete types by default.
+
+Key changes:
+- `Effect::pure(x)` → `pure(x)`
+- `Effect<T, E, Env>` struct → `impl Effect<Output=T, Error=E, Env=Env>` trait
+- Automatic boxing → Explicit `.boxed()` when needed
+
+See [Migration Guide](MIGRATION.md) for detailed upgrade instructions.
+
+### How do I migrate from 0.10.x to 0.11.0?
+
+See the [Migration Guide](MIGRATION.md) for step-by-step instructions. Key steps:
+1. Update imports to use `stillwater::prelude::*`
+2. Change return types to `impl Effect<...>`
+3. Replace `Effect::pure`, `Effect::fail` with `pure`, `fail`
+4. Add `.boxed()` where type erasure is needed
 
 ## Error Handling
 
@@ -101,11 +144,25 @@ IO::execute(|env| async {
 
 ### Is there overhead?
 
-Minimal. Effect allocates one Box per combinator in the chain. Validation is just an enum. Both compile to efficient code. For I/O-bound applications (API calls, database queries), allocation overhead is negligible compared to actual work.
+No! The Effect trait is zero-cost by default:
+- Each combinator returns a concrete type (like `Map<AndThen<Pure<...>, F>, G>`)
+- The compiler can fully inline the effect chain
+- No heap allocations occur
+
+Validation is just an enum with no overhead. Both compile to efficient code identical to hand-written async functions.
+
+### When does allocation happen?
+
+Only when you explicitly call `.boxed()`:
+- Storing effects in collections
+- Recursive effects
+- Match arms with different effect types
+
+For I/O-bound applications (API calls, database queries), boxing overhead is negligible compared to actual work.
 
 ### Can I use Stillwater in hot loops?
 
-For pure computations, yes. For I/O effects, consider whether the abstraction cost is worth the testability benefit. Benchmark if performance is critical.
+Yes! The zero-cost design means you can use Effects in performance-sensitive code. Just avoid `.boxed()` in the hot path. For tight loops, benchmark to confirm.
 
 ### Can I use no_std?
 
@@ -160,16 +217,30 @@ Yes! Stillwater 0.1 is stable with comprehensive tests (111 unit tests, 58 doc t
 
 ### "Cannot infer type for Effect"
 
-Specify type parameters explicitly:
+Specify type parameters explicitly on constructor functions:
 
 ```rust
 // Instead of:
-let effect = Effect::pure(42);
+let effect = pure(42);
 
 // Do:
-let effect = Effect::<_, String, ()>::pure(42);
-// Or:
-let effect: Effect<i32, String> = Effect::pure(42);
+let effect = pure::<_, String, ()>(42);
+```
+
+### "expected struct, found opaque type"
+
+You're returning `impl Effect` but the caller expects a concrete type. Either:
+1. Use `.boxed()` to get `BoxedEffect`
+2. Update the caller to accept `impl Effect`
+
+### "recursive type has infinite size"
+
+Use `.boxed()` for recursive effects:
+```rust
+fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
+    if n <= 0 { pure(0).boxed() }
+    else { pure(n).and_then(move |_| countdown(n - 1)).boxed() }
+}
 ```
 
 ### "Validation::all doesn't compile"
@@ -190,16 +261,16 @@ Or use `Vec<MyError>` which already implements Semigroup.
 
 ### "Effect.run() returns nested Results"
 
-Check your function signatures. `IO::read` expects functions returning `Result<T, E>`, not bare values:
+Check your function signatures. `from_fn` expects functions returning `Result<T, E>`, not bare values:
 
 ```rust
 // Wrong:
-IO::read(|db: &Db| db.fetch_user(id))  // If fetch_user returns User directly
+from_fn(|db: &Db| db.fetch_user(id))  // If fetch_user returns User directly
 
 // Right:
-IO::read(|db: &Db| Ok(db.fetch_user(id)))
+from_fn(|db: &Db| Ok(db.fetch_user(id)))
 // Or if fetch_user returns Result:
-IO::read(|db: &Db| db.fetch_user(id))
+from_fn(|db: &Db| db.fetch_user(id))
 ```
 
 ## Getting More Help

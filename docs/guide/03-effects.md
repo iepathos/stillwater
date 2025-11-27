@@ -8,6 +8,25 @@ Effect helps you structure applications with:
 
 This separation makes code more testable, maintainable, and composable.
 
+## Zero-Cost by Default
+
+Stillwater's Effect system follows the `futures` crate pattern: **zero-cost by default, explicit boxing when needed**.
+
+```rust
+use stillwater::prelude::*;
+
+// Zero heap allocations - compiler can inline everything
+let effect = pure::<_, String, ()>(42)
+    .map(|x| x + 1)           // Returns Map<Pure<...>, ...>
+    .and_then(|x| pure(x * 2)) // Returns AndThen<Map<...>, ...>
+    .map(|x| x.to_string());   // Returns Map<AndThen<...>, ...>
+
+// Type: Map<AndThen<Map<Pure<i32, String, ()>, ...>, ...>, ...>
+// NO heap allocation!
+```
+
+Each combinator returns a concrete type. The compiler knows the exact type at compile time and can fully optimize the effect chain.
+
 ## The Problem
 
 How do you test this code?
@@ -42,31 +61,32 @@ Problems:
 Effect separates pure logic from I/O:
 
 ```rust
-use stillwater::{Effect, IO};
+use stillwater::prelude::*;
 
+#[derive(Clone)]
 struct AppEnv {
     db: Database,
 }
 
-fn create_user(email: String, age: u8) -> Effect<User, Error, AppEnv> {
+fn create_user(email: String, age: u8) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
     // Pure validation first
-    Effect::from_validation(validate_user(&email, age))
+    from_validation(validate_user(&email, age).map_err(AppError::Validation))
         // Then I/O
-        .and_then(|_| {
-            IO::read(|env: &AppEnv| env.db.find_by_email(&email))
+        .and_then(move |_| {
+            from_fn(move |env: &AppEnv| env.db.find_by_email(&email))
         })
         // Pure logic
-        .and_then(|existing| {
+        .and_then(move |existing| {
             if existing.is_some() {
-                Effect::fail(Error::EmailExists)
+                fail(AppError::EmailExists)
             } else {
-                Effect::pure(User { email, age })
+                pure(User { email, age })
             }
         })
         // More I/O
         .and_then(|user| {
-            IO::execute(|env: &AppEnv| env.db.save(&user))
-                .map(|_| user)
+            from_fn(move |env: &AppEnv| env.db.save(&user))
+                .map(move |_| user)
         })
 }
 
@@ -77,101 +97,289 @@ let user = create_user(email, age).run(&env).await?;
 
 Benefits:
 - Pure functions need no mocks
-- I/O is explicit via `IO::read/write/execute`
+- I/O is explicit via `from_fn`, `from_async`
 - Easy to test with mock environments
+- Zero heap allocations in the effect chain
 
 ## Core API
 
 ### Creating Effects
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 // Pure value (no I/O)
-let effect = Effect::pure(42);
+let effect = pure::<_, String, ()>(42);
 
 // Failed effect
-let effect = Effect::fail("error");
+let effect = fail::<i32, _, ()>("error".to_string());
 
 // From Result
-let effect = Effect::from_result(Ok(42));
+let effect = from_result::<_, String, ()>(Ok(42));
 
 // From Validation
 let validation = Validation::success(42);
-let effect = Effect::from_validation(validation);
+let effect = from_validation(validation);
 
 // From sync function
-let effect = Effect::from_fn(|env: &Env| {
-    Ok::<_, Error>(env.config.value)
+let effect = from_fn(|env: &Env| {
+    Ok::<_, String>(env.config.value)
 });
 
 // From async function
-let effect = Effect::from_async(|env: &Env| async {
+let effect = from_async(|env: &Env| async {
     env.db.fetch_user(123).await
 });
+
+// From Option
+let effect = from_option::<_, _, ()>(Some(42), || "value missing");
 ```
 
 ### Transforming Effects
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 // Map success value
-let effect = Effect::pure(21).map(|x| x * 2);
-assert_eq!(effect.run_standalone().await, Ok(42));
+let effect = pure::<_, String, ()>(21).map(|x| x * 2);
+let result = effect.run(&()).await; // Ok(42)
 
 // Map error value
-let effect = Effect::fail("oops").map_err(|e| format!("Error: {}", e));
+let effect = fail::<i32, _, ()>("oops").map_err(|e| format!("Error: {}", e));
 
 // Chain dependent effects
-let effect = Effect::pure(5)
-    .and_then(|x| Effect::pure(x * 2))
-    .and_then(|x| Effect::pure(x + 10));
-assert_eq!(effect.run_standalone().await, Ok(20));
+let effect = pure::<_, String, ()>(5)
+    .and_then(|x| pure(x * 2))
+    .and_then(|x| pure(x + 10));
+let result = effect.run(&()).await; // Ok(20)
 ```
 
 ### Running Effects
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
-let effect = Effect::pure(42);
-
-// Run with environment
+// With environment
 let env = AppEnv { /* ... */ };
 let result = effect.run(&env).await;
+
+// With unit environment (when Env = ())
+use stillwater::RunStandalone;
+let result = effect.run_standalone().await;
 ```
 
-## The IO Module
+## When to Use `.boxed()`
 
-The `IO` module provides ergonomic helpers for common patterns:
+Boxing is needed in exactly three situations:
+
+### 1. Storing in Collections
 
 ```rust
-use stillwater::IO;
+use stillwater::prelude::*;
 
-// Read from environment (immutable)
-let effect = IO::read(|env: &AppEnv| env.db.fetch_user(id));
+// Different effect types can't be stored in the same Vec
+// Boxing gives them a uniform type
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    pure(2).map(|x| x * 2).boxed(),
+    pure(3).and_then(|x| pure(x * 3)).boxed(),
+];
 
-// Write to environment (mutable)
-let effect = IO::write(|env: &mut AppEnv| {
-    env.cache.insert(key, value);
-    Ok(())
-});
-
-// Execute async operation
-let effect = IO::execute(|env: &AppEnv| {
-    env.db.save_user(&user)
-});
+// Process them
+for effect in effects {
+    let result = effect.run(&()).await?;
+    println!("Result: {}", result);
+}
 ```
 
-See [IO Module guide](05-io-module.md) for details.
+### 2. Recursive Effects
+
+```rust
+use stillwater::prelude::*;
+
+// Recursive function needs concrete return type
+fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
+    if n <= 0 {
+        pure(0).boxed()
+    } else {
+        pure(n)
+            .and_then(move |x| countdown(x - 1).map(move |sum| x + sum))
+            .boxed()
+    }
+}
+
+let sum = countdown(5).run(&()).await?; // 15
+```
+
+### 3. Match Arms with Different Effect Types
+
+```rust
+use stillwater::prelude::*;
+
+enum DataSource {
+    Cache,
+    Database,
+    Remote,
+}
+
+fn fetch_data(source: DataSource) -> BoxedEffect<String, String, ()> {
+    match source {
+        DataSource::Cache => {
+            // Just pure value
+            pure("cached data".to_string()).boxed()
+        }
+        DataSource::Database => {
+            // Effect with map
+            pure("db")
+                .map(|s| format!("{} data", s))
+                .boxed()
+        }
+        DataSource::Remote => {
+            // Effect with and_then
+            pure("remote")
+                .and_then(|s| pure(format!("{} data", s)))
+                .boxed()
+        }
+    }
+}
+```
+
+## Reader Pattern
+
+The Reader pattern provides functional dependency injection. Stillwater includes three helpers:
+
+### `ask()` - Access the Environment
+
+Returns the entire environment:
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Config {
+    api_key: String,
+    timeout: u64,
+}
+
+// Get the whole environment
+let effect = ask::<String, Config>();
+
+let config = Config {
+    api_key: "secret".into(),
+    timeout: 30,
+};
+
+let result = effect.run(&config).await.unwrap();
+assert_eq!(result.api_key, "secret");
+```
+
+### `asks()` - Query Environment
+
+Extract a specific value:
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct AppEnv {
+    database: String,
+    cache: String,
+}
+
+// Query just the database field
+let effect = asks(|env: &AppEnv| env.database.clone());
+
+let env = AppEnv {
+    database: "postgres".into(),
+    cache: "redis".into(),
+};
+
+let result = effect.run(&env).await.unwrap();
+assert_eq!(result, "postgres");
+```
+
+### `local()` - Modify Environment
+
+Run an effect with a temporarily modified environment:
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Config {
+    debug: bool,
+    timeout: u64,
+}
+
+fn fetch_data() -> impl Effect<Output = String, Error = String, Env = Config> {
+    asks(|cfg: &Config| format!("fetched with timeout {}", cfg.timeout))
+}
+
+let config = Config {
+    debug: false,
+    timeout: 30,
+};
+
+// Run with modified timeout
+let effect = local(
+    |cfg: &Config| Config { timeout: 60, ..*cfg },
+    fetch_data()
+);
+
+let result = effect.run(&config).await.unwrap();
+assert_eq!(result, "fetched with timeout 60");
+// Original config still has timeout=30
+```
+
+## Parallel Effects
+
+### Heterogeneous Parallel (Zero-Cost)
+
+For 2-4 effects of different types, use `par2`, `par3`, `par4`:
+
+```rust
+use stillwater::prelude::*;
+
+let (num, text) = par2(
+    pure::<_, String, ()>(42),
+    pure::<_, String, ()>("hello".to_string()),
+).run(&()).await?;
+```
+
+### Homogeneous Parallel (Requires Boxing)
+
+For collections of effects, use `par_all`, `race`, `par_all_limit`:
+
+```rust
+use stillwater::prelude::*;
+
+// par_all - run all, collect all results
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    pure(2).boxed(),
+    pure(3).boxed(),
+];
+let results = par_all(effects).run(&()).await?; // [1, 2, 3]
+
+// race - return first success
+let effects: Vec<BoxedEffect<String, String, ()>> = vec![
+    fail("first failed".to_string()).boxed(),
+    pure("second succeeded".to_string()).boxed(),
+];
+let result = race(effects).run(&()).await?; // "second succeeded"
+
+// par_all_limit - run with concurrency limit
+let effects: Vec<BoxedEffect<i32, String, ()>> = /* many effects */;
+let results = par_all_limit(effects, 10).run(&()).await?; // max 10 concurrent
+```
 
 ## Real-World Example: User Registration
 
 ```rust
-use stillwater::{Effect, IO, Validation};
+use stillwater::prelude::*;
 
 // Environment with dependencies
+#[derive(Clone)]
 struct AppEnv {
     db: Database,
     email_service: EmailService,
@@ -199,44 +407,44 @@ fn validate_user(email: &str, age: u8) -> Validation<(), Vec<String>> {
 fn register_user(
     email: String,
     age: u8,
-) -> Effect<User, AppError, AppEnv> {
+) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
     // 1. Validate input (pure)
-    Effect::from_validation(
+    from_validation(
         validate_user(&email, age)
             .map_err(AppError::ValidationError)
     )
     // 2. Check if email exists (I/O)
-    .and_then(|_| {
-        IO::read(|env: &AppEnv| {
+    .and_then(move |_| {
+        from_fn(move |env: &AppEnv| {
             env.db.find_by_email(&email)
                 .map_err(|e| AppError::DatabaseError(e.to_string()))
         })
     })
     // 3. Check uniqueness (pure logic)
-    .and_then(|existing| {
+    .and_then(move |existing| {
         if existing.is_some() {
-            Effect::fail(AppError::EmailExists)
+            fail(AppError::EmailExists)
         } else {
-            Effect::pure(())
+            pure(())
         }
     })
     // 4. Create user (pure)
-    .map(|_| User { email: email.clone(), age })
+    .map(move |_| User { email: email.clone(), age })
     // 5. Save to database (I/O)
     .and_then(|user| {
-        IO::execute(|env: &AppEnv| {
+        from_fn(move |env: &AppEnv| {
             env.db.save_user(&user)
                 .map_err(|e| AppError::DatabaseError(e.to_string()))
         })
-        .map(|_| user)
+        .map(move |_| user)
     })
     // 6. Send welcome email (I/O)
     .and_then(|user| {
-        IO::execute(|env: &AppEnv| {
+        from_fn(move |env: &AppEnv| {
             env.email_service.send_welcome(&user.email)
                 .map_err(|e| AppError::EmailError(e.to_string()))
         })
-        .map(|_| user)
+        .map(move |_| user)
     })
 }
 
@@ -278,6 +486,7 @@ mod tests {
     }
 
     // Test effectful code with mock environment
+    #[derive(Clone)]
     struct MockEnv {
         users: Vec<User>,
     }
@@ -286,24 +495,18 @@ mod tests {
         fn find_by_email(&self, email: &str) -> Result<Option<User>, String> {
             Ok(self.users.iter().find(|u| u.email == email).cloned())
         }
-
-        fn save_user(&mut self, user: &User) -> Result<(), String> {
-            self.users.push(user.clone());
-            Ok(())
-        }
     }
 
     #[tokio::test]
-    async fn test_register_user_success() {
+    async fn test_effect_with_mock_env() {
         let env = MockEnv { users: vec![] };
 
-        // Create simplified effect for testing
-        let effect = IO::read(|env: &MockEnv| env.find_by_email("test@example.com"))
+        let effect = from_fn(|env: &MockEnv| env.find_by_email("test@example.com"))
             .and_then(|existing| {
                 if existing.is_some() {
-                    Effect::fail("Email exists")
+                    fail("Email exists")
                 } else {
-                    Effect::pure(User {
+                    pure(User {
                         email: "test@example.com".to_string(),
                         age: 25,
                     })
@@ -313,65 +516,43 @@ mod tests {
         let result = effect.run(&env).await;
         assert!(result.is_ok());
     }
-
-    #[tokio::test]
-    async fn test_register_user_email_exists() {
-        let env = MockEnv {
-            users: vec![User {
-                email: "existing@example.com".to_string(),
-                age: 30,
-            }],
-        };
-
-        let effect = IO::read(|env: &MockEnv| env.find_by_email("existing@example.com"))
-            .and_then(|existing| {
-                if existing.is_some() {
-                    Effect::fail("Email exists")
-                } else {
-                    Effect::pure(User {
-                        email: "existing@example.com".to_string(),
-                        age: 25,
-                    })
-                }
-            });
-
-        let result = effect.run(&env).await;
-        assert!(result.is_err());
-    }
 }
 ```
 
-## Patterns
+## Performance Considerations
+
+The Effect trait is zero-cost by default:
+- No heap allocations for effect chains
+- Compiler can fully inline combinators
+- Same performance as hand-written async code
+
+Boxing happens only when you call `.boxed()`:
+- Collections of effects
+- Recursive effects
+- Match arms with different types
+
+For I/O-bound work (API calls, database queries), boxing overhead is negligible compared to actual work.
+
+## Common Patterns
 
 ### Pattern 1: Validate Then Execute
 
 ```rust
-Effect::from_validation(validate_input(input))
+from_validation(validate_input(input))
     .and_then(|valid| execute_with_db(valid))
 ```
 
 ### Pattern 2: Read, Decide, Write
 
 ```rust
-IO::read(|env: &Env| env.db.fetch(id))
+from_fn(|env: &Env| env.db.fetch(id))
     .and_then(|data| {
         let result = pure_business_logic(data);
-        IO::execute(|env: &Env| env.db.save(result))
+        from_fn(move |env: &Env| env.db.save(result))
     })
 ```
 
-### Pattern 3: Parallel Effects (future enhancement)
-
-Currently, effects run sequentially. For parallel execution, use tokio directly:
-
-```rust
-let (result1, result2) = tokio::join!(
-    effect1.run(&env),
-    effect2.run(&env)
-);
-```
-
-### Pattern 4: Error Context
+### Pattern 3: Error Context
 
 ```rust
 create_user(email, age)
@@ -380,6 +561,18 @@ create_user(email, age)
         send_welcome_email(&user)
             .context("Sending welcome email")
     })
+```
+
+### Pattern 4: Conditional Effect
+
+```rust
+fn conditional_fetch(use_cache: bool) -> BoxedEffect<String, String, AppEnv> {
+    if use_cache {
+        from_fn(|env: &AppEnv| Ok(env.cache.get("data"))).boxed()
+    } else {
+        from_async(|env: &AppEnv| async { env.db.fetch().await }).boxed()
+    }
+}
 ```
 
 ## When to Use Effect
@@ -394,188 +587,22 @@ create_user(email, age)
 - Simple CRUD operations
 - No complex composition
 - Testing not critical
-- Performance is paramount
-
-## Common Pitfalls
-
-### Don't mix pure and effectful code
-
-```rust
-// ❌ Wrong: I/O mixed with logic
-fn process(id: u64) -> Effect<Result, Error, Env> {
-    IO::read(|env: &Env| {
-        let data = env.db.fetch(id)?;
-        let processed = expensive_calculation(data); // Pure logic in I/O!
-        env.db.save(processed)?;
-        Ok(processed)
-    })
-}
-
-// ✓ Right: Separate pure and effectful
-fn process(id: u64) -> Effect<Result, Error, Env> {
-    IO::read(|env: &Env| env.db.fetch(id))
-        .map(|data| expensive_calculation(data))  // Pure!
-        .and_then(|processed| {
-            IO::execute(|env: &Env| env.db.save(processed))
-        })
-}
-```
-
-### Remember to run() at the boundary
-
-```rust
-// ❌ Wrong: Effect is lazy, nothing happens
-let effect = create_user(email, age);
-// User not created yet!
-
-// ✓ Right: Run at application boundary
-let user = create_user(email, age).run(&env).await?;
-```
-
-## Performance Considerations
-
-Effect has minimal overhead:
-- One box allocation per combinator (`.map()`, `.and_then()`, etc.)
-- A chain of 10 combinators = 10 small allocations (~1μs total)
-- Async overhead only when using async operations
-
-For I/O-bound work (API calls, database queries), allocation cost is negligible compared to actual work. For tight loops or hot paths, consider using plain Result/async fn.
-
-## Reader Pattern
-
-The Reader pattern provides a functional approach to dependency injection. Stillwater includes three helpers for working with environments:
-
-### `ask()` - Access the Environment
-
-Returns the entire environment as an Effect:
-
-```rust
-use stillwater::Effect;
-
-struct Config {
-    api_key: String,
-    timeout: u64,
-}
-
-// Get the whole environment
-let effect = Effect::<Config, String, Config>::ask();
-
-let config = Config {
-    api_key: "secret".into(),
-    timeout: 30,
-};
-
-let result = effect.run(&config).await.unwrap();
-assert_eq!(result.api_key, "secret");
-```
-
-### `asks()` - Query Environment
-
-Extract a specific value from the environment:
-
-```rust
-use stillwater::Effect;
-
-struct AppEnv {
-    database: String,
-    cache: String,
-}
-
-// Query just the database field
-let effect = Effect::asks(|env: &AppEnv| env.database.clone());
-
-let env = AppEnv {
-    database: "postgres".into(),
-    cache: "redis".into(),
-};
-
-let result = effect.run(&env).await.unwrap();
-assert_eq!(result, "postgres");
-```
-
-### `local()` - Modify Environment
-
-Run an effect with a temporarily modified environment:
-
-```rust
-use stillwater::Effect;
-
-#[derive(Clone)]
-struct Config {
-    debug: bool,
-    timeout: u64,
-}
-
-fn fetch_data() -> Effect<String, String, Config> {
-    Effect::asks(|cfg: &Config| {
-        format!("fetched with timeout {}", cfg.timeout)
-    })
-}
-
-let config = Config {
-    debug: false,
-    timeout: 30,
-};
-
-// Run with modified timeout for this specific fetch
-let effect = Effect::local(
-    |cfg: &Config| Config { timeout: 60, ..*cfg },
-    fetch_data()
-);
-
-let result = effect.run(&config).await.unwrap();
-assert_eq!(result, "fetched with timeout 60");
-// Original config still has timeout=30
-```
-
-### Composing Reader Patterns
-
-Combine these helpers with other Effect methods:
-
-```rust
-use stillwater::{Effect, IO};
-
-struct AppEnv {
-    db: Database,
-    max_retries: u32,
-}
-
-fn save_with_retries(data: Data) -> Effect<(), Error, AppEnv> {
-    // Get max retries from environment
-    Effect::asks(|env: &AppEnv| env.max_retries)
-        .and_then(|retries| {
-            // Use it in our logic
-            retry_operation(data, retries)
-        })
-}
-
-fn retry_operation(data: Data, max: u32) -> Effect<(), Error, AppEnv> {
-    // Implementation...
-    Effect::pure(())
-}
-```
-
-The Reader pattern is particularly useful when:
-- Multiple functions need the same configuration
-- You want to avoid passing environment through every function call
-- Testing requires different environment configurations
-- Environment needs temporary modifications for specific operations
-
-See the [Reader Pattern guide](09-reader-pattern.md) for comprehensive examples and patterns.
+- Maximum simplicity needed
 
 ## Summary
 
-- **Effect** separates pure logic from I/O
-- **Pure core** is easy to test (no mocks)
-- **Imperative shell** handles I/O at boundaries
-- **Environment** provides dependency injection
-- **Composition** via map, and_then, etc.
-- **Reader pattern** helpers: ask(), asks(), local()
+- **Effect trait**: Zero-cost effect composition following `futures` pattern
+- **Pure core**: Business logic is easy to test (no mocks)
+- **Imperative shell**: I/O at boundaries via `from_fn`, `from_async`
+- **Environment**: Provides dependency injection
+- **Boxing**: Use `.boxed()` only when type erasure is needed
+- **Composition**: Via `map`, `and_then`, `or_else`, etc.
+- **Reader pattern**: `ask()`, `asks()`, `local()` for environment access
 
 ## Next Steps
 
 - Learn about [Error Context](04-error-context.md)
-- See the [IO Module](05-io-module.md) guide
 - Explore the [Reader Pattern](09-reader-pattern.md) in depth
+- See the [Migration Guide](../MIGRATION.md) if upgrading from 0.10.x
 - Check out [testing_patterns example](../../examples/testing_patterns.rs)
 - Read the [API docs](https://docs.rs/stillwater)

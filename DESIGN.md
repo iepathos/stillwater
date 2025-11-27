@@ -73,64 +73,131 @@ Make the pattern ergonomic:
 
 ### 5. No Magic
 - No heavy macros (monadic crate style)
-- Boxing only where needed for type erasure (Effect uses one Box per combinator)
+- Zero-cost by default, boxing only when type erasure is needed
 - Clear types, obvious behavior
 - Error messages that help
 
 ## Core Types
 
-### Effect<T, E, Env>
+### Effect Trait (Zero-Cost)
 
-Represents a computation that may perform effects and depends on an environment.
+Stillwater uses a trait-based Effect design following the `futures` crate pattern:
+**zero-cost by default, explicit boxing when needed**.
 
 ```rust
-pub struct Effect<T, E = Infallible, Env = ()> {
-    run_fn: Box<dyn FnOnce(&Env) -> Result<T, E>>,
+/// Core effect trait - implemented by all effect combinators
+pub trait Effect {
+    type Output;
+    type Error;
+    type Env;
+
+    /// Run the effect, consuming it
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>>;
 }
 ```
 
-**Key Methods:**
+**Why a trait?**
+
+Each combinator returns a concrete type that implements `Effect`:
+
 ```rust
-impl<T, E, Env> Effect<T, E, Env> {
-    /// Create pure value (no effects)
-    pub fn pure(value: T) -> Self;
+use stillwater::prelude::*;
 
-    /// Create from fallible function
-    pub fn from_fn<F>(f: F) -> Self
-    where
-        F: FnOnce(&Env) -> Result<T, E>;
+pure(42)            // Returns: Pure<i32, E, Env>
+    .map(|x| x + 1) // Returns: Map<Pure<...>, F>
+    .and_then(...)  // Returns: AndThen<Map<...>, F>
+```
 
-    /// Chain dependent computations
-    pub fn and_then<U, F>(self, f: F) -> Effect<U, E, Env>
-    where
-        F: FnOnce(T) -> Effect<U, E, Env>;
+This enables:
+- **Zero heap allocations** for effect chains
+- **Full inlining** by the compiler
+- **Predictable performance** characteristics
 
+### BoxedEffect (When Type Erasure is Needed)
+
+When you need type erasure, use `.boxed()`:
+
+```rust
+pub type BoxedEffect<T, E, Env> = Box<dyn Effect<Output = T, Error = E, Env = Env> + Send>;
+```
+
+Use boxing for:
+- Collections of effects
+- Recursive effects
+- Match arms with different effect types
+
+### Constructors
+
+Effects are created using free functions:
+
+```rust
+use stillwater::prelude::*;
+
+// Pure value (no effects)
+let effect = pure::<_, String, ()>(42);
+
+// Failure
+let effect = fail::<i32, _, ()>("error".to_string());
+
+// From synchronous function
+let effect = from_fn(|env: &Env| Ok::<_, String>(env.value));
+
+// From async function
+let effect = from_async(|env: &Env| async { Ok(env.fetch().await) });
+
+// From Result
+let effect = from_result::<_, String, ()>(Ok(42));
+
+// From Option
+let effect = from_option::<_, _, ()>(Some(42), || "missing");
+
+// From Validation
+let effect = from_validation(validation);
+```
+
+### Extension Trait (EffectExt)
+
+All Effect types get combinator methods via `EffectExt`:
+
+```rust
+use stillwater::{Effect, EffectExt};
+
+/// Extension trait providing combinator methods
+pub trait EffectExt: Effect {
     /// Transform success value
-    pub fn map<U, F>(self, f: F) -> Effect<U, E, Env>
+    fn map<F, U>(self, f: F) -> Map<Self, F>
     where
-        F: FnOnce(T) -> U;
+        F: FnOnce(Self::Output) -> U;
 
     /// Transform error value
-    pub fn map_err<E2, F>(self, f: F) -> Effect<T, E2, Env>
+    fn map_err<F, E2>(self, f: F) -> MapErr<Self, F>
     where
-        F: FnOnce(E) -> E2;
+        F: FnOnce(Self::Error) -> E2;
 
-    /// Add context to errors
-    pub fn context(self, msg: impl Into<String>) -> Effect<T, ContextError<E>, Env>;
+    /// Chain dependent computations
+    fn and_then<F, E2>(self, f: F) -> AndThen<Self, F>
+    where
+        F: FnOnce(Self::Output) -> E2,
+        E2: Effect<Error = Self::Error, Env = Self::Env>;
 
     /// Recover from errors
-    pub fn or_else<F>(self, f: F) -> Self
+    fn or_else<F, E2>(self, f: F) -> OrElse<Self, F>
     where
-        F: FnOnce(E) -> Effect<T, E, Env>;
+        F: FnOnce(Self::Error) -> E2,
+        E2: Effect<Output = Self::Output, Env = Self::Env>;
 
-    /// Run the effect with environment
-    pub fn run(self, env: &Env) -> Result<T, E>;
+    /// Type-erase to BoxedEffect
+    fn boxed(self) -> BoxedEffect<Self::Output, Self::Error, Self::Env>;
 
-    /// Run async version
-    pub async fn run_async(self, env: &Env) -> Result<T, E>
+    /// Side effect without modifying the value
+    fn tap<F, E2>(self, f: F) -> Tap<Self, F>
     where
-        T: Send,
-        E: Send;
+        F: FnOnce(&Self::Output) -> E2;
+
+    /// Combine with another effect
+    fn with<F, E2>(self, f: F) -> With<Self, F>
+    where
+        F: FnOnce(&Self::Output) -> E2;
 }
 ```
 

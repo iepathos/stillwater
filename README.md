@@ -76,7 +76,7 @@ match result {
 ### 3. "How do I test code with database calls?"
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 // Pure business logic (no DB, easy to test)
 fn calculate_discount(customer: &Customer, total: Money) -> Money {
@@ -87,25 +87,25 @@ fn calculate_discount(customer: &Customer, total: Money) -> Money {
 }
 
 // Effects at boundaries (mockable)
-fn process_order(id: OrderId) -> Effect<Invoice, Error, AppEnv> {
-    IO::query(|db| db.fetch_order(id))        // I/O
+fn process_order(id: OrderId) -> impl Effect<Output = Invoice, Error = AppError, Env = AppEnv> {
+    from_fn(move |env: &AppEnv| env.db.fetch_order(id))  // I/O
         .and_then(|order| {
             let total = calculate_total(&order);  // Pure!
-            IO::query(|db| db.fetch_customer(order.customer_id))
+            from_fn(move |env: &AppEnv| env.db.fetch_customer(order.customer_id))
                 .map(move |customer| (order, customer, total))
         })
         .map(|(order, customer, total)| {
             let discount = calculate_discount(&customer, total);  // Pure!
             create_invoice(order.id, total - discount)            // Pure!
         })
-        .and_then(|invoice| IO::execute(|db| db.save(invoice))) // I/O
+        .and_then(|invoice| from_fn(move |env: &AppEnv| env.db.save(invoice))) // I/O
 }
 
 // Test with mock environment
-#[test]
-fn test_with_mock_db() {
+#[tokio::test]
+async fn test_with_mock_db() {
     let env = MockEnv::new();
-    let result = process_order(id).run(&env)?;
+    let result = process_order(id).run(&env).await?;
     assert_eq!(result.total, expected);
 }
 ```
@@ -113,13 +113,13 @@ fn test_with_mock_db() {
 ### 4. "My errors lose context as they bubble up"
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 fetch_user(id)
     .context("Loading user profile")
     .and_then(|user| process_data(user))
     .context("Processing user data")
-    .run(&env)?;
+    .run(&env).await?;
 
 // Error output:
 // Error: UserNotFound(12345)
@@ -130,7 +130,7 @@ fetch_user(id)
 ### 5. "I need clean dependency injection without passing parameters everywhere"
 
 ```rust
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Config {
@@ -139,16 +139,14 @@ struct Config {
 }
 
 // Functions don't need explicit config parameters
-fn fetch_data() -> Effect<String, String, Config> {
+fn fetch_data() -> impl Effect<Output = String, Error = String, Env = Config> {
     // Ask for config when needed
-    Effect::asks(|cfg: &Config| {
-        format!("Fetching with timeout={}", cfg.timeout)
-    })
+    asks(|cfg: &Config| format!("Fetching with timeout={}", cfg.timeout))
 }
 
-fn fetch_with_extended_timeout() -> Effect<String, String, Config> {
+fn fetch_with_extended_timeout() -> impl Effect<Output = String, Error = String, Env = Config> {
     // Temporarily modify environment for specific operations
-    Effect::local(
+    local(
         |cfg: &Config| Config { timeout: cfg.timeout * 2, ..*cfg },
         fetch_data()
     )
@@ -218,8 +216,13 @@ Effect::retry_with_hooks(
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
-- **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
-- **Parallel effect execution** - Run independent effects concurrently with `par_all()`, `race()`, and `par_all_limit()`
+- **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
+  - Zero heap allocations by default
+  - Explicit `.boxed()` when type erasure is needed
+  - Returns `impl Effect` for optimal performance
+- **Parallel effect execution** - Run independent effects concurrently
+  - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
+  - Boxed: `par_all()`, `race()`, `par_all_limit()` for homogeneous collections
 - **Retry and resilience** - Policy-as-data approach: define retry policies as pure, testable values with exponential, linear, constant, and Fibonacci backoff strategies. Includes jitter (proportional, full, decorrelated), conditional retry with predicates, retry hooks for observability, and timeout support
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
   - Validate entire collections with error accumulation
@@ -236,14 +239,14 @@ Effect::retry_with_hooks(
   - Optional `proptest` feature for property-based testing
 - **Context chaining** - Never lose error context
 - **Tracing integration** - Instrument effects with semantic spans using the standard `tracing` crate
-- **Zero-cost abstractions** - Compiles to same code as hand-written
+- **Zero-cost abstractions** - Follows `futures` crate pattern: concrete types, no allocation by default
 - **Works with `?` operator** - Integrates with Rust idioms
 - **No heavy macros** - Clear types, obvious behavior
 
 ## Quick Start
 
 ```rust
-use stillwater::{Validation, Effect, IO};
+use stillwater::prelude::*;
 
 // 1. Validation with error accumulation
 fn validate_user(input: UserInput) -> Validation<User, Vec<Error>> {
@@ -255,32 +258,32 @@ fn validate_user(input: UserInput) -> Validation<User, Vec<Error>> {
     .map(|(email, age, name)| User { email, age, name })
 }
 
-// 2. Effect composition
-fn create_user(input: UserInput) -> Effect<User, AppError, AppEnv> {
+// 2. Effect composition (zero-cost by default)
+fn create_user(input: UserInput) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
     // Validate (pure, accumulates errors)
-    Effect::from_validation(validate_user(input))
+    from_validation(validate_user(input).map_err(AppError::Validation))
         // Check if exists (I/O)
         .and_then(|user| {
-            IO::query(|db| db.find_by_email(&user.email))
-                .and_then(|existing| {
+            from_fn(move |env: &AppEnv| env.db.find_by_email(&user.email))
+                .and_then(move |existing| {
                     if existing.is_some() {
-                        Effect::fail(AppError::EmailExists)
+                        fail(AppError::EmailExists)
                     } else {
-                        Effect::pure(user)
+                        pure(user)
                     }
                 })
         })
         // Save user (I/O)
         .and_then(|user| {
-            IO::execute(|db| db.insert_user(&user))
-                .map(|_| user)
+            from_fn(move |env: &AppEnv| env.db.insert_user(&user))
+                .map(move |_| user)
         })
         .context("Creating new user")
 }
 
 // 3. Run at application boundary
 let env = AppEnv { db, cache, logger };
-let result = create_user(input).run(&env)?;
+let result = create_user(input).run(&env).await?;
 ```
 
 ## Why Stillwater?
@@ -294,7 +297,7 @@ let result = create_user(input).run(&env)?;
 
 **vs. monadic:**
 - ✓ No awkward macro syntax (`rdrdo! { ... }`)
-- ✓ Minimal overhead (one small Box per combinator, negligible for I/O-bound work)
+- ✓ Zero-cost by default (follows `futures` crate pattern)
 - ✓ Idiomatic Rust, not Haskell port
 
 **vs. hand-rolling:**
@@ -307,7 +310,7 @@ let result = create_user(input).run(&env)?;
 
 - ❌ No attempt at full monad abstraction (impossible without HKTs)
 - ✓ Works with `?` operator via `Try` trait
-- ✓ Zero-cost via generics and monomorphization
+- ✓ Zero-cost via concrete types and monomorphization (like `futures`)
 - ✓ Integrates with async/await
 - ✓ Borrows checker friendly
 - ✓ Clear error messages
@@ -357,6 +360,7 @@ Run any example with `cargo run --example <name>`:
 | [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
 | [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
 | [tracing_demo](examples/tracing_demo.rs) | Tracing integration with semantic spans and context |
+| [boxing_decisions](examples/boxing_decisions.rs) | When to use `.boxed()` vs zero-cost effects |
 
 See [examples/](examples/) directory for full code.
 
@@ -384,6 +388,7 @@ This library is stable and ready for use. The 0.x version indicates the API may 
 - 💭 [Philosophy](PHILOSOPHY.md) - Core principles
 - 🎯 [Patterns](docs/PATTERNS.md) - Common patterns and recipes
 - 🔄 [Comparison](docs/COMPARISON.md) - vs other libraries
+- 🚀 [Migration Guide](docs/MIGRATION.md) - Upgrading from 0.10.x to 0.11.0
 
 ## Migrating from Result
 

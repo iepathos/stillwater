@@ -242,47 +242,77 @@ This is more Rusty anyway.
 
 ### Why Box in some places?
 
-We use boxing strategically for type erasure:
+Stillwater follows the **`futures` crate pattern**: zero-cost by default, explicit boxing when needed.
+
+**Zero-cost by default:**
+
+Each combinator returns a concrete type that encodes the operation:
 
 ```rust
-// Effect uses Box for the function
-pub struct Effect<T, E, Env> {
-    run_fn: Box<dyn FnOnce(&Env) -> BoxFuture<'_, Result<T, E>>>,
+use stillwater::prelude::*;
+
+pure(42)            // Type: Pure<i32, E, Env>
+    .map(|x| x + 1) // Type: Map<Pure<i32, E, Env>, impl FnOnce...>
+    .and_then(...)  // Type: AndThen<Map<...>, impl FnOnce...>
+```
+
+No heap allocation occurs. The compiler can inline everything.
+
+**Opt-in boxing with `.boxed()`:**
+
+Use `.boxed()` when you need type erasure:
+
+```rust
+use stillwater::prelude::*;
+
+// Store different effects in a collection
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    pure(2).map(|x| x * 2).boxed(),
+];
+
+// Recursive effects
+fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
+    if n <= 0 {
+        pure(0).boxed()
+    } else {
+        pure(n).and_then(move |x| countdown(x - 1)).boxed()
+    }
+}
+
+// Match arms with different effect types
+fn get_data(use_cache: bool) -> BoxedEffect<String, String, ()> {
+    if use_cache {
+        pure("cached".to_string()).boxed()
+    } else {
+        pure("fetched").map(|s| s.to_string()).boxed()
+    }
 }
 ```
 
-**Why:**
-- Allows recursive/self-referential effects
-- Each combinator allocates one small Box (pointer-sized)
-- Alternative (type-level composition) causes compile-time explosion
-- For workflow orchestration, these allocations are negligible
+### When to Box
 
-**The reality:**
-Each combinator (`.map()`, `.and_then()`, etc.) creates a new `Effect` with a new boxed closure:
-```rust
-Effect::pure(42)      // Box #1
-    .map(|x| x + 1)   // Box #2
-    .and_then(|x| ..) // Box #3
-```
+| Situation | Box? | Reason |
+|-----------|------|--------|
+| Simple effect chain | No | Zero-cost default |
+| Return `impl Effect` | No | Concrete type inferred |
+| Store in `Vec`/`HashMap` | Yes | Need uniform type |
+| Recursive function | Yes | Break infinite type |
+| Match with different effect types | Yes | All arms same type |
+| Cross-crate API boundary | Maybe | `impl Effect` often works |
 
-**Why this is fine:**
-- Each Box is small (one pointer to a closure)
-- Allocations happen at construction, not execution
-- For I/O-bound work (API calls, database queries), allocation cost is noise
-- A chain of 20 combinators: ~1μs to allocate
-- One API call: ~100ms-30s to execute
-- Ratio: 1:100,000 to 1:30,000,000
+### Comparison with `futures` crate
 
-**Alternative considered:**
-Using generics everywhere means infinite type recursion:
-```rust
-Effect<T, E, Env, F1>
-  .and_then(...)  -> Effect<U, E, Env, F2>
-  .and_then(...)  -> Effect<V, E, Env, F3>
-  // Type signature explodes, compile times degrade
-```
+This pattern is familiar to Rust developers from the `futures` ecosystem:
 
-Boxing gives us finite, predictable types with acceptable overhead.
+| futures | stillwater |
+|---------|------------|
+| `Future` trait | `Effect` trait |
+| `async fn` returns `impl Future` | Effect functions return `impl Effect` |
+| `.boxed()` → `BoxFuture` | `.boxed()` → `BoxedEffect` |
+| Zero-cost combinators | Zero-cost combinators |
+
+If you've worked with async Rust, you already understand the pattern!
 
 ### Why separate Validation and Effect?
 
