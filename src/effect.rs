@@ -1359,16 +1359,24 @@ where
     /// Wrap this Effect in a tracing span
     ///
     /// The span is entered when the Effect executes and exited when it completes.
-    /// This enables observability into Effect execution flow.
+    /// This follows the standard `tracing::Instrument` pattern for async code.
     ///
     /// # Examples
     ///
     /// ```rust,ignore
     /// use stillwater::Effect;
-    /// use tracing::info_span;
+    /// use tracing::{info_span, debug_span};
     ///
+    /// // Basic instrumentation
     /// let effect = Effect::<_, String, ()>::pure(42)
-    ///     .instrument(info_span!("my_operation", value = 42));
+    ///     .instrument(info_span!("my_operation"));
+    ///
+    /// // With business context (recommended)
+    /// fn fetch_order(order_id: String) -> Effect<Order, String, Env> {
+    ///     let span_id = order_id.clone();
+    ///     Effect::from_fn(move |env| { /* ... */ })
+    ///         .instrument(debug_span!("fetch_order", order_id = %span_id))
+    /// }
     /// ```
     pub fn instrument(self, span: tracing::Span) -> Self {
         use tracing::Instrument;
@@ -1378,55 +1386,6 @@ where
                 Box::pin(fut.instrument(span))
             }),
         }
-    }
-
-    /// Auto-instrument with caller source location
-    ///
-    /// Creates a debug span capturing the file and line where `.traced()` was called.
-    /// This makes it easy to see where in your code each Effect originates.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// use stillwater::Effect;
-    ///
-    /// fn my_operation() -> Effect<i32, String, ()> {
-    ///     Effect::pure(42).traced()  // Span captures this location
-    /// }
-    /// ```
-    ///
-    /// Output in logs:
-    /// ```text
-    /// DEBUG effect{file="src/lib.rs" line=42}: executing
-    /// ```
-    #[track_caller]
-    pub fn traced(self) -> Self {
-        let location = std::panic::Location::caller();
-        let span = tracing::debug_span!("effect", file = location.file(), line = location.line(),);
-        self.instrument(span)
-    }
-
-    /// Give this Effect a name for tracing
-    ///
-    /// Creates a debug span with the given name. Useful for identifying
-    /// specific operations in trace output.
-    ///
-    /// # Examples
-    ///
-    /// ```rust,ignore
-    /// use stillwater::Effect;
-    ///
-    /// let effect = fetch_user(id).named("fetch-user");
-    /// ```
-    ///
-    /// Output in logs:
-    /// ```text
-    /// DEBUG effect{name="fetch-user"}: executing
-    /// ```
-    pub fn named(self, name: impl Into<String>) -> Self {
-        let name = name.into();
-        let span = tracing::debug_span!("effect", name = %name);
-        self.instrument(span)
     }
 }
 
@@ -2485,24 +2444,6 @@ mod tracing_tests {
     }
 
     #[tokio::test]
-    async fn test_traced_returns_value() {
-        let effect = Effect::<_, String, ()>::pure(42).traced();
-
-        let result = effect.run(&()).await;
-
-        assert_eq!(result, Ok(42));
-    }
-
-    #[tokio::test]
-    async fn test_named_returns_value() {
-        let effect = Effect::<_, String, ()>::pure(42).named("my-operation");
-
-        let result = effect.run(&()).await;
-
-        assert_eq!(result, Ok(42));
-    }
-
-    #[tokio::test]
     async fn test_error_in_span_propagates() {
         let effect = Effect::<i32, _, ()>::fail("oops".to_string())
             .instrument(tracing::info_span!("failing"));
@@ -2513,9 +2454,10 @@ mod tracing_tests {
     }
 
     #[tokio::test]
-    async fn test_nested_spans_chain() {
-        let inner = Effect::<_, String, ()>::pure(1).named("inner");
-        let outer = inner.and_then(|x| Effect::pure(x + 1).named("outer"));
+    async fn test_nested_spans() {
+        let inner = Effect::<_, String, ()>::pure(1).instrument(tracing::debug_span!("inner_op"));
+        let outer =
+            inner.and_then(|x| Effect::pure(x + 1).instrument(tracing::debug_span!("outer_op")));
 
         let result = outer.run(&()).await;
 
@@ -2523,12 +2465,12 @@ mod tracing_tests {
     }
 
     #[tokio::test]
-    async fn test_composition_with_tracing() {
+    async fn test_composition_with_instrument() {
         let effect = Effect::<_, String, ()>::pure(5)
-            .traced()
+            .instrument(tracing::debug_span!("step1"))
             .map(|x| x * 2)
-            .traced()
-            .and_then(|x| Effect::pure(x + 10).traced());
+            .instrument(tracing::debug_span!("step2"))
+            .and_then(|x| Effect::pure(x + 10).instrument(tracing::debug_span!("step3")));
 
         let result = effect.run(&()).await;
 
@@ -2536,25 +2478,16 @@ mod tracing_tests {
     }
 
     #[tokio::test]
-    async fn test_parallel_with_tracing() {
+    async fn test_parallel_with_instrument() {
         let effects = vec![
-            Effect::<_, String, ()>::pure(1).named("task-1"),
-            Effect::<_, String, ()>::pure(2).named("task-2"),
-            Effect::<_, String, ()>::pure(3).named("task-3"),
+            Effect::<_, String, ()>::pure(1).instrument(tracing::debug_span!("task", id = 1)),
+            Effect::<_, String, ()>::pure(2).instrument(tracing::debug_span!("task", id = 2)),
+            Effect::<_, String, ()>::pure(3).instrument(tracing::debug_span!("task", id = 3)),
         ];
 
         let result = Effect::par_all(effects).run(&()).await;
 
         assert_eq!(result, Ok(vec![1, 2, 3]));
-    }
-
-    #[tokio::test]
-    async fn test_traced_with_map() {
-        let effect = Effect::<_, String, ()>::pure(10).traced().map(|x| x * 3);
-
-        let result = effect.run(&()).await;
-
-        assert_eq!(result, Ok(30));
     }
 
     #[tokio::test]

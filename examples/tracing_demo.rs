@@ -1,113 +1,181 @@
-//! Demonstrates tracing + context integration for comprehensive debugging
+//! Production-grade tracing patterns for Stillwater Effects
 //!
 //! Run with: cargo run --example tracing_demo --features "tracing async"
 //!
-//! This example shows two complementary debugging tools:
-//! - **Tracing**: WHERE things happen (file/line, timing, observability)
-//! - **Context**: WHAT was being attempted (error narrative, semantic meaning)
-//!
-//! Together they give you the full debugging story.
+//! This example demonstrates:
+//! - Semantic spans with business data (user_id, order_id)
+//! - Context for error narratives
+//! - Quiet happy path, verbose errors
 
 use stillwater::prelude::*;
-use stillwater::ContextError;
-use tracing_subscriber::fmt::format::FmtSpan;
 
 #[tokio::main]
 async fn main() {
-    // Set up tracing subscriber that shows span lifecycle events
+    // Development: human-readable with file/line on errors
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::DEBUG)
-        .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+        .with_file(true)
+        .with_line_number(true)
+        .compact()
         .init();
 
-    tracing::info!("=== Successful workflow ===");
-    run_successful_workflow().await;
+    println!("=== Order Processing Workflow ===\n");
 
-    tracing::info!("\n=== Failing workflow (tracing + context) ===");
-    run_failing_workflow().await;
+    // Happy path - minimal output
+    process_order("user-123".to_string(), "order-456".to_string()).await;
+
+    println!("\n=== Failing Workflow (step 2) ===\n");
+
+    // Error at fetch_order
+    process_order("user-789".to_string(), "order-bad".to_string()).await;
+
+    println!("\n=== Failing Workflow (step 4) ===\n");
+
+    // Error at charge_payment - shows longer context trail
+    process_order("user-456".to_string(), "order-broke".to_string()).await;
 }
 
-async fn run_successful_workflow() {
-    // Tracing only - shows timing and file/line
-    let result = fetch_user(1)
-        .traced()
-        .and_then(|user| validate_user(user).traced())
-        .and_then(|user| save_user(user))
+async fn process_order(user_id: String, order_id: String) {
+    // Clone for use in error reporting
+    let user_id_log = user_id.clone();
+    let order_id_log = order_id.clone();
+
+    // Simple flat chain - context marks where each operation failed
+    let result = fetch_user(user_id)
+        .context("loading user profile")
+        .and_then(|user| fetch_order(order_id, &user).context("fetching order details"))
+        .and_then(|order| validate_order(order).context("validating order"))
+        .and_then(|order| charge_payment(order).context("processing payment"))
+        .and_then(|receipt| send_confirmation(receipt).context("sending confirmation"))
         .run(&())
         .await;
 
     match result {
-        Ok(id) => tracing::info!("Success: saved user with id {}", id),
-        Err(e) => tracing::error!("Failed: {}", e),
-    }
-}
-
-async fn run_failing_workflow() {
-    // Tracing shows WHERE (file:line, timing)
-    // Context shows WHAT (semantic operation being attempted)
-    //
-    // Note: .context() wraps errors in ContextError, so we apply it
-    // at workflow boundaries to build the error narrative
-    let result = fetch_user(1)
-        .traced()
-        .context("loading user profile") // WHAT: semantic meaning
-        .and_then(|user| validate_user(user).traced().map_err(ContextError::new))
-        .context("validating user permissions")
-        .and_then(|_| {
-            fail_at_database()
-                .instrument(tracing::error_span!("database-write")) // WHERE
-                .map_err(ContextError::new)
-        })
-        .context("persisting workflow state") // This is where it fails
-        .and_then(|id| cleanup(id).traced().map_err(ContextError::new))
-        .context("finalizing transaction")
-        .run(&())
-        .await;
-
-    match result {
-        Ok(id) => tracing::info!("Success: {}", id),
+        Ok(confirmation_id) => {
+            tracing::info!(
+                user_id = %user_id_log,
+                order_id = %order_id_log,
+                confirmation_id = %confirmation_id,
+                "order completed successfully"
+            );
+        }
         Err(e) => {
-            // The error now tells a complete story:
-            // - WHAT was being attempted (context trail)
-            // - Plus tracing output shows WHERE and timing
-            tracing::error!("Workflow failed!\n{}", e);
+            // Error shows exactly which step failed via context
+            tracing::error!(
+                user_id = %user_id_log,
+                order_id = %order_id_log,
+                "failed: {}",
+                e
+            );
         }
     }
 }
 
-// Simple effect builders - tracing/context applied at call site
-fn fetch_user(id: i32) -> Effect<String, String, ()> {
+// Each function uses semantic spans with relevant business data
+
+fn fetch_user(user_id: String) -> Effect<User, String, ()> {
+    let span_user_id = user_id.clone();
+
     Effect::from_fn(move |_| {
-        tracing::debug!("fetching user {}", id);
-        Ok(format!("user-{}", id))
+        Ok(User {
+            id: user_id.clone(),
+            name: "Alice".to_string(),
+        })
     })
+    .instrument(tracing::debug_span!("fetch_user", user_id = %span_user_id))
 }
 
-fn validate_user(user: String) -> Effect<String, String, ()> {
+fn fetch_order(order_id: String, user: &User) -> Effect<Order, String, ()> {
+    let user_id = user.id.clone();
+    let span_order_id = order_id.clone();
+    let span_user_id = user_id.clone();
+
     Effect::from_fn(move |_| {
-        tracing::debug!("validating {}", user);
-        Ok(user)
+        // "order-bad" triggers failure
+        if order_id == "order-bad" {
+            return Err("order not found in database".to_string());
+        }
+        Ok(Order {
+            id: order_id.clone(),
+            user_id: user_id.clone(),
+            amount: 99_99,
+        })
     })
+    .instrument(tracing::debug_span!(
+        "fetch_order",
+        order_id = %span_order_id,
+        user_id = %span_user_id
+    ))
 }
 
-fn save_user(user: String) -> Effect<i32, String, ()> {
+fn validate_order(order: Order) -> Effect<Order, String, ()> {
+    let span_order_id = order.id.clone();
+    let span_amount = order.amount;
+
     Effect::from_fn(move |_| {
-        tracing::debug!("saving {}", user);
-        Ok(42)
+        if order.amount == 0 {
+            return Err("order amount cannot be zero".to_string());
+        }
+        Ok(order.clone())
     })
-    .named("save-user") // WHERE: named span
+    .instrument(tracing::debug_span!(
+        "validate_order",
+        order_id = %span_order_id,
+        amount_cents = %span_amount
+    ))
 }
 
-fn fail_at_database() -> Effect<i32, String, ()> {
-    Effect::from_fn(|_| {
-        tracing::error!("database connection refused!");
-        Err("connection refused".to_string())
+fn charge_payment(order: Order) -> Effect<Receipt, String, ()> {
+    let span_order_id = order.id.clone();
+    let span_amount = order.amount;
+
+    Effect::from_fn(move |_| {
+        // "order-broke" triggers payment failure
+        if order.id == "order-broke" {
+            return Err("insufficient funds".to_string());
+        }
+        Ok(Receipt {
+            order_id: order.id.clone(),
+            transaction_id: "txn-abc123".to_string(),
+        })
     })
+    .instrument(tracing::info_span!(
+        "charge_payment",
+        order_id = %span_order_id,
+        amount_cents = %span_amount
+    ))
 }
 
-fn cleanup(id: i32) -> Effect<i32, String, ()> {
+fn send_confirmation(receipt: Receipt) -> Effect<String, String, ()> {
+    let span_order_id = receipt.order_id.clone();
+
     Effect::from_fn(move |_| {
-        tracing::debug!("cleanup for {}", id);
-        Ok(id)
+        tracing::debug!(transaction_id = %receipt.transaction_id, "email sent");
+        Ok(format!("conf-{}", receipt.transaction_id))
     })
+    .instrument(tracing::debug_span!(
+        "send_confirmation",
+        order_id = %span_order_id
+    ))
+}
+
+// Domain types
+#[derive(Clone)]
+struct User {
+    id: String,
+    #[allow(dead_code)]
+    name: String,
+}
+
+#[derive(Clone)]
+struct Order {
+    id: String,
+    #[allow(dead_code)]
+    user_id: String,
+    amount: u32,
+}
+
+struct Receipt {
+    order_id: String,
+    transaction_id: String,
 }

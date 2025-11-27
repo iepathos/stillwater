@@ -235,6 +235,7 @@ Effect::retry_with_hooks(
   - `TestEffect` wrapper for deterministic effect testing
   - Optional `proptest` feature for property-based testing
 - **Context chaining** - Never lose error context
+- **Tracing integration** - Instrument effects with semantic spans using the standard `tracing` crate
 - **Zero-cost abstractions** - Compiles to same code as hand-written
 - **Works with `?` operator** - Integrates with Rust idioms
 - **No heavy macros** - Clear types, obvious behavior
@@ -322,11 +323,14 @@ stillwater = "0.8"
 # Optional: async support
 stillwater = { version = "0.8", features = ["async"] }
 
+# Optional: tracing integration
+stillwater = { version = "0.8", features = ["tracing"] }
+
 # Optional: property-based testing
 stillwater = { version = "0.8", features = ["proptest"] }
 
 # Optional: multiple features
-stillwater = { version = "0.8", features = ["async", "proptest"] }
+stillwater = { version = "0.8", features = ["async", "tracing", "proptest"] }
 ```
 
 ## Examples
@@ -352,6 +356,7 @@ Run any example with `cargo run --example <name>`:
 | [traverse](examples/traverse.rs) | Traverse and sequence for collections of validations and effects |
 | [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
 | [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
+| [tracing_demo](examples/tracing_demo.rs) | Tracing integration with semantic spans and context |
 
 See [examples/](examples/) directory for full code.
 
