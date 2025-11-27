@@ -210,7 +210,7 @@ async fn test_and_then_auto_with_multiple_error_types() {
         .and_then_auto(|_| Effect::<i32, DbError, ()>::pure(200))
         .and_then_auto(|_| Effect::<i32, ServiceError, ()>::pure(300));
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
     assert_eq!(result, Ok(300));
 }
 
@@ -219,7 +219,7 @@ async fn test_and_then_auto_error_conversion() {
     let effect = Effect::<_, ServiceError, ()>::pure(42)
         .and_then_auto(|_| Effect::<i32, ValidationError, ()>::fail(ValidationError::InvalidEmail));
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
     assert_eq!(
         result,
         Err(ServiceError::Validation(ValidationError::InvalidEmail))
