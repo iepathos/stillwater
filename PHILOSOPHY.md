@@ -242,19 +242,36 @@ This is more Rusty anyway.
 
 ### Why Box in some places?
 
-We minimize boxing, but use it strategically:
+We use boxing strategically for type erasure:
 
 ```rust
 // Effect uses Box for the function
 pub struct Effect<T, E, Env> {
-    run_fn: Box<dyn FnOnce(&Env) -> Result<T, E>>,
+    run_fn: Box<dyn FnOnce(&Env) -> BoxFuture<'_, Result<T, E>>>,
 }
 ```
 
 **Why:**
 - Allows recursive/self-referential effects
-- Heap allocation only at creation, not per combinator
-- Single allocation for entire effect chain (optimized)
+- Each combinator allocates one small Box (pointer-sized)
+- Alternative (type-level composition) causes compile-time explosion
+- For workflow orchestration, these allocations are negligible
+
+**The reality:**
+Each combinator (`.map()`, `.and_then()`, etc.) creates a new `Effect` with a new boxed closure:
+```rust
+Effect::pure(42)      // Box #1
+    .map(|x| x + 1)   // Box #2
+    .and_then(|x| ..) // Box #3
+```
+
+**Why this is fine:**
+- Each Box is small (one pointer to a closure)
+- Allocations happen at construction, not execution
+- For I/O-bound work (API calls, database queries), allocation cost is noise
+- A chain of 20 combinators: ~1μs to allocate
+- One API call: ~100ms-30s to execute
+- Ratio: 1:100,000 to 1:30,000,000
 
 **Alternative considered:**
 Using generics everywhere means infinite type recursion:
@@ -262,10 +279,10 @@ Using generics everywhere means infinite type recursion:
 Effect<T, E, Env, F1>
   .and_then(...)  -> Effect<U, E, Env, F2>
   .and_then(...)  -> Effect<V, E, Env, F3>
-  // Type signature explodes
+  // Type signature explodes, compile times degrade
 ```
 
-Boxing gives us finite, predictable types.
+Boxing gives us finite, predictable types with acceptable overhead.
 
 ### Why separate Validation and Effect?
 

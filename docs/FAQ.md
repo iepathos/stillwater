@@ -66,7 +66,7 @@ Create simple mock environments (just data structures). Pure functions in your E
 
 ### Does Effect have performance overhead?
 
-Minimal. One box allocation per effect creation. Effect compiles to efficient code similar to hand-written async functions.
+Minimal. Each combinator (`.map()`, `.and_then()`, etc.) allocates one small Box. For a chain of 10 combinators, that's 10 allocations. This is negligible for I/O-bound work where API calls take milliseconds to seconds. Effect compiles to efficient code similar to hand-written async functions.
 
 ## Error Handling
 
@@ -101,7 +101,7 @@ IO::execute(|env| async {
 
 ### Is there overhead?
 
-Minimal. Effect boxes one function per creation. Validation is just an enum. Both compile to efficient code.
+Minimal. Effect allocates one Box per combinator in the chain. Validation is just an enum. Both compile to efficient code. For I/O-bound applications (API calls, database queries), allocation overhead is negligible compared to actual work.
 
 ### Can I use Stillwater in hot loops?
 

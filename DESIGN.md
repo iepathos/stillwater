@@ -73,7 +73,7 @@ Make the pattern ergonomic:
 
 ### 5. No Magic
 - No heavy macros (monadic crate style)
-- No boxing unless necessary
+- Boxing only where needed for type erasure (Effect uses one Box per combinator)
 - Clear types, obvious behavior
 - Error messages that help
 
@@ -320,7 +320,7 @@ fn check_all_services() -> Effect<Vec<Status>, Error, AppEnv> {
 - True concurrency via async runtime (tokio, async-std)
 - Type-safe composition with other Effect combinators
 - Clear error semantics (accumulate vs fail-fast)
-- Zero allocation for known-size iterators
+- Each effect in the collection has one Box allocation (negligible for I/O-bound work)
 
 See [Parallel Effects guide](docs/guide/11-parallel-effects.md) for comprehensive examples and patterns.
 

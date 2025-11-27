@@ -293,7 +293,7 @@ let result = create_user(input).run(&env)?;
 
 **vs. monadic:**
 - ✓ No awkward macro syntax (`rdrdo! { ... }`)
-- ✓ Zero-cost (no boxing by default)
+- ✓ Minimal overhead (one small Box per combinator, negligible for I/O-bound work)
 - ✓ Idiomatic Rust, not Haskell port
 
 **vs. hand-rolling:**

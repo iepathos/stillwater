@@ -435,11 +435,11 @@ let user = create_user(email, age).run(&env).await?;
 ## Performance Considerations
 
 Effect has minimal overhead:
-- One box allocation per effect creation
-- Zero-cost for pure values
+- One box allocation per combinator (`.map()`, `.and_then()`, etc.)
+- A chain of 10 combinators = 10 small allocations (~1μs total)
 - Async overhead only when using async operations
 
-For tight loops or hot paths, consider using plain Result/async fn.
+For I/O-bound work (API calls, database queries), allocation cost is negligible compared to actual work. For tight loops or hot paths, consider using plain Result/async fn.
 
 ## Reader Pattern
 
