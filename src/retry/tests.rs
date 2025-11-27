@@ -1,12 +1,12 @@
 //! Integration tests for retry functionality.
 //!
-//! These tests require the `async` feature because `Effect::retry`, `Effect::retry_if`,
-//! `Effect::retry_with_hooks`, and `Effect::with_timeout` are gated behind that feature.
+//! These tests require the `async` feature because `retry`, `retry_if`,
+//! `retry_with_hooks`, and `with_timeout` are gated behind that feature.
 
 #![cfg(feature = "async")]
 
 use super::*;
-use crate::Effect;
+use crate::effect::prelude::*;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -22,12 +22,12 @@ enum RetryTestError {
 async fn test_retry_succeeds_on_third_attempt() {
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -43,7 +43,7 @@ async fn test_retry_succeeds_on_third_attempt() {
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(5),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap().final_error, "success");
@@ -52,12 +52,12 @@ async fn test_retry_succeeds_on_third_attempt() {
 
 #[tokio::test]
 async fn test_retry_exhausted_returns_final_error() {
-    let effect = Effect::retry(
-        || Effect::<(), _, ()>::fail("always fails"),
+    let effect = retry(
+        || fail::<(), _, ()>("always fails"),
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(3),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_err());
     let exhausted = result.unwrap_err();
@@ -69,12 +69,12 @@ async fn test_retry_exhausted_returns_final_error() {
 async fn test_retry_if_skips_non_retryable_errors() {
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         attempts.fetch_add(1, Ordering::SeqCst);
@@ -87,7 +87,7 @@ async fn test_retry_if_skips_non_retryable_errors() {
         |err| matches!(err, RetryTestError::Transient),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert_eq!(result, Err(RetryTestError::Permanent));
     assert_eq!(attempts.load(Ordering::SeqCst), 1); // No retries for permanent error
@@ -97,12 +97,12 @@ async fn test_retry_if_skips_non_retryable_errors() {
 async fn test_retry_if_retries_transient_errors() {
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -119,7 +119,7 @@ async fn test_retry_if_retries_transient_errors() {
         |err| matches!(err, RetryTestError::Transient),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert_eq!(result, Ok("success"));
     assert_eq!(attempts.load(Ordering::SeqCst), 3);
@@ -130,12 +130,12 @@ async fn test_retry_with_hooks_calls_hook() {
     let attempts = Arc::new(AtomicU32::new(0));
     let hook_calls = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry_with_hooks(
+    let effect = retry_with_hooks(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -157,7 +157,7 @@ async fn test_retry_with_hooks_calls_hook() {
         },
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_ok());
     assert_eq!(attempts.load(Ordering::SeqCst), 3);
@@ -166,13 +166,15 @@ async fn test_retry_with_hooks_calls_hook() {
 
 #[tokio::test]
 async fn test_timeout_triggers_correctly() {
-    let effect = Effect::from_async(|_: &()| async {
-        tokio::time::sleep(Duration::from_secs(10)).await;
-        Ok::<_, String>(42)
-    })
-    .with_timeout(Duration::from_millis(10));
+    let effect = with_timeout(
+        from_async(|_: &()| async {
+            tokio::time::sleep(Duration::from_secs(10)).await;
+            Ok::<_, String>(42)
+        }),
+        Duration::from_millis(10),
+    );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_err());
     assert!(result.unwrap_err().is_timeout());
@@ -180,20 +182,24 @@ async fn test_timeout_triggers_correctly() {
 
 #[tokio::test]
 async fn test_timeout_passes_through_success() {
-    let effect = Effect::from_async(|_: &()| async { Ok::<_, String>(42) })
-        .with_timeout(Duration::from_secs(1));
+    let effect = with_timeout(
+        from_async(|_: &()| async { Ok::<_, String>(42) }),
+        Duration::from_secs(1),
+    );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert_eq!(result, Ok(42));
 }
 
 #[tokio::test]
 async fn test_timeout_passes_through_inner_error() {
-    let effect = Effect::from_async(|_: &()| async { Err::<i32, _>("inner error") })
-        .with_timeout(Duration::from_secs(1));
+    let effect = with_timeout(
+        from_async(|_: &()| async { Err::<i32, _>("inner error") }),
+        Duration::from_secs(1),
+    );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -205,30 +211,32 @@ async fn test_timeout_passes_through_inner_error() {
 async fn test_retry_with_timeout_per_attempt() {
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
-                    let attempts = attempts.clone();
-                    async move {
-                        let n = attempts.fetch_add(1, Ordering::SeqCst);
-                        if n < 2 {
-                            // First two attempts take too long
-                            tokio::time::sleep(Duration::from_millis(100)).await;
+                with_timeout(
+                    from_async(move |_: &()| {
+                        let attempts = attempts.clone();
+                        async move {
+                            let n = attempts.fetch_add(1, Ordering::SeqCst);
+                            if n < 2 {
+                                // First two attempts take too long
+                                tokio::time::sleep(Duration::from_millis(100)).await;
+                            }
+                            Ok::<_, String>("success")
                         }
-                        Ok::<_, String>("success")
-                    }
-                })
-                .with_timeout(Duration::from_millis(10))
+                    }),
+                    Duration::from_millis(10),
+                )
                 .map_err(|e| format!("{}", e))
             }
         },
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(5),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_ok());
     assert_eq!(attempts.load(Ordering::SeqCst), 3);
@@ -236,12 +244,12 @@ async fn test_retry_with_timeout_per_attempt() {
 
 #[tokio::test]
 async fn test_retry_preserves_success_value() {
-    let effect = Effect::retry(
-        || Effect::<_, String, ()>::pure(42),
+    let effect = retry(
+        || pure::<_, String, ()>(42),
         RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(3),
     );
 
-    let result = effect.run_standalone().await;
+    let result = effect.execute(&()).await;
 
     assert!(result.is_ok());
     // The success value is wrapped in Ok, and we get RetryExhausted on error
@@ -257,12 +265,12 @@ async fn test_exponential_backoff_timing() {
     let start = Instant::now();
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -278,7 +286,7 @@ async fn test_exponential_backoff_timing() {
         RetryPolicy::exponential(Duration::from_millis(10)).with_max_retries(5),
     );
 
-    let _ = effect.run_standalone().await;
+    let _ = effect.execute(&()).await;
     let elapsed = start.elapsed();
 
     // With exponential backoff: 10ms + 20ms + 40ms = 70ms minimum
@@ -292,18 +300,19 @@ async fn test_exponential_backoff_timing() {
 
 #[tokio::test]
 async fn test_retry_with_environment() {
+    #[derive(Clone)]
     struct Env {
         fail_count: u32,
     }
 
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |env: &Env| {
+                from_async(move |env: &Env| {
                     let attempts = attempts.clone();
                     let fail_count = env.fail_count;
                     async move {
@@ -321,7 +330,7 @@ async fn test_retry_with_environment() {
     );
 
     let env = Env { fail_count: 2 };
-    let result = effect.run(&env).await;
+    let result = effect.execute(&env).await;
 
     assert!(result.is_ok());
     assert_eq!(attempts.load(Ordering::SeqCst), 3);

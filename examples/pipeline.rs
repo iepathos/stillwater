@@ -10,7 +10,7 @@
 //! - Error handling in data flows
 //! - Composition of pure and effectful operations
 
-use stillwater::Effect;
+use stillwater::effect::prelude::*;
 
 // ==================== Sequential Transformations ====================
 
@@ -20,19 +20,20 @@ use stillwater::Effect;
 async fn example_sequential_transformations() {
     println!("\n=== Example 1: Sequential Transformations ===");
 
+    #[derive(Clone)]
     struct Env;
 
     // Pipeline: number -> double -> add 10 -> to string
-    let pipeline = Effect::pure(5)
+    let pipeline = pure::<_, String, Env>(5)
         .map(|x| x * 2)
         .tap(|x| {
             println!("  After doubling: {}", x);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(|x| x + 10)
         .tap(|x| {
             println!("  After adding 10: {}", x);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(|x| format!("Result: {}", x));
 
@@ -63,29 +64,30 @@ async fn example_pure_functions() {
         s.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 
+    #[derive(Clone)]
     struct Env;
 
     // Build pipeline from pure functions
     let input = "  Hello,   World!  ".to_string();
-    let pipeline = Effect::pure(input.clone())
+    let pipeline = pure::<_, String, Env>(input.clone())
         .tap(|s| {
             println!("  Input: '{}'", s);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(normalize)
         .tap(|s| {
             println!("  Normalized: '{}'", s);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(remove_special_chars)
         .tap(|s| {
             println!("  Special chars removed: '{}'", s);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(collapse_whitespace)
         .tap(|s| {
             println!("  Whitespace collapsed: '{}'", s);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         });
 
     let result = pipeline.run(&Env).await.unwrap();
@@ -100,23 +102,24 @@ async fn example_pure_functions() {
 async fn example_filtering() {
     println!("\n=== Example 3: Filtering with check() ===");
 
+    #[derive(Clone)]
     struct Env;
 
     // Pipeline with validation
-    fn process_age(age: i32) -> Effect<String, String, Env> {
-        Effect::pure(age)
+    fn process_age(age: i32) -> impl Effect<Output = String, Error = String, Env = Env> {
+        pure::<_, String, Env>(age)
             .and_then(|a| {
                 if a >= 0 {
-                    Effect::pure(a)
+                    pure::<_, String, Env>(a).boxed()
                 } else {
-                    Effect::fail(format!("Age {} is negative", a))
+                    fail::<_, _, Env>(format!("Age {} is negative", a)).boxed()
                 }
             })
             .and_then(|a| {
                 if a <= 150 {
-                    Effect::pure(a)
+                    pure::<_, String, Env>(a).boxed()
                 } else {
-                    Effect::fail(format!("Age {} is too high", a))
+                    fail::<_, _, Env>(format!("Age {} is too high", a)).boxed()
                 }
             })
             .map(|a| format!("Valid age: {}", a))
@@ -149,16 +152,17 @@ async fn example_filtering() {
 async fn example_branching() {
     println!("\n=== Example 4: Conditional Branching ===");
 
+    #[derive(Clone)]
     struct Env;
 
-    fn classify_and_process(n: i32) -> Effect<String, String, Env> {
-        Effect::pure(n).and_then(|num| {
+    fn classify_and_process(n: i32) -> impl Effect<Output = String, Error = String, Env = Env> {
+        pure::<_, String, Env>(n).and_then(|num| {
             if num < 0 {
-                Effect::pure(format!("{} is negative", num))
+                pure::<_, String, Env>(format!("{} is negative", num))
             } else if num % 2 == 0 {
-                Effect::pure(format!("{} is even", num))
+                pure::<_, String, Env>(format!("{} is even", num))
             } else {
-                Effect::pure(format!("{} is odd", num))
+                pure::<_, String, Env>(format!("{} is odd", num))
             }
         })
     }
@@ -177,10 +181,12 @@ async fn example_branching() {
 async fn example_effectful_transformations() {
     println!("\n=== Example 5: Mixing Pure and Effectful Operations ===");
 
+    #[derive(Clone)]
     struct Logger {
         prefix: String,
     }
 
+    #[derive(Clone)]
     struct Env {
         logger: Logger,
     }
@@ -192,11 +198,11 @@ async fn example_effectful_transformations() {
     }
 
     // Effectful logging
-    fn log_step<Env: AsRef<Logger> + Sync + 'static>(
+    fn log_step<E: AsRef<Logger> + Clone + Send + Sync + 'static>(
         message: String,
         value: i32,
-    ) -> Effect<i32, String, Env> {
-        Effect::from_fn(move |env: &Env| {
+    ) -> impl Effect<Output = i32, Error = String, Env = E> {
+        from_fn(move |env: &E| {
             let logger: &Logger = env.as_ref();
             println!("  [{}] {}: {}", logger.prefix, message, value);
             Ok(value)
@@ -210,7 +216,7 @@ async fn example_effectful_transformations() {
     };
 
     // Pipeline mixing pure and effectful operations
-    let pipeline = Effect::pure(10)
+    let pipeline = pure::<_, String, Env>(10)
         .and_then(|x| log_step("Start".to_string(), x))
         .map(|x| x * 3)
         .and_then(|x| log_step("After multiply".to_string(), x))
@@ -230,17 +236,18 @@ async fn example_effectful_transformations() {
 async fn example_error_recovery() {
     println!("\n=== Example 6: Error Handling and Recovery ===");
 
+    #[derive(Clone)]
     struct Env;
 
-    fn parse_number(s: String) -> Effect<i32, String, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn parse_number(s: String) -> impl Effect<Output = i32, Error = String, Env = Env> {
+        from_fn(move |_env: &Env| {
             s.parse::<i32>()
                 .map_err(|_| format!("Failed to parse '{}'", s))
         })
     }
 
-    fn safe_divide(a: i32, b: i32) -> Effect<i32, String, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn safe_divide(a: i32, b: i32) -> impl Effect<Output = i32, Error = String, Env = Env> {
+        from_fn(move |_env: &Env| {
             if b == 0 {
                 Err("Division by zero".to_string())
             } else {
@@ -288,15 +295,16 @@ async fn example_error_recovery() {
 async fn example_batch_processing() {
     println!("\n=== Example 7: Batch Processing ===");
 
+    #[derive(Clone)]
     struct Env;
 
-    fn process_item(item: i32) -> Effect<String, String, Env> {
-        Effect::pure(item)
+    fn process_item(item: i32) -> impl Effect<Output = String, Error = String, Env = Env> {
+        pure::<_, String, Env>(item)
             .and_then(|n| {
                 if n > 0 {
-                    Effect::pure(n)
+                    pure::<_, String, Env>(n).boxed()
                 } else {
-                    Effect::fail(format!("{} is not positive", n))
+                    fail::<_, _, Env>(format!("{} is not positive", n)).boxed()
                 }
             })
             .map(|n| n * 2)
@@ -338,11 +346,14 @@ async fn example_complex_pipeline() {
         avg_word_length: f64,
     }
 
+    #[derive(Clone)]
     struct Env;
 
     // Stage 1: Clean and tokenize
-    fn clean_and_tokenize(raw: RawData) -> Effect<CleanData, String, Env> {
-        Effect::pure(raw.text)
+    fn clean_and_tokenize(
+        raw: RawData,
+    ) -> impl Effect<Output = CleanData, Error = String, Env = Env> {
+        pure::<_, String, Env>(raw.text)
             .map(|s| s.to_lowercase())
             .map(|s| {
                 s.chars()
@@ -352,17 +363,17 @@ async fn example_complex_pipeline() {
             .map(|s| s.split_whitespace().map(String::from).collect::<Vec<_>>())
             .and_then(|words| {
                 if !words.is_empty() {
-                    Effect::pure(words)
+                    pure::<_, String, Env>(words).boxed()
                 } else {
-                    Effect::fail("No valid words found".to_string())
+                    fail::<_, _, Env>("No valid words found".to_string()).boxed()
                 }
             })
             .map(|words| CleanData { words })
     }
 
     // Stage 2: Compute statistics
-    fn compute_stats(data: CleanData) -> Effect<Statistics, String, Env> {
-        Effect::pure(data).map(|d| {
+    fn compute_stats(data: CleanData) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
+        pure::<_, String, Env>(data).map(|d| {
             let word_count = d.words.len();
             let total_chars: usize = d.words.iter().map(|w| w.len()).sum();
             let avg_word_length = total_chars as f64 / word_count as f64;
@@ -375,8 +386,10 @@ async fn example_complex_pipeline() {
     }
 
     // Complete pipeline
-    fn analyze_text(raw: RawData) -> Effect<Statistics, String, Env> {
-        clean_and_tokenize(raw).and_then(compute_stats)
+    fn analyze_text(
+        raw: RawData,
+    ) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
+        clean_and_tokenize(raw).and_then_auto(compute_stats)
     }
 
     // Test with valid data
