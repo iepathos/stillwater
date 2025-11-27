@@ -6,7 +6,7 @@ priority: high
 status: draft
 dependencies: []
 created: 2025-01-24
-revised: 2025-01-24
+revised: 2025-11-27
 ---
 
 # Specification 002: Resource Scopes and Bracket Pattern
@@ -252,11 +252,13 @@ The builder generates nested brackets internally - no runtime overhead, just erg
 - [ ] `Effect::bracket2` for two resources with LIFO cleanup
 - [ ] `Effect::bracket3` for three resources with LIFO cleanup
 - [ ] `Effect::acquiring` builder with `.and()` and `.with()` methods
-- [ ] `Acquiring<T, E, Env>` builder type with flat tuple output
+- [ ] `Acquiring<T, E, Env>` builder type with nested tuple output
+- [ ] `Acquiring::with_flat` for 2, 3, and 4 resources (flat parameter access)
 - [ ] `Resource<T, E, Env>` type with `with` method
 - [ ] `Resource::both` for composing two resources
 - [ ] Cleanup errors logged by default
 - [ ] `Effect::bracket_full` returning `BracketError` for explicit handling
+- [ ] `BracketError` with `AcquireError`, `UseError`, `CleanupError`, and `Both` variants
 - [ ] Comprehensive unit tests
 - [ ] Documentation with examples
 
@@ -284,8 +286,11 @@ use std::future::Future;
 /// Error type for bracket operations with explicit error handling.
 ///
 /// This enum design ensures all states are valid - no `(None, None)` case possible.
+/// Each variant clearly identifies which phase of the bracket operation failed.
 #[derive(Debug, Clone)]
 pub enum BracketError<E> {
+    /// Resource acquisition failed - never got to use the resource.
+    AcquireError(E),
     /// The use function failed, cleanup succeeded.
     UseError(E),
     /// The use function succeeded, cleanup failed.
@@ -298,12 +303,20 @@ pub enum BracketError<E> {
 }
 
 impl<E> BracketError<E> {
+    /// Returns the acquire error, if any.
+    pub fn acquire_error(&self) -> Option<&E> {
+        match self {
+            BracketError::AcquireError(e) => Some(e),
+            _ => None,
+        }
+    }
+
     /// Returns the use error, if any.
     pub fn use_error(&self) -> Option<&E> {
         match self {
             BracketError::UseError(e) => Some(e),
             BracketError::Both { use_error, .. } => Some(use_error),
-            BracketError::CleanupError(_) => None,
+            _ => None,
         }
     }
 
@@ -312,7 +325,7 @@ impl<E> BracketError<E> {
         match self {
             BracketError::CleanupError(e) => Some(e),
             BracketError::Both { cleanup_error, .. } => Some(cleanup_error),
-            BracketError::UseError(_) => None,
+            _ => None,
         }
     }
 }
@@ -320,6 +333,7 @@ impl<E> BracketError<E> {
 impl<E: std::fmt::Display> std::fmt::Display for BracketError<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            BracketError::AcquireError(e) => write!(f, "acquire failed: {}", e),
             BracketError::UseError(e) => write!(f, "{}", e),
             BracketError::CleanupError(e) => write!(f, "cleanup failed: {}", e),
             BracketError::Both { use_error, cleanup_error } => {
@@ -332,6 +346,7 @@ impl<E: std::fmt::Display> std::fmt::Display for BracketError<E> {
 impl<E: std::error::Error + 'static> std::error::Error for BracketError<E> {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
+            BracketError::AcquireError(e) => Some(e),
             BracketError::UseError(e) => Some(e),
             BracketError::Both { use_error, .. } => Some(use_error),
             BracketError::CleanupError(e) => Some(e),
@@ -534,11 +549,10 @@ where
             async move {
                 let env = unsafe { &*env_ptr };
 
-                // Acquire - map error to BracketError
-                // Note: Acquire failure is treated as UseError since we never got to use the resource
+                // Acquire - map error to BracketError::AcquireError
                 let resource = match acquire_effect.run(env).await {
                     Ok(r) => r,
-                    Err(e) => return Err(BracketError::UseError(e)),
+                    Err(e) => return Err(BracketError::AcquireError(e)),
                 };
 
                 // Use resource
@@ -689,25 +703,36 @@ The builder provides a flat API that generates nested brackets at compile time.
 
 **Important: Tuple Nesting Behavior**
 
-When chaining multiple `.and()` calls, the resources are nested as right-associated tuples:
-- One resource: `T`
-- Two resources: `(T1, T2)`
-- Three resources: `(T1, (T2, T3))` - note the nesting!
-- Four resources: `(T1, (T2, (T3, T4)))`
+When chaining multiple `.and()` calls, the resources are nested as right-associated tuples.
+This is a consequence of how `Resource::both` composes pairs of resources.
 
-This is because each `.and()` combines the current resource with the next via `Resource::both`.
+| Resources | Type | Destructure Pattern |
+|-----------|------|---------------------|
+| 1 | `T` | `\|a\|` |
+| 2 | `(T1, T2)` | `\|(a, b)\|` |
+| 3 | `(T1, (T2, T3))` | `\|(a, (b, c))\|` |
+| 4 | `(T1, (T2, (T3, T4)))` | `\|(a, (b, (c, d)))\|` |
 
-To access resources in the `with` closure, you have two options:
+**Why not flat tuples?** Flattening would require either:
+1. Macros (worse error messages, IDE support)
+2. Complex trait machinery (slow compiles)
+3. HList-style type-level programming (complexity explosion)
+
+The nested approach is predictable and works with Rust's type system naturally.
+
+**Ergonomic access with `with_flat`:**
+
+To avoid nested destructuring, use the `with_flat` method which provides flat parameter access:
 
 ```rust
-// Option 1: Match the nested structure directly
+// Nested destructuring (always works)
 .with(|(a, (b, c))| { ... })
 
-// Option 2: Use with_flat for ergonomic access (3-4 resources)
+// Flat parameters via with_flat (2-4 resources)
 .with_flat(|a, b, c| { ... })
 ```
 
-The `with_flat` method is provided for common cases (3-4 resources) to avoid nested destructuring.
+The `with_flat` method is provided for 2, 3, and 4 resources to improve ergonomics.
 
 ```rust
 /// Builder for acquiring multiple resources with guaranteed cleanup.
@@ -816,6 +841,25 @@ where
 // Implement tuple flattening for ergonomic access
 // When chaining .and().and(), we get (A, (B, C)) but want (A, B, C)
 // This is handled by implementing for nested tuple patterns
+
+impl<A, B, E, Env> Acquiring<(A, B), E, Env>
+where
+    A: Send + 'static,
+    B: Send + 'static,
+    E: Send + std::fmt::Debug + 'static,
+    Env: Sync + 'static,
+{
+    /// Use with flattened parameter access for two resources.
+    ///
+    /// Instead of `|(a, b)|`, you can use `|a, b|`.
+    pub fn with_flat<U, F>(self, f: F) -> Effect<U, E, Env>
+    where
+        U: Send + 'static,
+        F: FnOnce(&A, &B) -> Effect<U, E, Env> + Send + 'static,
+    {
+        self.resource.with(|(a, b)| f(a, b))
+    }
+}
 
 impl<A, B, C, E, Env> Acquiring<(A, (B, C)), E, Env>
 where
@@ -1020,8 +1064,10 @@ mod tests {
         .await;
 
         assert!(result.is_err());
-        // First resource should be released when second fails to acquire
-        // Note: This depends on Resource::both implementation
+        assert!(
+            released.load(Ordering::SeqCst),
+            "first resource must be released when second acquire fails"
+        );
     }
 
     #[tokio::test]
@@ -1075,6 +1121,23 @@ mod tests {
         match err {
             BracketError::CleanupError(e) => assert_eq!(e, "cleanup failed"),
             _ => panic!("expected BracketError::CleanupError"),
+        }
+    }
+
+    #[tokio::test]
+    async fn bracket_full_returns_acquire_error() {
+        let result = Effect::<i32, String, ()>::bracket_full(
+            Effect::fail("acquire failed".to_string()),
+            |_| async { Ok(()) },
+            |_| Effect::pure(42),
+        )
+        .run(&())
+        .await;
+
+        let err = result.unwrap_err();
+        match err {
+            BracketError::AcquireError(e) => assert_eq!(e, "acquire failed"),
+            _ => panic!("expected BracketError::AcquireError"),
         }
     }
 
@@ -1163,7 +1226,23 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn acquiring_builder_with_flat() {
+    async fn acquiring_builder_with_flat_two_resources() {
+        let result = Effect::<_, String, ()>::acquiring(
+            Effect::pure(10),
+            |_| async { Ok(()) },
+        )
+        .and(Effect::pure(20), |_| async { Ok(()) })
+        .with_flat(|a, b| {
+            Effect::pure(*a + *b)
+        })
+        .run(&())
+        .await;
+
+        assert_eq!(result, Ok(30));
+    }
+
+    #[tokio::test]
+    async fn acquiring_builder_with_flat_three_resources() {
         let result = Effect::<_, String, ()>::acquiring(
             Effect::pure(1),
             |_| async { Ok(()) },
@@ -1299,6 +1378,54 @@ Effect::scoped(|scope| {
 **Rationale**: This fights Rust's ownership model. The scope needs the resource for cleanup, but the user also needs it. Solutions (Arc, Clone, etc.) add complexity.
 
 **Workaround**: Use nested brackets or `Resource::both`.
+
+## Future Considerations
+
+### Macro for Flat Syntax
+
+If the tuple nesting proves too cumbersome in practice, a declarative macro could provide
+flatter syntax while generating the same nested brackets internally:
+
+```rust
+// Potential future syntax (NOT in this spec)
+bracket! {
+    conn <- open_conn(), |c| c.close();
+    file <- open_file(), |f| f.close();
+    lock <- acquire_lock(), |l| l.release();
+    =>
+    do_work(&conn, &file, &lock)
+}
+```
+
+**Trade-offs:**
+- Pro: Best ergonomics, scales to N resources
+- Pro: Zero runtime overhead (generates nested brackets)
+- Con: Worse error messages than functions
+- Con: Degraded IDE support (autocomplete, type hints)
+- Con: "Magic" syntax users must learn
+
+**Decision:** Defer to a future spec if real-world usage demonstrates need. The current
+`with_flat` methods handle the common 2-4 resource cases adequately.
+
+### Cats-Effect Style Monadic Resource
+
+Scala's cats-effect provides elegant resource composition via `flatMap`:
+
+```scala
+val resources = for {
+  conn <- Resource.make(openConn)(_.close)
+  file <- Resource.make(openFile)(_.close)
+} yield (conn, file)
+
+resources.use { case (conn, file) => doWork(conn, file) }
+```
+
+This doesn't translate cleanly to Rust due to ownership constraints - the `flatMap`
+closure would need to capture the first resource while also allowing it to be used
+and released. Solutions require `Arc` or unsafe, adding complexity.
+
+**Decision:** Not pursued. The `Acquiring` builder achieves similar ergonomics within
+Rust's ownership model.
 
 ## Migration Guide
 
