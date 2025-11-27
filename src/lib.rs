@@ -56,6 +56,7 @@
 
 pub mod context;
 pub mod effect;
+pub mod effect_v2;
 pub mod io;
 pub mod monoid;
 pub mod nonempty;
