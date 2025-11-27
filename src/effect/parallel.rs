@@ -6,8 +6,8 @@
 //! - `race` - Race effects, return first to complete
 //! - `par2`, `par3` - Run heterogeneous effects in parallel
 
-use crate::effect_v2::boxed::BoxedEffect;
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::boxed::BoxedEffect;
+use crate::effect::trait_def::Effect;
 
 /// Execute boxed effects in parallel, collecting all results or all errors.
 ///
@@ -19,7 +19,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
 ///     pure(1).boxed(),
@@ -68,7 +68,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
 ///     pure(1).boxed(),
@@ -106,7 +106,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
 ///     pure(1).boxed(),
@@ -142,7 +142,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let e1 = pure::<_, String, ()>(42);
 /// let e2 = pure::<_, String, ()>("hello".to_string());
@@ -208,12 +208,66 @@ where
     futures::join!(e1.run(env), e2.run(env), e3.run(env), e4.run(env))
 }
 
+/// Execute boxed effects in parallel with a concurrency limit.
+///
+/// Returns `Ok(results)` if all effects succeed, `Err(errors)` if any fail.
+/// All effects run to completion regardless of individual failures.
+///
+/// Useful for rate limiting or resource constraints.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use stillwater::effect::prelude::*;
+///
+/// let effects: Vec<BoxedEffect<i32, String, ()>> = (1..=10)
+///     .map(|i| pure(i).boxed())
+///     .collect();
+///
+/// let result = par_all_limit(effects, 3, &()).await;
+/// assert_eq!(result.as_ref().map(|v| v.len()), Ok(10));
+/// ```
+pub async fn par_all_limit<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    limit: usize,
+    env: &Env,
+) -> Result<Vec<T>, Vec<E>>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    use futures::stream::{self, StreamExt};
+
+    let results: Vec<Result<T, E>> = stream::iter(effects)
+        .map(|eff| eff.run(env))
+        .buffer_unordered(limit)
+        .collect()
+        .await;
+
+    let mut successes = Vec::new();
+    let mut failures = Vec::new();
+
+    for result in results {
+        match result {
+            Ok(value) => successes.push(value),
+            Err(e) => failures.push(e),
+        }
+    }
+
+    if failures.is_empty() {
+        Ok(successes)
+    } else {
+        Err(failures)
+    }
+}
+
 /// Macro for arbitrary parallel execution with tuple return.
 ///
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let e1 = pure::<_, String, ()>(1);
 /// let e2 = pure::<_, String, ()>(2);

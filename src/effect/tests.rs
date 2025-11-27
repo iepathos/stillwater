@@ -1,7 +1,7 @@
 //! Tests for the zero-cost Effect trait system.
 
-use crate::effect_v2::compat::RunStandalone;
-use crate::effect_v2::prelude::*;
+use crate::effect::compat::RunStandalone;
+use crate::effect::prelude::*;
 
 // Basic constructor tests
 #[tokio::test]

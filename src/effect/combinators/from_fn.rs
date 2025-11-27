@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// Effect from a synchronous function.
 ///
@@ -12,7 +12,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }

@@ -12,7 +12,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::pin::Pin;
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// A boxed future that is Send + 'static
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
@@ -30,7 +30,7 @@ pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// // Store different effects in a Vec
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![

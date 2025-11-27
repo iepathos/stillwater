@@ -45,7 +45,7 @@ use std::future::Future;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// fn fetch_user(id: i32) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {
 ///     asks(|env: &AppEnv| env.db.clone())

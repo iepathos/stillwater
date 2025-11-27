@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// Effect from a Result value.
 ///
@@ -12,7 +12,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = from_result::<_, String, ()>(Ok(42));
 /// assert_eq!(effect.execute(&()).await, Ok(42));

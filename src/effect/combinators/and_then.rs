@@ -1,6 +1,6 @@
 //! AndThen combinator - chains dependent effects.
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// AndThen combinator - chains dependent effects.
 ///
@@ -20,7 +20,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(21)
 ///     .and_then(|x| pure(x * 2));

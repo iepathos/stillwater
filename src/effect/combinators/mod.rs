@@ -9,6 +9,9 @@
 //! behind `impl Effect<...>`.
 
 mod and_then;
+mod and_then_auto;
+mod and_then_ref;
+mod check;
 mod fail;
 mod from_async;
 mod from_fn;
@@ -17,8 +20,13 @@ mod map;
 mod map_err;
 mod or_else;
 mod pure;
+mod tap;
+mod with;
 
 pub use and_then::AndThen;
+pub use and_then_auto::AndThenAuto;
+pub use and_then_ref::AndThenRef;
+pub use check::Check;
 pub use fail::Fail;
 pub use from_async::FromAsync;
 pub use from_fn::FromFn;
@@ -27,3 +35,5 @@ pub use map::Map;
 pub use map_err::MapErr;
 pub use or_else::OrElse;
 pub use pure::Pure;
+pub use tap::Tap;
+pub use with::With;

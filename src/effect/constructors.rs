@@ -5,9 +5,9 @@
 
 use std::future::Future;
 
-use crate::effect_v2::combinators::{Fail, FromAsync, FromFn, FromResult, Pure};
-use crate::effect_v2::reader::{Ask, Asks, Local};
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::combinators::{Fail, FromAsync, FromFn, FromResult, Pure};
+use crate::effect::reader::{Ask, Asks, Local};
+use crate::effect::trait_def::Effect;
 
 /// Create a pure effect that succeeds with the given value.
 ///
@@ -16,7 +16,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(42);
 /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -37,7 +37,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = fail::<i32, _, ()>("error".to_string());
 /// assert_eq!(effect.execute(&()).await, Err("error".to_string()));
@@ -58,7 +58,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }
@@ -83,7 +83,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = from_async(|_: &()| async { Ok::<_, String>(42) });
 /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -104,7 +104,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = from_result::<_, String, ()>(Ok(42));
 /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -126,7 +126,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = from_option::<_, _, ()>(Some(42), || "missing".to_string());
 /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -153,7 +153,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone, PartialEq, Debug)]
 /// struct Env { value: i32 }
@@ -176,7 +176,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }
@@ -201,7 +201,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct OuterEnv { multiplier: i32 }
@@ -223,4 +223,36 @@ where
     Env2: Clone + Send + Sync,
 {
     Local::new(inner, f)
+}
+
+/// Create an effect from a Validation.
+///
+/// Converts a `Validation<T, E>` into an effect. Success becomes `Ok(value)`,
+/// Failure becomes `Err(error)`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use stillwater::effect::prelude::*;
+/// use stillwater::Validation;
+///
+/// let validation = Validation::<_, String>::success(42);
+/// let effect = from_validation::<_, _, ()>(validation);
+/// assert_eq!(effect.execute(&()).await, Ok(42));
+///
+/// let validation = Validation::<i32, _>::failure("error".to_string());
+/// let effect = from_validation::<_, _, ()>(validation);
+/// assert_eq!(effect.execute(&()).await, Err("error".to_string()));
+/// ```
+pub fn from_validation<T, E, Env>(validation: crate::Validation<T, E>) -> FromResult<T, E, Env>
+where
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    let result = match validation {
+        crate::Validation::Success(value) => Ok(value),
+        crate::Validation::Failure(error) => Err(error),
+    };
+    FromResult::new(result)
 }

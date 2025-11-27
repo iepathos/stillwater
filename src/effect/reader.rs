@@ -9,7 +9,7 @@
 
 use std::marker::PhantomData;
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// Get the entire environment (cloned).
 ///
@@ -18,7 +18,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone, PartialEq, Debug)]
 /// struct Env { value: i32 }
@@ -74,7 +74,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }
@@ -127,7 +127,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct OuterEnv { multiplier: i32 }

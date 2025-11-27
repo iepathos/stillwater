@@ -1,6 +1,6 @@
 //! MapErr combinator - transforms the error value of an effect.
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// MapErr combinator - transforms the error value.
 ///
@@ -10,7 +10,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = fail::<i32, _, ()>("error")
 ///     .map_err(|e: &str| format!("wrapped: {}", e));
