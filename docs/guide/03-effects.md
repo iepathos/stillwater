@@ -118,7 +118,7 @@ use stillwater::Effect;
 
 // Map success value
 let effect = Effect::pure(21).map(|x| x * 2);
-assert_eq!(effect.run(&()).await, Ok(42));
+assert_eq!(effect.run_standalone().await, Ok(42));
 
 // Map error value
 let effect = Effect::fail("oops").map_err(|e| format!("Error: {}", e));
@@ -127,7 +127,7 @@ let effect = Effect::fail("oops").map_err(|e| format!("Error: {}", e));
 let effect = Effect::pure(5)
     .and_then(|x| Effect::pure(x * 2))
     .and_then(|x| Effect::pure(x + 10));
-assert_eq!(effect.run(&()).await, Ok(20));
+assert_eq!(effect.run_standalone().await, Ok(20));
 ```
 
 ### Running Effects

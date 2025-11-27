@@ -47,7 +47,7 @@ async fn example_basic_retry() {
         RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(5),
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
 
     match result {
         Ok(success) => {
@@ -145,7 +145,7 @@ async fn example_conditional_retry() {
         |err| matches!(err, AppError::Transient(_)),
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
     println!("Permanent error (no retries): {:?}", result.unwrap_err());
     println!("Total attempts: {}", attempts.load(Ordering::SeqCst));
 
@@ -176,7 +176,7 @@ async fn example_conditional_retry() {
         |err| matches!(err, AppError::Transient(_)),
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
     println!("\nTransient errors then success: {:?}", result.unwrap());
     println!("Total attempts: {}", attempts.load(Ordering::SeqCst));
 }
@@ -225,7 +225,7 @@ async fn example_retry_with_hooks() {
         },
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
 
     match result {
         Ok(success) => {
@@ -259,7 +259,7 @@ async fn example_timeout() {
     .with_timeout(Duration::from_millis(100));
 
     println!("Running with 100ms timeout:");
-    match slow_effect.run(&()).await {
+    match slow_effect.run_standalone().await {
         Ok(value) => println!("  Completed: {}", value),
         Err(TimeoutError::Timeout { duration }) => {
             println!("  Timed out after {:?}", duration);
@@ -276,7 +276,7 @@ async fn example_timeout() {
     .with_timeout(Duration::from_millis(100));
 
     println!("Running with 100ms timeout:");
-    match fast_effect.run(&()).await {
+    match fast_effect.run_standalone().await {
         Ok(value) => println!("  Completed: {}", value),
         Err(TimeoutError::Timeout { duration }) => {
             println!("  Timed out after {:?}", duration);
@@ -326,7 +326,7 @@ async fn example_retry_with_timeout() {
         RetryPolicy::constant(Duration::from_millis(50)).with_max_retries(5),
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
 
     match result {
         Ok(success) => {
@@ -423,7 +423,7 @@ async fn example_http_pattern() {
         is_retryable,
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
 
     match result {
         Ok(body) => println!("\nResponse: {}", body),
@@ -456,7 +456,7 @@ async fn example_http_pattern() {
         is_retryable,
     );
 
-    let result = effect.run(&()).await;
+    let result = effect.run_standalone().await;
 
     match result {
         Ok(body) => println!("\nResponse: {}", body),

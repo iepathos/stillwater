@@ -289,12 +289,12 @@ async fn example_testing_errors() {
     println!("\n=== Example 5: Testing Error Cases ===");
 
     // Test success case
-    let result = divide::<()>(10, 2).run(&()).await;
+    let result = divide::<()>(10, 2).run_standalone().await;
     assert_eq!(result, Ok(5));
     println!("✓ Success case test passed");
 
     // Test error case
-    let result = divide::<()>(10, 0).run(&()).await;
+    let result = divide::<()>(10, 0).run_standalone().await;
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Division by zero");
     println!("✓ Error case test passed");

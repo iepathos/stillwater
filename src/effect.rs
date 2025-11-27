@@ -21,11 +21,11 @@
 //! # tokio_test::block_on(async {
 //! // Create a pure effect
 //! let effect = Effect::<_, String, ()>::pure(42);
-//! assert_eq!(effect.run(&()).await, Ok(42));
+//! assert_eq!(effect.run_standalone().await, Ok(42));
 //!
 //! // Create a failed effect
 //! let effect = Effect::<i32, _, ()>::fail("error");
-//! assert_eq!(effect.run(&()).await, Err("error"));
+//! assert_eq!(effect.run_standalone().await, Err("error"));
 //! # });
 //! ```
 //!
@@ -39,7 +39,7 @@
 //!     .map(|x| x * 2)
 //!     .and_then(|x| Effect::pure(x + 10));
 //!
-//! assert_eq!(effect.run(&()).await, Ok(20));
+//! assert_eq!(effect.run_standalone().await, Ok(20));
 //! # });
 //! ```
 //!
@@ -73,7 +73,7 @@
 //!     Ok::<_, String>(42)
 //! });
 //!
-//! assert_eq!(effect.run(&()).await, Ok(42));
+//! assert_eq!(effect.run_standalone().await, Ok(42));
 //! # });
 //! ```
 
@@ -111,11 +111,11 @@ type EffectFn<T, E, Env> = Box<dyn FnOnce(&Env) -> BoxFuture<'_, Result<T, E>> +
 /// # tokio_test::block_on(async {
 /// // Effect with no error type
 /// let effect: Effect<_, String> = Effect::pure(42);
-/// assert_eq!(effect.run(&()).await, Ok(42));
+/// assert_eq!(effect.run_standalone().await, Ok(42));
 ///
 /// // Effect with error type
 /// let effect: Effect<i32, String> = Effect::fail("error".to_string());
-/// assert_eq!(effect.run(&()).await, Err("error".to_string()));
+/// assert_eq!(effect.run_standalone().await, Err("error".to_string()));
 /// # });
 /// ```
 pub struct Effect<T, E = std::convert::Infallible, Env = ()> {
@@ -149,7 +149,7 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::pure(42);
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     pub fn pure(value: T) -> Self {
@@ -169,7 +169,7 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<i32, _, ()>::fail("error");
-    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// assert_eq!(effect.run_standalone().await, Err("error"));
     /// # });
     /// ```
     pub fn fail(error: E) -> Self {
@@ -558,7 +558,57 @@ where
     pub async fn run(self, env: &Env) -> Result<T, E> {
         (self.run_fn)(env).await
     }
+}
 
+// Standalone execution for effects that don't require an environment
+#[cfg(feature = "async")]
+impl<T, E> Effect<T, E, ()>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+{
+    /// Run an effect that doesn't require an environment.
+    ///
+    /// This is a convenience method for effects with `Env = ()` (unit type).
+    /// When your effect doesn't need any external dependencies, use this method
+    /// instead of `run(&())` for cleaner code.
+    ///
+    /// # When to Use
+    ///
+    /// Use `run_standalone()` when:
+    /// - Your effect type is `Effect<T, E, ()>`
+    /// - The effect doesn't access any environment via `ask()` or `asks()`
+    /// - You're writing examples or tests with simple effects
+    ///
+    /// Use `run(env)` when:
+    /// - Your effect requires an actual environment (database, config, etc.)
+    /// - The effect type is `Effect<T, E, MyEnv>` where `MyEnv` is not `()`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// // Instead of this:
+    /// let result = Effect::<_, String, ()>::pure(42).run(&()).await;
+    ///
+    /// // Write this:
+    /// let result = Effect::<_, String, ()>::pure(42).run_standalone().await;
+    /// assert_eq!(result, Ok(42));
+    /// # });
+    /// ```
+    pub async fn run_standalone(self) -> Result<T, E> {
+        self.run(&()).await
+    }
+}
+
+impl<T, E, Env> Effect<T, E, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
     /// Perform a side effect and return the original value
     ///
     /// Useful for logging, metrics, or other operations that don't

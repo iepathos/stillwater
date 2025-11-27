@@ -269,7 +269,7 @@ let effect = traverse_effect(files, |path| process_file(path));
 
 // Run the effect
 tokio_test::block_on(async {
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(contents) => {
             for content in contents {
                 println!("{}", content);
@@ -336,7 +336,7 @@ let effect = traverse_effect(user_ids, fetch_user);
 
 // Effects run in parallel
 tokio_test::block_on(async {
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(users) => {
             println!("Fetched {} users", users.len());
         }
@@ -377,7 +377,7 @@ let effects = vec![
 let combined = sequence_effect(effects);
 
 tokio_test::block_on(async {
-    let result = combined.run(&()).await;
+    let result = combined.run_standalone().await;
     assert_eq!(result, Ok(vec![1, 2, 3]));
 });
 ```

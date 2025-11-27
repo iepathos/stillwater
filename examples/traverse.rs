@@ -214,7 +214,7 @@ async fn example_effect_traverse() {
     let numbers = vec![1, 2, 3, 4, 5];
     println!("Processing numbers with effect:");
     let effect = traverse_effect(numbers, process_number);
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(results) => println!("  Results: {:?}", results),
         Err(error) => println!("  Error: {}", error),
     }
@@ -231,7 +231,7 @@ async fn example_effect_traverse() {
     let mixed = vec![1, 2, -3, 4];
     println!("\nProcessing with validation (fail-fast):");
     let effect = traverse_effect(mixed, validate_and_process);
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(results) => println!("  Results: {:?}", results),
         Err(error) => println!("  Error (stopped at first): {}", error),
     }
@@ -273,7 +273,7 @@ async fn example_batch_file_processing() {
 
     println!("Reading files:");
     let effect = traverse_effect(files, read_file);
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(contents) => {
             println!("  Read {} files:", contents.len());
             for content in contents {
@@ -291,7 +291,7 @@ async fn example_batch_file_processing() {
 
     println!("\nReading mixed files (fail-fast):");
     let effect = traverse_effect(mixed_files, read_file);
-    match effect.run(&()).await {
+    match effect.run_standalone().await {
         Ok(contents) => println!("  Read: {:?}", contents),
         Err(error) => println!("  Error: {}", error),
     }
@@ -315,7 +315,7 @@ async fn example_sequence_effect() {
 
     println!("Sequence pure effects:");
     let result_effect = sequence_effect(effects);
-    match result_effect.run(&()).await {
+    match result_effect.run_standalone().await {
         Ok(values) => println!("  Values: {:?}", values),
         Err(error) => println!("  Error: {}", error),
     }
@@ -329,7 +329,7 @@ async fn example_sequence_effect() {
 
     println!("\nSequence with failure (fail-fast):");
     let result_effect = sequence_effect(mixed_effects);
-    match result_effect.run(&()).await {
+    match result_effect.run_standalone().await {
         Ok(values) => println!("  Values: {:?}", values),
         Err(error) => println!("  Error: {}", error),
     }

@@ -21,12 +21,12 @@ async fn example_basic_effects() {
 
     // Pure value - always succeeds
     let success_effect: Effect<i32, String, ()> = Effect::pure(42);
-    let result = success_effect.run(&()).await;
+    let result = success_effect.run_standalone().await;
     println!("Pure effect: {:?}", result);
 
     // Failure - always fails
     let fail_effect: Effect<i32, String, ()> = Effect::fail("something went wrong".to_string());
-    let result = fail_effect.run(&()).await;
+    let result = fail_effect.run_standalone().await;
     println!("Fail effect: {:?}", result);
 }
 
