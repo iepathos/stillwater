@@ -6,8 +6,6 @@
 [![Crates.io](https://img.shields.io/crates/v/stillwater)](https://crates.io/crates/stillwater)
 [![License](https://img.shields.io/badge/license-MIT)](LICENSE)
 
-> *"Still waters run pure"*
-
 A Rust library for pragmatic effect composition and validation, emphasizing the **pure core, imperative shell** pattern.
 
 ## Philosophy

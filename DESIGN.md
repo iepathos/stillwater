@@ -1,7 +1,5 @@
 # Stillwater - Design Document
 
-> *"Still waters run pure"*
-
 ## Philosophy
 
 **Stillwater** embodies the principle of **pure core, imperative shell**:

@@ -1,8 +1,6 @@
 #![cfg_attr(feature = "try_trait", feature(try_trait_v2))]
 //! # Stillwater
 //!
-//! > *"Still waters run pure"*
-//!
 //! A Rust library for pragmatic effect composition and validation.
 //!
 //! ## Philosophy
