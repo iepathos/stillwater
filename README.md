@@ -11,8 +11,8 @@ A Rust library for pragmatic effect composition and validation, emphasizing the 
 ## Philosophy
 
 **Stillwater** embodies a simple idea:
-- **Still** = Pure functions (unchanging, referentially transparent)
-- **Water** = Effects (flowing, performing I/O)
+- Pure functions (unchanging, referentially transparent)
+- Effects (flowing, performing I/O)
 
 Keep your business logic pure and calm like still water. Let effects flow at the boundaries.
 
@@ -23,11 +23,11 @@ Keep your business logic pure and calm like still water. Let effects flow at the
 ```rust
 use stillwater::Validation;
 
-// Standard Result: stops at first error ❌
+// Standard Result: stops at first error
 let email = validate_email(input)?;  // Stops here
 let age = validate_age(input)?;      // Never reached if email fails
 
-// Stillwater: accumulates all errors ✓
+// Stillwater: accumulates all errors
 let user = Validation::all((
     validate_email(input),
     validate_age(input),
@@ -49,11 +49,11 @@ enum Aggregate {
     // But Sum + Count is a type error!
 }
 
-// Without validation: runtime panic 💥
+// Without validation: runtime panic
 let mixed = vec![Aggregate::Count(5), Aggregate::Sum(10.0)];
 // items.into_iter().reduce(|a, b| a.combine(b))  // PANIC!
 
-// With validation: type-safe error accumulation ✓
+// With validation: type-safe error accumulation
 let result = validate_homogeneous(
     mixed,
     |a| discriminant(a),
@@ -84,7 +84,7 @@ fn calculate_discount(customer: &Customer, total: Money) -> Money {
     }
 }
 
-// Effects at boundaries (mockable)
+// Effects at boundaries (mockable) - zero-cost by default
 fn process_order(id: OrderId) -> impl Effect<Output = Invoice, Error = AppError, Env = AppEnv> {
     from_fn(move |env: &AppEnv| env.db.fetch_order(id))  // I/O
         .and_then(|order| {
@@ -150,11 +150,9 @@ fn fetch_with_extended_timeout() -> impl Effect<Output = String, Error = String,
     )
 }
 
-# tokio_test::block_on(async {
 let config = Config { timeout: 30, retries: 3 };
 let result = fetch_with_extended_timeout().run(&config).await?;
 // Uses timeout=60 without changing the original config
-# });
 ```
 
 ### 6. "Retry logic is scattered and hard to test"
@@ -163,13 +161,8 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 use stillwater::{Effect, RetryPolicy};
 use std::time::Duration;
 
-// Traditional approach: retry logic mixed with business logic ❌
-// - Can't test retry behavior without calling the API
-// - Can't reuse the same policy across different operations
-// - Hard to tune or modify without code changes
-
-// Stillwater: Policy as Data ✓
-// Define retry policies as pure, composable, testable values
+// Stillwater: Policy as Data
+// Define retry policies as pure, testable values
 let api_policy = RetryPolicy::exponential(Duration::from_millis(100))
     .with_max_retries(5)
     .with_max_delay(Duration::from_secs(2))
@@ -189,7 +182,6 @@ Effect::retry_if(
     || api_call(),
     api_policy,
     |err| matches!(err, ApiError::Timeout | ApiError::ServerError(_))
-    // Don't retry client errors (4xx) - they won't succeed on retry
 );
 
 // Observability: hook into retry events for logging/metrics
@@ -203,13 +195,6 @@ Effect::retry_with_hooks(
 );
 ```
 
-**Why "Policy as Data" matters:**
-- **Testable**: Test retry timing without mocks or network calls
-- **Reusable**: One policy definition, many use sites
-- **Composable**: Builder pattern for flexible configuration
-- **Inspectable**: Query policy parameters before execution
-- **Safe**: Enforces bounds (max_retries OR max_delay required)
-
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
@@ -220,11 +205,10 @@ Effect::retry_with_hooks(
   - Returns `impl Effect` for optimal performance
 - **Parallel effect execution** - Run independent effects concurrently
   - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
-  - Boxed: `par_all()`, `race()`, `par_all_limit()` for homogeneous collections
-- **Retry and resilience** - Policy-as-data approach: define retry policies as pure, testable values with exponential, linear, constant, and Fibonacci backoff strategies. Includes jitter (proportional, full, decorrelated), conditional retry with predicates, retry hooks for observability, and timeout support
+  - Boxed: `par_all()`, `par_try_all()`, `race()`, `par_all_limit()` for homogeneous collections
+- **Retry and resilience** - Policy-as-data approach with exponential, linear, constant, and Fibonacci backoff. Includes jitter, conditional retry, retry hooks, and timeout support
+- **Resource management** - `bracket()` and `bracket_simple()` for safe acquire/use/release patterns
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
-  - Validate entire collections with error accumulation
-  - Process collections with effects using fail-fast semantics
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
   - Extended implementations for `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `Option`
@@ -284,34 +268,78 @@ let env = AppEnv { db, cache, logger };
 let result = create_user(input).run(&env).await?;
 ```
 
+## Zero-Cost Effect System
+
+Version 0.11.0 introduces a zero-cost effect system following the `futures` crate pattern:
+
+```rust
+// Free-standing constructors (not methods)
+let effect = pure(42);                    // Not Effect::pure(42)
+let effect = fail("error");               // Not Effect::fail("error")
+let effect = from_fn(|env| Ok(env.value)); // Not Effect::from_fn(...)
+
+// Chain combinators - each returns a concrete type, zero allocations
+let result = pure(1)
+    .map(|x| x + 1)
+    .and_then(|x| pure(x * 2))
+    .map(|x| x.to_string());
+
+// Use .boxed() when you need type erasure
+fn dynamic_effect(flag: bool) -> BoxedEffect<i32, String, ()> {
+    if flag {
+        pure(1).boxed()
+    } else {
+        pure(2).boxed()
+    }
+}
+
+// Collections of effects require boxing
+let effects: Vec<BoxedEffect<i32, String, Env>> = vec![
+    effect1.boxed(),
+    effect2.boxed(),
+];
+let results = par_all(effects, &env).await;
+```
+
+**When to use `.boxed()`:**
+- Storing effects in collections (`Vec<BoxedEffect<...>>`)
+- Returning different effect types from branches
+- Recursive effect definitions
+- Dynamic dispatch scenarios
+
+**When NOT to use `.boxed()`:**
+- Simple linear chains (use `impl Effect`)
+- Fixed combinator sequences
+- Performance-critical paths
+
 ## Why Stillwater?
 
 ### Compared to existing solutions:
 
 **vs. frunk:**
-- ✓ Focused on practical use cases, not type-level programming
-- ✓ Better documentation and examples
-- ✓ Effect composition, not just validation
+- Focused on practical use cases, not type-level programming
+- Better documentation and examples
+- Effect composition, not just validation
 
 **vs. monadic:**
-- ✓ No awkward macro syntax (`rdrdo! { ... }`)
-- ✓ Zero-cost by default (follows `futures` crate pattern)
-- ✓ Idiomatic Rust, not Haskell port
+- No awkward macro syntax (`rdrdo! { ... }`)
+- Zero-cost by default (follows `futures` crate pattern)
+- Idiomatic Rust, not Haskell port
 
 **vs. hand-rolling:**
-- ✓ Validation accumulation built-in
-- ✓ Error context handling
-- ✓ Testability patterns established
-- ✓ Composable, reusable
+- Validation accumulation built-in
+- Error context handling
+- Testability patterns established
+- Composable, reusable
 
 ### What makes it "Rust-first":
 
-- ❌ No attempt at full monad abstraction (impossible without HKTs)
-- ✓ Works with `?` operator via `Try` trait
-- ✓ Zero-cost via concrete types and monomorphization (like `futures`)
-- ✓ Integrates with async/await
-- ✓ Borrows checker friendly
-- ✓ Clear error messages
+- No attempt at full monad abstraction (impossible without HKTs)
+- Works with `?` operator via `Try` trait
+- Zero-cost via concrete types and monomorphization (like `futures`)
+- Integrates with async/await
+- Borrows checker friendly
+- Clear error messages
 
 ## Installation
 
@@ -319,19 +347,22 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.8"
+stillwater = "0.11"
 
 # Optional: async support
-stillwater = { version = "0.8", features = ["async"] }
+stillwater = { version = "0.11", features = ["async"] }
 
 # Optional: tracing integration
-stillwater = { version = "0.8", features = ["tracing"] }
+stillwater = { version = "0.11", features = ["tracing"] }
+
+# Optional: jitter for retry policies
+stillwater = { version = "0.11", features = ["jitter"] }
 
 # Optional: property-based testing
-stillwater = { version = "0.8", features = ["proptest"] }
+stillwater = { version = "0.11", features = ["proptest"] }
 
-# Optional: multiple features
-stillwater = { version = "0.8", features = ["async", "tracing", "proptest"] }
+# Multiple features
+stillwater = { version = "0.11", features = ["async", "tracing", "jitter"] }
 ```
 
 ## Examples
@@ -364,29 +395,49 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.8 - Production Ready for Early Adopters**
+**Status: 0.11.0 - Production Ready**
 
-- ✅ 295 unit tests passing (includes property-based tests)
-- ✅ 122 documentation tests passing
-- ✅ Zero clippy warnings
-- ✅ Comprehensive examples (16 runnable examples)
-- ✅ Full async support
-- ✅ Homogeneous validation for type-safe combining
-- ✅ Testing utilities with MockEnv and assertion macros
-- ✅ CI/CD pipeline with security audits
+- 240 unit tests passing
+- 113 documentation tests passing
+- 19 runnable examples
+- Zero clippy warnings
+- Full async support
+- CI/CD pipeline with security audits
 
 This library is stable and ready for use. The 0.x version indicates the API may evolve based on community feedback.
 
+## Migration from 0.10.x
+
+Version 0.11.0 introduces breaking changes with the zero-cost effect system. See [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions.
+
+**Key changes:**
+```rust
+// Before (0.10.x)
+Effect::pure(x)
+Effect::fail(e)
+Effect::from_fn(f)
+
+// After (0.11.0)
+pure(x)
+fail(e)
+from_fn(f)
+
+// Return types changed
+fn old() -> Effect<T, E, Env> { ... }      // Boxed by default
+fn new() -> impl Effect<...> { ... }        // Zero-cost by default
+fn boxed() -> BoxedEffect<T, E, Env> { ... } // Explicit boxing
+```
+
 ## Documentation
 
-- 📚 [User Guide](docs/guide/README.md) - Comprehensive tutorials
-- 📖 [API Docs](https://docs.rs/stillwater) - Full API reference
-- 🤔 [FAQ](docs/FAQ.md) - Common questions
-- 🏛️ [Design](DESIGN.md) - Architecture and decisions
-- 💭 [Philosophy](PHILOSOPHY.md) - Core principles
-- 🎯 [Patterns](docs/PATTERNS.md) - Common patterns and recipes
-- 🔄 [Comparison](docs/COMPARISON.md) - vs other libraries
-- 🚀 [Migration Guide](docs/MIGRATION.md) - Upgrading from 0.10.x to 0.11.0
+- [User Guide](docs/guide/README.md) - Comprehensive tutorials
+- [API Docs](https://docs.rs/stillwater) - Full API reference
+- [FAQ](docs/FAQ.md) - Common questions
+- [Design](DESIGN.md) - Architecture and decisions
+- [Philosophy](PHILOSOPHY.md) - Core principles
+- [Patterns](docs/PATTERNS.md) - Common patterns and recipes
+- [Comparison](docs/COMPARISON.md) - vs other libraries
+- [Migration Guide](docs/MIGRATION.md) - Upgrading from 0.10.x to 0.11.0
 
 ## Migrating from Result
 
@@ -415,10 +466,10 @@ Start small, adopt progressively. Use `Validation` only where you need error acc
 ## Contributing
 
 Contributions welcome! This is a young library with room to grow:
-- 🐛 Bug reports and feature requests via [issues](https://github.com/iepathos/stillwater/issues)
-- 📖 Documentation improvements
-- 🧪 More examples and use cases
-- 💡 API feedback and design discussions
+- Bug reports and feature requests via [issues](https://github.com/iepathos/stillwater/issues)
+- Documentation improvements
+- More examples and use cases
+- API feedback and design discussions
 
 Before submitting PRs, please open an issue to discuss the change.
 
