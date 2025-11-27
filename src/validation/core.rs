@@ -1234,4 +1234,407 @@ mod tests {
             ])
         );
     }
+
+    // === 4-tuple tests ===
+
+    #[test]
+    fn test_validate_all_4tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success("two"),
+            Validation::<_, Vec<&str>>::success(3.0),
+            Validation::<_, Vec<&str>>::success(true),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, "two", 3.0, true)));
+    }
+
+    #[test]
+    fn test_validate_all_4tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Failure(vec!["e1", "e2", "e3", "e4"]));
+    }
+
+    #[test]
+    fn test_validate_all_4tuple_mixed() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Success(1),
+            Validation::Failure(vec!["e2"]),
+            Validation::Success(3),
+            Validation::Failure(vec!["e4"]),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Failure(vec!["e2", "e4"]));
+    }
+
+    // === 5-tuple tests ===
+
+    #[test]
+    fn test_validate_all_5tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5)));
+    }
+
+    #[test]
+    fn test_validate_all_5tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec!["e1", "e2", "e3", "e4", "e5"])
+        );
+    }
+
+    // === 6-tuple tests ===
+
+    #[test]
+    fn test_validate_all_6tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5, 6)));
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_6tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec!["e1", "e2", "e3", "e4", "e5", "e6"])
+        );
+    }
+
+    // === 7-tuple tests ===
+
+    #[test]
+    fn test_validate_all_7tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5, 6, 7)));
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_7tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+            Validation::Failure(vec!["e7"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec!["e1", "e2", "e3", "e4", "e5", "e6", "e7"])
+        );
+    }
+
+    // === 8-tuple tests ===
+
+    #[test]
+    fn test_validate_all_8tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+            Validation::<_, Vec<&str>>::success(8),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5, 6, 7, 8)));
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_8tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+            Validation::Failure(vec!["e7"]),
+            Validation::Failure(vec!["e8"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec!["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"])
+        );
+    }
+
+    // === 9-tuple tests ===
+
+    #[test]
+    fn test_validate_all_9tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+            Validation::<_, Vec<&str>>::success(8),
+            Validation::<_, Vec<&str>>::success(9),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5, 6, 7, 8, 9)));
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_9tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+            Validation::Failure(vec!["e7"]),
+            Validation::Failure(vec!["e8"]),
+            Validation::Failure(vec!["e9"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec!["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9"])
+        );
+    }
+
+    // === 10-tuple tests ===
+
+    #[test]
+    fn test_validate_all_10tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+            Validation::<_, Vec<&str>>::success(8),
+            Validation::<_, Vec<&str>>::success(9),
+            Validation::<_, Vec<&str>>::success(10),
+        )
+            .validate_all();
+
+        assert_eq!(result, Validation::Success((1, 2, 3, 4, 5, 6, 7, 8, 9, 10)));
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_10tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32), Vec<&str>> = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+            Validation::Failure(vec!["e7"]),
+            Validation::Failure(vec!["e8"]),
+            Validation::Failure(vec!["e9"]),
+            Validation::Failure(vec!["e10"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec![
+                "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "e10"
+            ])
+        );
+    }
+
+    // === 11-tuple tests ===
+
+    #[test]
+    fn test_validate_all_11tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+            Validation::<_, Vec<&str>>::success(8),
+            Validation::<_, Vec<&str>>::success(9),
+            Validation::<_, Vec<&str>>::success(10),
+            Validation::<_, Vec<&str>>::success(11),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Success((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11))
+        );
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_11tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<(i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32), Vec<&str>> =
+            (
+                Validation::Failure(vec!["e1"]),
+                Validation::Failure(vec!["e2"]),
+                Validation::Failure(vec!["e3"]),
+                Validation::Failure(vec!["e4"]),
+                Validation::Failure(vec!["e5"]),
+                Validation::Failure(vec!["e6"]),
+                Validation::Failure(vec!["e7"]),
+                Validation::Failure(vec!["e8"]),
+                Validation::Failure(vec!["e9"]),
+                Validation::Failure(vec!["e10"]),
+                Validation::Failure(vec!["e11"]),
+            )
+                .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec![
+                "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "e10", "e11"
+            ])
+        );
+    }
+
+    // === 12-tuple tests ===
+
+    #[test]
+    fn test_validate_all_12tuple_all_success() {
+        use crate::validation::ValidateAll;
+        let result = (
+            Validation::<_, Vec<&str>>::success(1),
+            Validation::<_, Vec<&str>>::success(2),
+            Validation::<_, Vec<&str>>::success(3),
+            Validation::<_, Vec<&str>>::success(4),
+            Validation::<_, Vec<&str>>::success(5),
+            Validation::<_, Vec<&str>>::success(6),
+            Validation::<_, Vec<&str>>::success(7),
+            Validation::<_, Vec<&str>>::success(8),
+            Validation::<_, Vec<&str>>::success(9),
+            Validation::<_, Vec<&str>>::success(10),
+            Validation::<_, Vec<&str>>::success(11),
+            Validation::<_, Vec<&str>>::success(12),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Success((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12))
+        );
+    }
+
+    #[test]
+    #[allow(clippy::type_complexity)]
+    fn test_validate_all_12tuple_all_failure() {
+        use crate::validation::ValidateAll;
+        let result: Validation<
+            (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, i32),
+            Vec<&str>,
+        > = (
+            Validation::Failure(vec!["e1"]),
+            Validation::Failure(vec!["e2"]),
+            Validation::Failure(vec!["e3"]),
+            Validation::Failure(vec!["e4"]),
+            Validation::Failure(vec!["e5"]),
+            Validation::Failure(vec!["e6"]),
+            Validation::Failure(vec!["e7"]),
+            Validation::Failure(vec!["e8"]),
+            Validation::Failure(vec!["e9"]),
+            Validation::Failure(vec!["e10"]),
+            Validation::Failure(vec!["e11"]),
+            Validation::Failure(vec!["e12"]),
+        )
+            .validate_all();
+
+        assert_eq!(
+            result,
+            Validation::Failure(vec![
+                "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "e10", "e11", "e12"
+            ])
+        );
+    }
 }
