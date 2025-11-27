@@ -89,7 +89,7 @@ let effects = vec![
     Effect::fail("error2".to_string()),
 ];
 
-let result = Effect::par_all(effects).run(&()).await;
+let result = Effect::par_all(effects).run_standalone().await;
 
 // Result is Err(vec!["error1", "error2"])
 // All errors are collected, not just the first
@@ -164,11 +164,11 @@ let effects = vec![
 ];
 
 // par_try_all returns Err("error1")
-let result = Effect::par_try_all(effects.clone()).run(&()).await;
+let result = Effect::par_try_all(effects.clone()).run_standalone().await;
 assert!(result.is_err());
 
 // par_all returns Err(vec!["error1", "error2"])
-let result = Effect::par_all(effects).run(&()).await;
+let result = Effect::par_all(effects).run_standalone().await;
 assert_eq!(result.unwrap_err().len(), 2);
 # });
 ```
@@ -267,7 +267,7 @@ let slow_operation = Effect::<i32, String, ()>::from_async_fn(|_| async {
 });
 
 let result = with_timeout(slow_operation, Duration::from_secs(1))
-    .run(&())
+    .run_standalone()
     .await;
 
 assert!(result.is_err()); // Times out after 1 second
@@ -501,7 +501,7 @@ let effects = vec![
     }),
 ];
 
-Effect::par_all(effects).run(&()).await.unwrap();
+Effect::par_all(effects).run_standalone().await.unwrap();
 
 let elapsed = start.elapsed();
 

@@ -30,7 +30,7 @@
 //!     .context("querying user table")
 //!     .context("loading user profile");
 //!
-//! match effect.run(&()).await {
+//! match effect.run_standalone().await {
 //!     Err(ctx_err) => {
 //!         assert_eq!(ctx_err.inner(), &"database error");
 //!         assert_eq!(ctx_err.context_trail().len(), 2);

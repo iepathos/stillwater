@@ -47,7 +47,7 @@ async fn process_order(user_id: String, order_id: String) {
         .and_then(|order| validate_order(order).context("validating order"))
         .and_then(|order| charge_payment(order).context("processing payment"))
         .and_then(|receipt| send_confirmation(receipt).context("sending confirmation"))
-        .run(&())
+        .run_standalone()
         .await;
 
     match result {

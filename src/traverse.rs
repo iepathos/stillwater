@@ -47,7 +47,7 @@
 //!
 //! let numbers = vec![1, 2, 3];
 //! let effect = traverse_effect(numbers, process);
-//! assert_eq!(effect.run(&()).await, Ok(vec![2, 4, 6]));
+//! assert_eq!(effect.run_standalone().await, Ok(vec![2, 4, 6]));
 //! # });
 //! ```
 
@@ -161,7 +161,7 @@ where
 /// }
 ///
 /// let result = traverse_effect(vec![1, 2, 3], double);
-/// assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
+/// assert_eq!(result.run_standalone().await, Ok(vec![2, 4, 6]));
 /// # });
 /// ```
 pub fn traverse_effect<T, U, E, Env, F, I>(iter: I, f: F) -> Effect<Vec<U>, E, Env>
@@ -202,7 +202,7 @@ where
 ///     Effect::pure(3),
 /// ];
 /// let result = sequence_effect(effects);
-/// assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
+/// assert_eq!(result.run_standalone().await, Ok(vec![1, 2, 3]));
 /// # });
 /// ```
 pub fn sequence_effect<T, E, Env, I>(iter: I) -> Effect<Vec<T>, E, Env>
@@ -308,7 +308,7 @@ mod tests {
         }
 
         let result = traverse_effect(vec![1, 2, 3], double);
-        assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
+        assert_eq!(result.run_standalone().await, Ok(vec![2, 4, 6]));
     }
 
     #[tokio::test]
@@ -322,7 +322,7 @@ mod tests {
         }
 
         let result = traverse_effect(vec![1, -2, 3], check_positive);
-        assert!(result.run(&()).await.is_err());
+        assert!(result.run_standalone().await.is_err());
     }
 
     #[tokio::test]
@@ -332,7 +332,7 @@ mod tests {
         }
 
         let result = traverse_effect(Vec::<i32>::new(), double);
-        assert_eq!(result.run(&()).await, Ok(vec![]));
+        assert_eq!(result.run_standalone().await, Ok(vec![]));
     }
 
     // Effect sequence tests
@@ -344,7 +344,7 @@ mod tests {
             Effect::pure(3),
         ];
         let result = sequence_effect(effects);
-        assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
+        assert_eq!(result.run_standalone().await, Ok(vec![1, 2, 3]));
     }
 
     #[tokio::test]
@@ -355,14 +355,14 @@ mod tests {
             Effect::pure(3),
         ];
         let result = sequence_effect(effects);
-        assert!(result.run(&()).await.is_err());
+        assert!(result.run_standalone().await.is_err());
     }
 
     #[tokio::test]
     async fn test_sequence_effect_empty() {
         let effects: Vec<Effect<i32, String, ()>> = vec![];
         let result = sequence_effect(effects);
-        assert_eq!(result.run(&()).await, Ok(vec![]));
+        assert_eq!(result.run_standalone().await, Ok(vec![]));
     }
 
     // Integration tests

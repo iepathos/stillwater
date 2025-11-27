@@ -21,11 +21,11 @@
 //! # tokio_test::block_on(async {
 //! // Create a pure effect
 //! let effect = Effect::<_, String, ()>::pure(42);
-//! assert_eq!(effect.run(&()).await, Ok(42));
+//! assert_eq!(effect.run_standalone().await, Ok(42));
 //!
 //! // Create a failed effect
 //! let effect = Effect::<i32, _, ()>::fail("error");
-//! assert_eq!(effect.run(&()).await, Err("error"));
+//! assert_eq!(effect.run_standalone().await, Err("error"));
 //! # });
 //! ```
 //!
@@ -39,7 +39,7 @@
 //!     .map(|x| x * 2)
 //!     .and_then(|x| Effect::pure(x + 10));
 //!
-//! assert_eq!(effect.run(&()).await, Ok(20));
+//! assert_eq!(effect.run_standalone().await, Ok(20));
 //! # });
 //! ```
 //!
@@ -73,7 +73,7 @@
 //!     Ok::<_, String>(42)
 //! });
 //!
-//! assert_eq!(effect.run(&()).await, Ok(42));
+//! assert_eq!(effect.run_standalone().await, Ok(42));
 //! # });
 //! ```
 
@@ -111,11 +111,11 @@ type EffectFn<T, E, Env> = Box<dyn FnOnce(&Env) -> BoxFuture<'_, Result<T, E>> +
 /// # tokio_test::block_on(async {
 /// // Effect with no error type
 /// let effect: Effect<_, String> = Effect::pure(42);
-/// assert_eq!(effect.run(&()).await, Ok(42));
+/// assert_eq!(effect.run_standalone().await, Ok(42));
 ///
 /// // Effect with error type
 /// let effect: Effect<i32, String> = Effect::fail("error".to_string());
-/// assert_eq!(effect.run(&()).await, Err("error".to_string()));
+/// assert_eq!(effect.run_standalone().await, Err("error".to_string()));
 /// # });
 /// ```
 pub struct Effect<T, E = std::convert::Infallible, Env = ()> {
@@ -149,7 +149,7 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::pure(42);
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     pub fn pure(value: T) -> Self {
@@ -169,7 +169,7 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<i32, _, ()>::fail("error");
-    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// assert_eq!(effect.run_standalone().await, Err("error"));
     /// # });
     /// ```
     pub fn fail(error: E) -> Self {
@@ -189,7 +189,7 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::from_fn(|_: &()| Ok::<_, String>(42));
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     pub fn from_fn<F>(f: F) -> Self
@@ -217,7 +217,7 @@ where
     /// let effect = Effect::from_async(|_: &()| async {
     ///     Ok::<_, String>(42)
     /// });
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     pub fn from_async<F, Fut>(f: F) -> Self
@@ -241,10 +241,10 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::from_result(Ok(42));
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     ///
     /// let effect = Effect::<i32, _, ()>::from_result(Err("error"));
-    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// assert_eq!(effect.run_standalone().await, Err("error"));
     /// # });
     /// ```
     pub fn from_result(result: Result<T, E>) -> Self {
@@ -265,11 +265,11 @@ where
     /// # tokio_test::block_on(async {
     /// let validation = Validation::<_, String>::success(42);
     /// let effect = Effect::from_validation(validation);
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     ///
     /// let validation = Validation::<i32, _>::failure("error");
     /// let effect = Effect::from_validation(validation);
-    /// assert_eq!(effect.run(&()).await, Err("error"));
+    /// assert_eq!(effect.run_standalone().await, Err("error"));
     /// # });
     /// ```
     pub fn from_validation(validation: Validation<T, E>) -> Self {
@@ -422,12 +422,12 @@ where
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::pure(5)
     ///     .and_then(|x| Effect::pure(x * 2));
-    /// assert_eq!(effect.run(&()).await, Ok(10));
+    /// assert_eq!(effect.run_standalone().await, Ok(10));
     ///
     /// // Error propagation
     /// let effect = Effect::<_, String, ()>::fail("error".to_string())
     ///     .and_then(|x: i32| Effect::pure(x * 2));
-    /// assert_eq!(effect.run(&()).await, Err("error".to_string()));
+    /// assert_eq!(effect.run_standalone().await, Err("error".to_string()));
     /// # });
     /// ```
     pub fn and_then<U, F>(self, f: F) -> Effect<U, E, Env>
@@ -459,7 +459,7 @@ where
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::pure(5)
     ///     .map(|x| x * 2);
-    /// assert_eq!(effect.run(&()).await, Ok(10));
+    /// assert_eq!(effect.run_standalone().await, Ok(10));
     /// # });
     /// ```
     pub fn map<U, F>(self, f: F) -> Effect<U, E, Env>
@@ -485,7 +485,7 @@ where
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<i32, _, ()>::fail("error")
     ///     .map_err(|e| format!("Failed: {}", e));
-    /// assert_eq!(effect.run(&()).await, Err("Failed: error".to_string()));
+    /// assert_eq!(effect.run_standalone().await, Err("Failed: error".to_string()));
     /// # });
     /// ```
     pub fn map_err<E2, F>(self, f: F) -> Effect<T, E2, Env>
@@ -513,12 +513,12 @@ where
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<i32, _, ()>::fail("error")
     ///     .or_else(|_| Effect::pure(42));
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     ///
     /// // No recovery needed for success
     /// let effect = Effect::<_, String, ()>::pure(100)
     ///     .or_else(|_| Effect::pure(42));
-    /// assert_eq!(effect.run(&()).await, Ok(100));
+    /// assert_eq!(effect.run_standalone().await, Ok(100));
     /// # });
     /// ```
     pub fn or_else<F>(self, f: F) -> Self
@@ -551,14 +551,63 @@ where
     ///
     /// # tokio_test::block_on(async {
     /// let effect = Effect::<_, String, ()>::pure(42);
-    /// let result = effect.run(&()).await;
+    /// let result = effect.run_standalone().await;
     /// assert_eq!(result, Ok(42));
     /// # });
     /// ```
     pub async fn run(self, env: &Env) -> Result<T, E> {
         (self.run_fn)(env).await
     }
+}
 
+// Standalone execution for effects that don't require an environment
+impl<T, E> Effect<T, E, ()>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+{
+    /// Run an effect that doesn't require an environment.
+    ///
+    /// This is a convenience method for effects with `Env = ()` (unit type).
+    /// When your effect doesn't need any external dependencies, use this method
+    /// instead of `run(&())` for cleaner code.
+    ///
+    /// # When to Use
+    ///
+    /// Use `run_standalone()` when:
+    /// - Your effect type is `Effect<T, E, ()>`
+    /// - The effect doesn't access any environment via `ask()` or `asks()`
+    /// - You're writing examples or tests with simple effects
+    ///
+    /// Use `run(env)` when:
+    /// - Your effect requires an actual environment (database, config, etc.)
+    /// - The effect type is `Effect<T, E, MyEnv>` where `MyEnv` is not `()`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// // Instead of this:
+    /// let result = Effect::<_, String, ()>::pure(42).run(&()).await;
+    ///
+    /// // Write this:
+    /// let result = Effect::<_, String, ()>::pure(42).run_standalone().await;
+    /// assert_eq!(result, Ok(42));
+    /// # });
+    /// ```
+    pub async fn run_standalone(self) -> Result<T, E> {
+        self.run(&()).await
+    }
+}
+
+impl<T, E, Env> Effect<T, E, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
     /// Perform a side effect and return the original value
     ///
     /// Useful for logging, metrics, or other operations that don't
@@ -578,7 +627,7 @@ where
     ///         Effect::pure(())
     ///     });
     ///
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     #[inline]
@@ -608,12 +657,12 @@ where
     /// // Success case
     /// let effect = Effect::<_, String, ()>::pure(25)
     ///     .check(|age| *age >= 18, || "too young".to_string());
-    /// assert_eq!(effect.run(&()).await, Ok(25));
+    /// assert_eq!(effect.run_standalone().await, Ok(25));
     ///
     /// // Failure case
     /// let effect = Effect::<_, String, ()>::pure(15)
     ///     .check(|age| *age >= 18, || "too young".to_string());
-    /// assert_eq!(effect.run(&()).await, Err("too young".to_string()));
+    /// assert_eq!(effect.run_standalone().await, Err("too young".to_string()));
     /// # });
     /// ```
     #[inline]
@@ -647,7 +696,7 @@ where
     ///     .with(|value| Effect::pure(*value * 2))
     ///     .map(|(first, second)| first + second);
     ///
-    /// assert_eq!(effect.run(&()).await, Ok(15));  // 5 + 10
+    /// assert_eq!(effect.run_standalone().await, Ok(15));  // 5 + 10
     /// # });
     /// ```
     #[inline]
@@ -694,7 +743,7 @@ where
     /// let effect = Effect::<_, AppError, ()>::pure(42)
     ///     .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100));
     ///
-    /// assert_eq!(effect.run(&()).await, Ok(100));
+    /// assert_eq!(effect.run_standalone().await, Ok(100));
     /// # });
     /// ```
     #[inline]
@@ -730,7 +779,7 @@ where
     ///         Effect::pure("again")
     ///     });
     ///
-    /// assert_eq!(effect.run(&()).await, Ok(42));
+    /// assert_eq!(effect.run_standalone().await, Ok(42));
     /// # });
     /// ```
     #[inline]
@@ -763,7 +812,7 @@ where
     ///     Effect::pure(3),
     /// ];
     ///
-    /// let results = Effect::par_all(effects).run(&()).await;
+    /// let results = Effect::par_all(effects).run_standalone().await;
     /// assert_eq!(results, Ok(vec![1, 2, 3]));
     /// # });
     /// ```
@@ -820,7 +869,7 @@ where
     ///     Effect::pure(3),
     /// ];
     ///
-    /// let results = Effect::par_try_all(effects).run(&()).await;
+    /// let results = Effect::par_try_all(effects).run_standalone().await;
     /// assert_eq!(results, Ok(vec![1, 2, 3]));
     /// # });
     /// ```
@@ -860,7 +909,7 @@ where
     ///     Effect::pure(3),
     /// ];
     ///
-    /// let result = Effect::race(effects).run(&()).await;
+    /// let result = Effect::race(effects).run_standalone().await;
     /// assert!(result.is_ok());
     /// # });
     /// ```
@@ -913,7 +962,7 @@ where
     ///     .map(|i| Effect::<_, String, ()>::pure(i))
     ///     .collect();
     ///
-    /// let results = Effect::par_all_limit(effects, 3).run(&()).await;
+    /// let results = Effect::par_all_limit(effects, 3).run_standalone().await;
     /// assert_eq!(results.as_ref().map(|v| v.len()), Ok(10));
     /// # });
     /// ```
@@ -979,7 +1028,7 @@ where
     ///         .with_max_retries(3)
     /// );
     ///
-    /// let result = effect.run(&()).await.unwrap();
+    /// let result = effect.run_standalone().await.unwrap();
     /// assert_eq!(result.into_value(), 42);
     /// # });
     /// ```
@@ -1063,7 +1112,7 @@ where
     /// );
     ///
     /// // Permanent errors are not retried
-    /// let result = effect.run(&()).await;
+    /// let result = effect.run_standalone().await;
     /// assert_eq!(result, Err(AppError::Permanent));
     /// # });
     /// ```
@@ -1227,7 +1276,7 @@ where
     /// })
     /// .with_timeout(Duration::from_millis(10));
     ///
-    /// match effect.run(&()).await {
+    /// match effect.run_standalone().await {
     ///     Err(TimeoutError::Timeout { duration }) => {
     ///         assert_eq!(duration, Duration::from_millis(10));
     ///     }
@@ -1285,7 +1334,7 @@ where
     /// let effect = Effect::<i32, _, ()>::fail("connection refused")
     ///     .context("connecting to database");
     ///
-    /// match effect.run(&()).await {
+    /// match effect.run_standalone().await {
     ///     Err(ctx_err) => {
     ///         assert_eq!(ctx_err.inner(), &"connection refused");
     ///         assert_eq!(ctx_err.context_trail(), &["connecting to database"]);
@@ -1330,7 +1379,7 @@ where
     ///     .context("reading config file")
     ///     .context("initializing application");
     ///
-    /// match effect.run(&()).await {
+    /// match effect.run_standalone().await {
     ///     Err(ctx_err) => {
     ///         assert_eq!(ctx_err.inner(), &"file not found");
     ///         assert_eq!(ctx_err.context_trail().len(), 2);
@@ -1397,101 +1446,104 @@ mod tests {
     #[tokio::test]
     async fn test_pure() {
         let effect = Effect::<_, String, ()>::pure(42);
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_fail() {
         let effect = Effect::<i32, _, ()>::fail("error");
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     // Conversion tests
     #[tokio::test]
     async fn test_from_result_ok() {
         let effect = Effect::<_, String, ()>::from_result(Ok(42));
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_from_result_err() {
         let effect = Effect::<i32, _, ()>::from_result(Err("error"));
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     #[tokio::test]
     async fn test_from_fn_sync() {
         let effect = Effect::from_fn(|_: &()| Ok::<_, String>(42));
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_from_fn_sync_error() {
         let effect = Effect::from_fn(|_: &()| Err::<i32, _>("error"));
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     #[tokio::test]
     async fn test_from_async() {
         let effect = Effect::from_async(|_: &()| async { Ok::<_, String>(42) });
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_from_async_error() {
         let effect = Effect::from_async(|_: &()| async { Err::<i32, _>("error") });
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     #[tokio::test]
     async fn test_from_validation_success() {
         let validation = Validation::<_, String>::success(42);
         let effect = Effect::from_validation(validation);
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_from_validation_failure() {
         let validation = Validation::<i32, _>::failure("error");
         let effect = Effect::from_validation(validation);
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     // Combinator tests
     #[tokio::test]
     async fn test_map_success() {
         let effect = Effect::<_, String, ()>::pure(5).map(|x| x * 2);
-        assert_eq!(effect.run(&()).await, Ok(10));
+        assert_eq!(effect.run_standalone().await, Ok(10));
     }
 
     #[tokio::test]
     async fn test_map_failure() {
         let effect = Effect::<i32, _, ()>::fail("error").map(|x| x * 2);
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     #[tokio::test]
     async fn test_map_err_success() {
         let effect = Effect::<_, String, ()>::pure(42).map_err(|e| format!("Failed: {}", e));
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_map_err_failure() {
         let effect = Effect::<i32, _, ()>::fail("error").map_err(|e| format!("Failed: {}", e));
-        assert_eq!(effect.run(&()).await, Err("Failed: error".to_string()));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err("Failed: error".to_string())
+        );
     }
 
     #[tokio::test]
     async fn test_and_then_success() {
         let effect = Effect::<_, String, ()>::pure(5).and_then(|x| Effect::pure(x * 2));
-        assert_eq!(effect.run(&()).await, Ok(10));
+        assert_eq!(effect.run_standalone().await, Ok(10));
     }
 
     #[tokio::test]
     async fn test_and_then_failure() {
         let effect = Effect::<i32, _, ()>::fail("error").and_then(|x| Effect::pure(x * 2));
-        assert_eq!(effect.run(&()).await, Err("error"));
+        assert_eq!(effect.run_standalone().await, Err("error"));
     }
 
     #[tokio::test]
@@ -1499,25 +1551,25 @@ mod tests {
         let effect = Effect::<_, String, ()>::pure(5)
             .and_then(|_| Effect::fail("error".to_string()))
             .map(|x: i32| x * 2); // This shouldn't run
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
     }
 
     #[tokio::test]
     async fn test_or_else_success() {
         let effect = Effect::<_, String, ()>::pure(100).or_else(|_| Effect::pure(42));
-        assert_eq!(effect.run(&()).await, Ok(100));
+        assert_eq!(effect.run_standalone().await, Ok(100));
     }
 
     #[tokio::test]
     async fn test_or_else_failure_recovery() {
         let effect = Effect::<i32, _, ()>::fail("error").or_else(|_| Effect::pure(42));
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
     async fn test_or_else_failure_no_recovery() {
         let effect = Effect::<i32, _, ()>::fail("error1").or_else(|_| Effect::fail("error2"));
-        assert_eq!(effect.run(&()).await, Err("error2"));
+        assert_eq!(effect.run_standalone().await, Err("error2"));
     }
 
     // Composition tests
@@ -1525,7 +1577,7 @@ mod tests {
     async fn test_mix_sync_and_async() {
         let effect = Effect::from_fn(|_: &()| Ok::<_, String>(5))
             .and_then(|x| Effect::from_async(move |_| async move { Ok(x * 2) }));
-        assert_eq!(effect.run(&()).await, Ok(10));
+        assert_eq!(effect.run_standalone().await, Ok(10));
     }
 
     #[tokio::test]
@@ -1535,7 +1587,7 @@ mod tests {
             .and_then(|x| Effect::pure(x + 4)) // 10
             .map(|x| x * 2) // 20
             .and_then(|x| Effect::pure(x / 2)); // 10
-        assert_eq!(effect.run(&()).await, Ok(10));
+        assert_eq!(effect.run_standalone().await, Ok(10));
     }
 
     // Environment tests
@@ -1575,7 +1627,7 @@ mod tests {
             .and_then(|_| Effect::fail("error".to_string()))
             .map(|x: i32| x * 2); // This shouldn't run
 
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
     }
 
     #[tokio::test]
@@ -1585,7 +1637,7 @@ mod tests {
             .or_else(|e| Effect::fail(format!("{} - recovered", e)));
 
         assert_eq!(
-            effect.run(&()).await,
+            effect.run_standalone().await,
             Err("Error code: 42 - recovered".to_string())
         );
     }
@@ -1595,7 +1647,7 @@ mod tests {
     async fn test_effect_context() {
         let effect = Effect::<i32, _, ()>::fail("base error").context("operation failed");
 
-        match effect.run(&()).await {
+        match effect.run_standalone().await {
             Err(ctx_err) => {
                 assert_eq!(ctx_err.inner(), &"base error");
                 assert_eq!(ctx_err.context_trail(), &["operation failed"]);
@@ -1611,7 +1663,7 @@ mod tests {
             .context("step 2")
             .context("step 3");
 
-        match effect.run(&()).await {
+        match effect.run_standalone().await {
             Err(ctx_err) => {
                 assert_eq!(ctx_err.inner(), &"base error");
                 assert_eq!(ctx_err.context_trail(), &["step 1", "step 2", "step 3"]);
@@ -1624,7 +1676,7 @@ mod tests {
     async fn test_effect_context_success() {
         let effect = Effect::<_, String, ()>::pure(42).context("this context won't be used");
 
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
@@ -1636,7 +1688,7 @@ mod tests {
             .map(|x: i32| x + 10)
             .context("step 2");
 
-        match effect.run(&()).await {
+        match effect.run_standalone().await {
             Err(ctx_err) => {
                 assert_eq!(ctx_err.inner(), &"error".to_string());
                 assert_eq!(ctx_err.context_trail(), &["step 1", "step 2"]);
@@ -1676,7 +1728,7 @@ mod tests {
             .context(String::from("owned context"))
             .context("borrowed context");
 
-        match effect.run(&()).await {
+        match effect.run_standalone().await {
             Err(ctx_err) => {
                 assert_eq!(
                     ctx_err.context_trail(),
@@ -1692,7 +1744,7 @@ mod tests {
     async fn test_tap_returns_original_value() {
         let effect = Effect::<_, String, ()>::pure(42).tap(|_value| Effect::pure(()));
 
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
@@ -1709,7 +1761,7 @@ mod tests {
             Effect::pure(())
         });
 
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
         assert!(*called.lock().unwrap());
     }
 
@@ -1718,7 +1770,7 @@ mod tests {
         let effect =
             Effect::<_, String, ()>::pure(42).tap(|_value| Effect::fail("tap failed".to_string()));
 
-        assert_eq!(effect.run(&()).await, Err("tap failed".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("tap failed".to_string()));
     }
 
     #[tokio::test]
@@ -1734,7 +1786,7 @@ mod tests {
             Effect::pure(())
         });
 
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
         assert!(!*called.lock().unwrap());
     }
 
@@ -1743,7 +1795,7 @@ mod tests {
         let effect =
             Effect::<_, String, ()>::pure(25).check(|age| *age >= 18, || "too young".to_string());
 
-        assert_eq!(effect.run(&()).await, Ok(25));
+        assert_eq!(effect.run_standalone().await, Ok(25));
     }
 
     #[tokio::test]
@@ -1751,7 +1803,7 @@ mod tests {
         let effect =
             Effect::<_, String, ()>::pure(15).check(|age| *age >= 18, || "too young".to_string());
 
-        assert_eq!(effect.run(&()).await, Err("too young".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("too young".to_string()));
     }
 
     #[tokio::test]
@@ -1760,7 +1812,7 @@ mod tests {
             .check(|age| *age >= 18, || "too young".to_string())
             .check(|age| *age <= 65, || "too old".to_string());
 
-        assert_eq!(effect.run(&()).await, Ok(25));
+        assert_eq!(effect.run_standalone().await, Ok(25));
     }
 
     #[tokio::test]
@@ -1768,14 +1820,14 @@ mod tests {
         let effect = Effect::<i32, _, ()>::fail("error".to_string())
             .check(|age| *age >= 18, || "too young".to_string());
 
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
     }
 
     #[tokio::test]
     async fn test_with_returns_tuple() {
         let effect = Effect::<_, String, ()>::pure(5).with(|value| Effect::pure(*value * 2));
 
-        assert_eq!(effect.run(&()).await, Ok((5, 10)));
+        assert_eq!(effect.run_standalone().await, Ok((5, 10)));
     }
 
     #[tokio::test]
@@ -1784,7 +1836,7 @@ mod tests {
             .with(|value| Effect::pure(*value * 2))
             .map(|(first, second)| first + second);
 
-        assert_eq!(effect.run(&()).await, Ok(15));
+        assert_eq!(effect.run_standalone().await, Ok(15));
     }
 
     #[tokio::test]
@@ -1792,7 +1844,7 @@ mod tests {
         let effect =
             Effect::<i32, _, ()>::fail("error".to_string()).with(|value| Effect::pure(*value * 2));
 
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
     }
 
     #[tokio::test]
@@ -1800,7 +1852,10 @@ mod tests {
         let effect = Effect::<_, String, ()>::pure(5)
             .with(|_value| Effect::<i32, String, ()>::fail("second failed".to_string()));
 
-        assert_eq!(effect.run(&()).await, Err("second failed".to_string()));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err("second failed".to_string())
+        );
     }
 
     #[tokio::test]
@@ -1824,7 +1879,10 @@ mod tests {
         let effect = Effect::<_, Error2, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
 
-        assert_eq!(effect.run(&()).await, Err(Error2::Other(Error1::Fail)));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err(Error2::Other(Error1::Fail))
+        );
     }
 
     #[tokio::test]
@@ -1848,12 +1906,15 @@ mod tests {
         // Test success path
         let effect =
             Effect::<_, Error2, ()>::pure(42).and_then_auto(|_| Effect::<_, Error1, ()>::pure(100));
-        assert_eq!(effect.run(&()).await, Ok(100));
+        assert_eq!(effect.run_standalone().await, Ok(100));
 
         // Test error conversion path
         let effect = Effect::<_, Error2, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
-        assert_eq!(effect.run(&()).await, Err(Error2::Other(Error1::Fail)));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err(Error2::Other(Error1::Fail))
+        );
     }
 
     #[tokio::test]
@@ -1890,13 +1951,13 @@ mod tests {
         let effect = Effect::<_, AppError, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100))
             .and_then_auto(|_| Effect::<i32, DbError, ()>::pure(200));
-        assert_eq!(effect.run(&()).await, Ok(200));
+        assert_eq!(effect.run_standalone().await, Ok(200));
 
         // Test ValidationError conversion
         let effect = Effect::<_, AppError, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, ValidationError, ()>::fail(ValidationError::Invalid));
         assert_eq!(
-            effect.run(&()).await,
+            effect.run_standalone().await,
             Err(AppError::Validation(ValidationError::Invalid))
         );
 
@@ -1905,7 +1966,7 @@ mod tests {
             .and_then_auto(|_| Effect::<i32, ValidationError, ()>::pure(100))
             .and_then_auto(|_| Effect::<i32, DbError, ()>::fail(DbError::NotFound));
         assert_eq!(
-            effect.run(&()).await,
+            effect.run_standalone().await,
             Err(AppError::Database(DbError::NotFound))
         );
     }
@@ -1917,7 +1978,7 @@ mod tests {
             Effect::pure("processed")
         });
 
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
     }
 
     #[tokio::test]
@@ -1941,7 +2002,7 @@ mod tests {
                 Effect::pure("second")
             });
 
-        assert_eq!(effect.run(&()).await, Ok(42));
+        assert_eq!(effect.run_standalone().await, Ok(42));
         assert_eq!(*count.lock().unwrap(), 2);
     }
 
@@ -1950,7 +2011,7 @@ mod tests {
         let effect = Effect::<_, String, ()>::pure(42)
             .and_then_ref(|_value| Effect::<(), String, ()>::fail("ref failed".to_string()));
 
-        assert_eq!(effect.run(&()).await, Err("ref failed".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("ref failed".to_string()));
     }
 
     #[tokio::test]
@@ -1966,7 +2027,7 @@ mod tests {
             Effect::pure("processed")
         });
 
-        assert_eq!(effect.run(&()).await, Err("error".to_string()));
+        assert_eq!(effect.run_standalone().await, Err("error".to_string()));
         assert!(!*called.lock().unwrap());
     }
 
@@ -1978,7 +2039,7 @@ mod tests {
             .with(|age| Effect::pure(*age * 2))
             .map(|(age, double)| age + double);
 
-        assert_eq!(effect.run(&()).await, Ok(60)); // 20 + 40
+        assert_eq!(effect.run_standalone().await, Ok(60)); // 20 + 40
     }
 
     #[tokio::test]
@@ -2001,7 +2062,7 @@ mod tests {
             })
             .map(|value| value * 2);
 
-        assert_eq!(effect.run(&()).await, Ok(84));
+        assert_eq!(effect.run_standalone().await, Ok(84));
         assert_eq!(
             *log.lock().unwrap(),
             vec!["step1: 42".to_string(), "step2: 42".to_string()]
@@ -2438,7 +2499,7 @@ mod tracing_tests {
     async fn test_instrument_returns_value() {
         let effect = Effect::<_, String, ()>::pure(42).instrument(tracing::info_span!("test_span"));
 
-        let result = effect.run(&()).await;
+        let result = effect.run_standalone().await;
 
         assert_eq!(result, Ok(42));
     }
@@ -2448,7 +2509,7 @@ mod tracing_tests {
         let effect = Effect::<i32, _, ()>::fail("oops".to_string())
             .instrument(tracing::info_span!("failing"));
 
-        let result = effect.run(&()).await;
+        let result = effect.run_standalone().await;
 
         assert_eq!(result, Err("oops".to_string()));
     }
@@ -2459,7 +2520,7 @@ mod tracing_tests {
         let outer =
             inner.and_then(|x| Effect::pure(x + 1).instrument(tracing::debug_span!("outer_op")));
 
-        let result = outer.run(&()).await;
+        let result = outer.run_standalone().await;
 
         assert_eq!(result, Ok(2));
     }
@@ -2472,7 +2533,7 @@ mod tracing_tests {
             .instrument(tracing::debug_span!("step2"))
             .and_then(|x| Effect::pure(x + 10).instrument(tracing::debug_span!("step3")));
 
-        let result = effect.run(&()).await;
+        let result = effect.run_standalone().await;
 
         assert_eq!(result, Ok(20));
     }
@@ -2485,7 +2546,7 @@ mod tracing_tests {
             Effect::<_, String, ()>::pure(3).instrument(tracing::debug_span!("task", id = 3)),
         ];
 
-        let result = Effect::par_all(effects).run(&()).await;
+        let result = Effect::par_all(effects).run_standalone().await;
 
         assert_eq!(result, Ok(vec![1, 2, 3]));
     }

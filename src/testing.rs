@@ -44,7 +44,7 @@
 //! let test_effect = TestEffect::new(effect);
 //!
 //! // Run without real I/O
-//! assert_eq!(test_effect.run(&()).await, Ok(42));
+//! assert_eq!(test_effect.run_standalone().await, Ok(42));
 //! # });
 //! ```
 
@@ -68,7 +68,7 @@ use crate::Effect;
 /// let effect = Effect::<_, String, ()>::pure(42);
 /// let test_effect = TestEffect::new(effect);
 ///
-/// assert_eq!(test_effect.run(&()).await, Ok(42));
+/// assert_eq!(test_effect.run_standalone().await, Ok(42));
 /// # });
 /// ```
 ///
@@ -82,7 +82,7 @@ use crate::Effect;
 /// let effect = Effect::<i32, _, ()>::fail("error");
 /// let test_effect = TestEffect::new(effect);
 ///
-/// assert_eq!(test_effect.run(&()).await, Err("error"));
+/// assert_eq!(test_effect.run_standalone().await, Err("error"));
 /// # });
 /// ```
 ///
@@ -145,7 +145,7 @@ impl<T, E, Env> TestEffect<T, E, Env> {
     /// let effect = Effect::<_, String, ()>::pure(42);
     /// let test_effect = TestEffect::new(effect);
     ///
-    /// let result = test_effect.run(&()).await;
+    /// let result = test_effect.run_standalone().await;
     /// assert_eq!(result, Ok(42));
     /// # });
     /// ```
@@ -174,6 +174,35 @@ impl<T, E, Env> TestEffect<T, E, Env> {
     /// ```
     pub fn into_effect(self) -> Effect<T, E, Env> {
         self.effect
+    }
+}
+
+// Standalone execution for TestEffects that don't require an environment
+impl<T, E> TestEffect<T, E, ()>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+{
+    /// Run a test effect that doesn't require an environment.
+    ///
+    /// This is a convenience method for test effects with `Env = ()`.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::testing::TestEffect;
+    /// use stillwater::Effect;
+    ///
+    /// # tokio_test::block_on(async {
+    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let test_effect = TestEffect::new(effect);
+    ///
+    /// let result = test_effect.run_standalone().await;
+    /// assert_eq!(result, Ok(42));
+    /// # });
+    /// ```
+    pub async fn run_standalone(self) -> Result<T, E> {
+        self.run(&()).await
     }
 }
 
@@ -437,7 +466,7 @@ mod tests {
     async fn test_effect_new_and_run() {
         let effect = Effect::<_, String, ()>::pure(42);
         let test_effect = TestEffect::new(effect);
-        let result = test_effect.run(&()).await;
+        let result = test_effect.run_standalone().await;
         assert_eq!(result, Ok(42));
     }
 
@@ -445,7 +474,7 @@ mod tests {
     async fn test_effect_with_failure() {
         let effect = Effect::<i32, _, ()>::fail("error");
         let test_effect = TestEffect::new(effect);
-        let result = test_effect.run(&()).await;
+        let result = test_effect.run_standalone().await;
         assert_eq!(result, Err("error"));
     }
 
@@ -470,7 +499,7 @@ mod tests {
         let effect = Effect::<_, String, ()>::pure(42);
         let test_effect = TestEffect::new(effect);
         let unwrapped = test_effect.into_effect();
-        let result = unwrapped.run(&()).await;
+        let result = unwrapped.run_standalone().await;
         assert_eq!(result, Ok(42));
     }
 

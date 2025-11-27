@@ -22,7 +22,7 @@ use std::time::Duration;
 ///     policy
 /// );
 ///
-/// match effect.run(&()).await {
+/// match effect.run_standalone().await {
 ///     Err(exhausted) => {
 ///         assert_eq!(exhausted.final_error, "always fails");
 ///         assert_eq!(exhausted.attempts, 3); // 1 initial + 2 retries
@@ -103,7 +103,7 @@ impl<E: std::error::Error + 'static> std::error::Error for RetryExhausted<E> {
 /// })
 /// .with_timeout(Duration::from_millis(10));
 ///
-/// match effect.run(&()).await {
+/// match effect.run_standalone().await {
 ///     Err(TimeoutError::Timeout { duration }) => {
 ///         assert_eq!(duration, Duration::from_millis(10));
 ///     }
