@@ -93,6 +93,7 @@ use crate::BoxedEffect;
 /// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
+/// #[derive(Clone)]
 /// struct Database {
 ///     value: i32,
 /// }

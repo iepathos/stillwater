@@ -17,8 +17,9 @@
 //! This allows you to have a composite environment and extract specific services:
 //!
 //! ```
-//! # use stillwater::IO;
+//! # use stillwater::{Effect, IO};
 //! # use std::convert::Infallible;
+//! #[derive(Clone)]
 //! struct Database {
 //!     users: Vec<String>,
 //! }
@@ -29,6 +30,7 @@
 //!     }
 //! }
 //!
+//! #[derive(Clone)]
 //! struct AppEnv {
 //!     db: Database,
 //! }
@@ -63,9 +65,10 @@
 //! use interior mutability (`Arc<Mutex<T>>`, RefCell, etc.):
 //!
 //! ```
-//! # use stillwater::IO;
+//! # use stillwater::{Effect, IO};
 //! # use std::sync::{Arc, Mutex};
 //! # use std::collections::HashMap;
+//! #[derive(Clone)]
 //! struct Cache {
 //!     data: Arc<Mutex<HashMap<u64, String>>>,
 //! }
@@ -76,6 +79,7 @@
 //!     }
 //! }
 //!
+//! #[derive(Clone)]
 //! struct Env {
 //!     cache: Cache,
 //! }
@@ -131,7 +135,8 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
+    /// #[derive(Clone)]
     /// struct Database {
     ///     users: Vec<String>,
     /// }
@@ -142,6 +147,7 @@ impl IO {
     ///     }
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     db: Database,
     /// }
@@ -190,8 +196,9 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::sync::{Arc, Mutex};
+    /// #[derive(Clone)]
     /// struct Logger {
     ///     messages: Arc<Mutex<Vec<String>>>,
     /// }
@@ -202,6 +209,7 @@ impl IO {
     ///     }
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     logger: Logger,
     /// }
@@ -254,12 +262,14 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::future::ready;
+    /// #[derive(Clone)]
     /// struct Database {
     ///     value: String,
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     db: Database,
     /// }
@@ -318,13 +328,15 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::sync::{Arc, Mutex};
     /// # use std::future::ready;
+    /// #[derive(Clone)]
     /// struct Cache {
     ///     data: Arc<Mutex<Vec<String>>>,
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     cache: Cache,
     /// }

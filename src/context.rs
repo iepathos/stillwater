@@ -24,20 +24,17 @@
 //!
 //! ```
 //! use stillwater::prelude::*;
+//! use stillwater::ContextError;
 //!
-//! # tokio_test::block_on(async {
-//! let effect = Effect::<i32, _, ()>::fail("database error")
+//! // Create an error with accumulated contexts
+//! let err = ContextError::new("database error")
 //!     .context("querying user table")
 //!     .context("loading user profile");
 //!
-//! match effect.run_standalone().await {
-//!     Err(ctx_err) => {
-//!         assert_eq!(ctx_err.inner(), &"database error");
-//!         assert_eq!(ctx_err.context_trail().len(), 2);
-//!     }
-//!     Ok(_) => panic!("Expected error"),
-//! }
-//! # });
+//! // ContextError accumulates context messages in a Vec
+//! assert_eq!(err.inner(), &"database error");
+//! assert_eq!(err.context_trail().len(), 2);
+//! assert_eq!(err.context_trail(), &["querying user table", "loading user profile"]);
 //! ```
 
 use std::error::Error as StdError;

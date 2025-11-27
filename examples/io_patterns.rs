@@ -10,7 +10,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use stillwater::{Effect, IO};
+use stillwater::{from_fn, pure, Effect, EffectExt, IO};
 
 // ==================== Basic Read/Write Operations ====================
 
@@ -21,6 +21,7 @@ async fn example_basic_read() {
     println!("\n=== Example 1: Basic Read Operation ===");
 
     // Define a simple database service
+    #[derive(Clone)]
     struct Database {
         users: Vec<String>,
     }
@@ -32,6 +33,7 @@ async fn example_basic_read() {
     }
 
     // Define environment with database
+    #[derive(Clone)]
     struct Env {
         db: Database,
     }
@@ -69,6 +71,7 @@ async fn example_basic_write() {
     println!("\n=== Example 2: Basic Write Operation ===");
 
     // Logger service with interior mutability
+    #[derive(Clone)]
     struct Logger {
         messages: Arc<Mutex<Vec<String>>>,
     }
@@ -83,6 +86,7 @@ async fn example_basic_write() {
         }
     }
 
+    #[derive(Clone)]
     struct Env {
         logger: Logger,
     }
@@ -120,17 +124,21 @@ async fn example_basic_write() {
 async fn example_multiple_services() {
     println!("\n=== Example 3: Multiple Services ===");
 
+    #[derive(Clone)]
     struct Database {
         name: String,
     }
+    #[derive(Clone)]
     struct Cache {
         name: String,
     }
+    #[derive(Clone)]
     struct Logger {
         name: String,
     }
 
     // Composite environment
+    #[derive(Clone)]
     struct Env {
         db: Database,
         cache: Cache,
@@ -187,10 +195,12 @@ async fn example_async_operations() {
 
     println!("\n=== Example 4: Async Operations ===");
 
+    #[derive(Clone)]
     struct ApiClient {
         base_url: String,
     }
 
+    #[derive(Clone)]
     struct AuditLog {
         entries: Arc<Mutex<Vec<String>>>,
     }
@@ -201,6 +211,7 @@ async fn example_async_operations() {
         }
     }
 
+    #[derive(Clone)]
     struct Env {
         api: ApiClient,
         audit: AuditLog,
@@ -265,10 +276,12 @@ async fn example_cache_aside() {
         name: String,
     }
 
+    #[derive(Clone)]
     struct Database {
         users: HashMap<u64, User>,
     }
 
+    #[derive(Clone)]
     struct Cache {
         data: Arc<Mutex<HashMap<u64, User>>>,
     }
@@ -283,6 +296,7 @@ async fn example_cache_aside() {
         }
     }
 
+    #[derive(Clone)]
     struct Env {
         db: Database,
         cache: Cache,
@@ -325,29 +339,33 @@ async fn example_cache_aside() {
     };
 
     // Function to get user with cache-aside pattern
-    fn get_user(user_id: u64) -> Effect<Option<User>, std::convert::Infallible, Env> {
+    fn get_user(user_id: u64) -> impl EffectExt<Output = Option<User>, Error = std::convert::Infallible, Env = Env> {
         // Check cache first
         IO::read(move |cache: &Cache| cache.get(user_id)).and_then(move |cached| {
-            if let Some(user) = cached {
-                println!("Cache hit for user {}", user_id);
-                Effect::pure(Some(user))
-            } else {
-                println!("Cache miss for user {}", user_id);
-                // Fetch from database (synchronous for simplicity)
-                IO::read(move |db: &Database| db.users.get(&user_id).cloned()).and_then(
-                    move |user| {
-                        if let Some(ref u) = user {
-                            let user_clone = u.clone();
-                            // Store in cache
-                            IO::write(move |cache: &Cache| {
-                                cache.set(user_id, user_clone);
+            match cached {
+                Some(user) => {
+                    println!("Cache hit for user {}", user_id);
+                    pure(Some(user)).boxed()
+                }
+                None => {
+                    println!("Cache miss for user {}", user_id);
+                    // Fetch from database (synchronous for simplicity)
+                    IO::read(move |db: &Database| db.users.get(&user_id).cloned())
+                        .and_then(move |user| {
+                            from_fn(move |env: &Env| {
+                                if let Some(ref u) = user {
+                                    let user_clone = u.clone();
+                                    // Store in cache
+                                    let cache: &Cache = env.as_ref();
+                                    cache.set(user_id, user_clone);
+                                    Ok(user.clone())
+                                } else {
+                                    Ok(user)
+                                }
                             })
-                            .map(move |_| user.clone())
-                        } else {
-                            Effect::pure(user)
-                        }
-                    },
-                )
+                        })
+                        .boxed()
+                }
             }
         })
     }
@@ -373,10 +391,12 @@ async fn example_cache_aside() {
 async fn example_effect_composition() {
     println!("\n=== Example 6: Effect Composition ===");
 
+    #[derive(Clone)]
     struct Calculator {
         multiplier: i32,
     }
 
+    #[derive(Clone)]
     struct Env {
         calc: Calculator,
     }

@@ -8,7 +8,7 @@
 //! - Building error trails through call stacks
 //! - Formatted error display
 
-use stillwater::{ContextError, Effect, EffectContext};
+use stillwater::{from_fn, ContextError, Effect, EffectContext, EffectExt};
 
 // ==================== Basic Context Errors ====================
 
@@ -78,10 +78,12 @@ fn example_error_trails() {
 async fn example_effect_context() {
     println!("\n=== Example 3: Context with Effects ===");
 
+    #[derive(Clone)]
     struct Database {
         connected: bool,
     }
 
+    #[derive(Clone)]
     struct Env {
         db: Database,
     }
@@ -93,8 +95,8 @@ async fn example_effect_context() {
     }
 
     // Effect that fails
-    fn connect_to_db() -> Effect<(), String, Env> {
-        Effect::from_fn(|env: &Env| {
+    fn connect_to_db() -> impl Effect<Output = (), Error = String, Env = Env> {
+        from_fn(|env: &Env| {
             if env.db.connected {
                 Ok(())
             } else {
@@ -130,10 +132,12 @@ async fn example_layered_context() {
         name: String,
     }
 
+    #[derive(Clone)]
     struct Database {
         users: Vec<User>,
     }
 
+    #[derive(Clone)]
     struct Env {
         db: Database,
     }
@@ -145,8 +149,8 @@ async fn example_layered_context() {
     }
 
     // Low-level: fetch user from database
-    fn fetch_user(user_id: u64) -> Effect<User, ContextError<String>, Env> {
-        Effect::from_fn(move |env: &Env| {
+    fn fetch_user(user_id: u64) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
+        from_fn(move |env: &Env| {
             env.db
                 .users
                 .iter()
@@ -158,15 +162,16 @@ async fn example_layered_context() {
     }
 
     // Mid-level: load user profile
-    fn load_user_profile(user_id: u64) -> Effect<User, ContextError<String>, Env> {
-        fetch_user(user_id).context(format!("loading profile for user {}", user_id))
+    fn load_user_profile(user_id: u64) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
+        fetch_user(user_id)
+            .map_err(move |e| e.context(format!("loading profile for user {}", user_id)))
     }
 
     // High-level: display user dashboard
-    fn display_dashboard(user_id: u64) -> Effect<String, ContextError<String>, Env> {
+    fn display_dashboard(user_id: u64) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
         load_user_profile(user_id)
             .map(|user| format!("Dashboard for {}", user.name))
-            .context(format!("rendering dashboard for user {}", user_id))
+            .map_err(move |e| e.context(format!("rendering dashboard for user {}", user_id)))
     }
 
     let env = Env {
@@ -187,15 +192,17 @@ async fn example_layered_context() {
 async fn example_realistic_error_handling() {
     println!("\n=== Example 5: Realistic Error Handling ===");
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     struct Config {
         timeout: u32,
     }
 
+    #[derive(Clone)]
     struct FileSystem {
         files: Vec<String>,
     }
 
+    #[derive(Clone)]
     struct Env {
         fs: FileSystem,
     }
@@ -207,9 +214,9 @@ async fn example_realistic_error_handling() {
     }
 
     // Read file
-    fn read_file(path: String) -> Effect<String, ContextError<String>, Env> {
+    fn read_file(path: String) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
         let path_for_context = path.clone();
-        Effect::from_fn(move |env: &Env| {
+        from_fn(move |env: &Env| {
             env.fs
                 .files
                 .iter()
@@ -221,8 +228,8 @@ async fn example_realistic_error_handling() {
     }
 
     // Parse config
-    fn parse_config(content: String) -> Effect<Config, ContextError<String>, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn parse_config(content: String) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
+        from_fn(move |_env: &Env| {
             if content.contains("timeout") {
                 Ok(Config { timeout: 30 })
             } else {
@@ -233,10 +240,10 @@ async fn example_realistic_error_handling() {
     }
 
     // Load and parse config
-    fn load_config(path: String) -> Effect<Config, ContextError<String>, Env> {
+    fn load_config(path: String) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
         read_file(path.clone())
             .and_then(parse_config)
-            .context(format!("loading config from '{}'", path))
+            .map_err(move |e| e.context(format!("loading config from '{}'", path)))
     }
 
     let env1 = Env {
@@ -299,10 +306,11 @@ async fn example_custom_errors() {
         }
     }
 
+    #[derive(Clone)]
     struct Env;
 
-    fn validate_user_input(input: String) -> Effect<String, AppError, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn validate_user_input(input: String) -> impl Effect<Output = String, Error = AppError, Env = Env> {
+        from_fn(move |_env: &Env| {
             if input.is_empty() {
                 Err(AppError::InvalidInput("input cannot be empty".to_string()))
             } else if input.len() > 100 {
@@ -315,8 +323,8 @@ async fn example_custom_errors() {
         })
     }
 
-    fn check_permissions(user_id: u64) -> Effect<(), AppError, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn check_permissions(user_id: u64) -> impl Effect<Output = (), Error = AppError, Env = Env> {
+        from_fn(move |_env: &Env| {
             if user_id == 0 {
                 Err(AppError::PermissionDenied)
             } else {
@@ -325,8 +333,8 @@ async fn example_custom_errors() {
         })
     }
 
-    fn find_resource(id: u64) -> Effect<String, AppError, Env> {
-        Effect::from_fn(move |_env: &Env| {
+    fn find_resource(id: u64) -> impl Effect<Output = String, Error = AppError, Env = Env> {
+        from_fn(move |_env: &Env| {
             if id == 99 {
                 Ok("resource data".to_string())
             } else {

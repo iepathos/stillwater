@@ -10,7 +10,7 @@
 //! - Verifying side effects through the environment
 
 use std::sync::{Arc, Mutex};
-use stillwater::{Effect, Validation};
+use stillwater::{from_fn, Effect, EffectExt, RunStandalone, Validation};
 
 // ==================== Testing Pure Validations ====================
 
@@ -68,6 +68,7 @@ trait Storage {
 }
 
 /// Mock implementation (in-memory) for testing
+#[derive(Clone)]
 struct MockStorage {
     data: Arc<Mutex<std::collections::HashMap<String, String>>>,
 }
@@ -100,6 +101,7 @@ impl Storage for MockStorage {
 }
 
 /// Test environment using mock
+#[derive(Clone)]
 struct TestEnv {
     storage: MockStorage,
 }
@@ -119,11 +121,11 @@ impl AsRef<MockStorage> for TestEnv {
 }
 
 /// Function to test - uses Effect
-fn save_user_preference<Env: AsRef<MockStorage> + Sync + 'static>(
+fn save_user_preference<Env: AsRef<MockStorage> + Clone + Send + Sync + 'static>(
     user_id: u64,
     preference: String,
-) -> Effect<(), String, Env> {
-    Effect::from_fn(move |env: &Env| {
+) -> impl Effect<Output = (), Error = String, Env = Env> {
+    from_fn(move |env: &Env| {
         let storage: &MockStorage = env.as_ref();
         let key = format!("user:{}:preference", user_id);
         storage.set(&key, preference.clone());
@@ -131,10 +133,10 @@ fn save_user_preference<Env: AsRef<MockStorage> + Sync + 'static>(
     })
 }
 
-fn load_user_preference<Env: AsRef<MockStorage> + Sync + 'static>(
+fn load_user_preference<Env: AsRef<MockStorage> + Clone + Send + Sync + 'static>(
     user_id: u64,
-) -> Effect<Option<String>, String, Env> {
-    Effect::from_fn(move |env: &Env| {
+) -> impl Effect<Output = Option<String>, Error = String, Env = Env> {
+    from_fn(move |env: &Env| {
         let storage: &MockStorage = env.as_ref();
         let key = format!("user:{}:preference", user_id);
         Ok(storage.get(&key))
@@ -171,10 +173,10 @@ async fn example_testing_effects() {
 // ==================== Testing Effect Composition ====================
 
 /// Combined operation that we want to test
-fn update_and_verify<Env: AsRef<MockStorage> + Sync + 'static>(
+fn update_and_verify<Env: AsRef<MockStorage> + Clone + Send + Sync + 'static>(
     user_id: u64,
     new_preference: String,
-) -> Effect<bool, String, Env> {
+) -> impl Effect<Output = bool, Error = String, Env = Env> {
     save_user_preference(user_id, new_preference.clone())
         .and_then(move |_| load_user_preference(user_id))
         .map(move |loaded| loaded == Some(new_preference.clone()))
@@ -197,6 +199,7 @@ async fn example_testing_composition() {
 // ==================== Verifying Side Effects ====================
 
 /// Service that tracks calls for verification
+#[derive(Clone)]
 struct SpyEmailService {
     sent: Arc<Mutex<Vec<(String, String)>>>,
 }
@@ -225,6 +228,7 @@ impl SpyEmailService {
     }
 }
 
+#[derive(Clone)]
 struct EmailEnv {
     email: SpyEmailService,
 }
@@ -243,11 +247,11 @@ impl AsRef<SpyEmailService> for EmailEnv {
     }
 }
 
-fn send_welcome_email<Env: AsRef<SpyEmailService> + Sync + 'static>(
+fn send_welcome_email<Env: AsRef<SpyEmailService> + Clone + Send + Sync + 'static>(
     email: String,
     name: String,
-) -> Effect<(), String, Env> {
-    Effect::from_fn(move |env: &Env| {
+) -> impl Effect<Output = (), Error = String, Env = Env> {
+    from_fn(move |env: &Env| {
         let service: &SpyEmailService = env.as_ref();
         let message = format!("Welcome, {}!", name);
         service.send(email.clone(), message);
@@ -275,8 +279,8 @@ async fn example_testing_side_effects() {
 
 // ==================== Testing Error Cases ====================
 
-fn divide<Env: Sync + 'static>(a: i32, b: i32) -> Effect<i32, String, Env> {
-    Effect::from_fn(move |_env: &Env| {
+fn divide<Env: Clone + Send + Sync + 'static>(a: i32, b: i32) -> impl Effect<Output = i32, Error = String, Env = Env> {
+    from_fn(move |_env: &Env| {
         if b == 0 {
             Err("Division by zero".to_string())
         } else {

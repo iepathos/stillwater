@@ -61,3 +61,6 @@ pub use crate::effect::retry::{retry, retry_if, retry_with_hooks, with_timeout};
 // Tracing (when tracing feature is enabled)
 #[cfg(feature = "tracing")]
 pub use crate::effect::tracing::EffectTracingExt;
+
+// Compat traits for running effects
+pub use crate::effect::compat::RunStandalone;

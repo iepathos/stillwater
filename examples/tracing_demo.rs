@@ -73,10 +73,10 @@ async fn process_order(user_id: String, order_id: String) {
 
 // Each function uses semantic spans with relevant business data
 
-fn fetch_user(user_id: String) -> Effect<User, String, ()> {
+fn fetch_user(user_id: String) -> impl Effect<Output = User, Error = String, Env = ()> {
     let span_user_id = user_id.clone();
 
-    Effect::from_fn(move |_| {
+    from_fn(move |_| {
         Ok(User {
             id: user_id.clone(),
             name: "Alice".to_string(),
@@ -85,12 +85,12 @@ fn fetch_user(user_id: String) -> Effect<User, String, ()> {
     .instrument(tracing::debug_span!("fetch_user", user_id = %span_user_id))
 }
 
-fn fetch_order(order_id: String, user: &User) -> Effect<Order, String, ()> {
+fn fetch_order(order_id: String, user: &User) -> impl Effect<Output = Order, Error = String, Env = ()> {
     let user_id = user.id.clone();
     let span_order_id = order_id.clone();
     let span_user_id = user_id.clone();
 
-    Effect::from_fn(move |_| {
+    from_fn(move |_| {
         // "order-bad" triggers failure
         if order_id == "order-bad" {
             return Err("order not found in database".to_string());
@@ -108,11 +108,11 @@ fn fetch_order(order_id: String, user: &User) -> Effect<Order, String, ()> {
     ))
 }
 
-fn validate_order(order: Order) -> Effect<Order, String, ()> {
+fn validate_order(order: Order) -> impl Effect<Output = Order, Error = String, Env = ()> {
     let span_order_id = order.id.clone();
     let span_amount = order.amount;
 
-    Effect::from_fn(move |_| {
+    from_fn(move |_| {
         if order.amount == 0 {
             return Err("order amount cannot be zero".to_string());
         }
@@ -125,11 +125,11 @@ fn validate_order(order: Order) -> Effect<Order, String, ()> {
     ))
 }
 
-fn charge_payment(order: Order) -> Effect<Receipt, String, ()> {
+fn charge_payment(order: Order) -> impl Effect<Output = Receipt, Error = String, Env = ()> {
     let span_order_id = order.id.clone();
     let span_amount = order.amount;
 
-    Effect::from_fn(move |_| {
+    from_fn(move |_| {
         // "order-broke" triggers payment failure
         if order.id == "order-broke" {
             return Err("insufficient funds".to_string());
@@ -146,10 +146,10 @@ fn charge_payment(order: Order) -> Effect<Receipt, String, ()> {
     ))
 }
 
-fn send_confirmation(receipt: Receipt) -> Effect<String, String, ()> {
+fn send_confirmation(receipt: Receipt) -> impl Effect<Output = String, Error = String, Env = ()> {
     let span_order_id = receipt.order_id.clone();
 
-    Effect::from_fn(move |_| {
+    from_fn(move |_| {
         tracing::debug!(transaction_id = %receipt.transaction_id, "email sent");
         Ok(format!("conf-{}", receipt.transaction_id))
     })

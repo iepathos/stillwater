@@ -9,7 +9,7 @@
 //! - Helper combinators (tap, check, with)
 //! - Environment-based dependency injection
 
-use stillwater::Effect;
+use stillwater::{fail, from_async, from_fn, pure, Effect, EffectExt, RunStandalone};
 
 // ==================== Basic Effects ====================
 
@@ -20,12 +20,12 @@ async fn example_basic_effects() {
     println!("\n=== Example 1: Basic Effects ===");
 
     // Pure value - always succeeds
-    let success_effect: Effect<i32, String, ()> = Effect::pure(42);
+    let success_effect = pure::<_, String, ()>(42);
     let result = success_effect.run_standalone().await;
     println!("Pure effect: {:?}", result);
 
     // Failure - always fails
-    let fail_effect: Effect<i32, String, ()> = Effect::fail("something went wrong".to_string());
+    let fail_effect = fail::<i32, _, ()>("something went wrong".to_string());
     let result = fail_effect.run_standalone().await;
     println!("Fail effect: {:?}", result);
 }
@@ -39,12 +39,13 @@ async fn example_from_fn() {
     println!("\n=== Example 2: Effects from Functions ===");
 
     // Simple environment
+    #[derive(Clone)]
     struct Env {
         multiplier: i32,
     }
 
     // Effect from a function that uses the environment
-    let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.multiplier * 2));
+    let effect = from_fn(|env: &Env| Ok::<_, String>(env.multiplier * 2));
 
     let env = Env { multiplier: 21 };
     let result = effect.run(&env).await;
@@ -59,12 +60,13 @@ async fn example_from_fn() {
 async fn example_mapping() {
     println!("\n=== Example 3: Mapping Effects ===");
 
+    #[derive(Clone)]
     struct Env {
         base_value: i32,
     }
 
     // Chain multiple transformations
-    let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.base_value))
+    let effect = from_fn(|env: &Env| Ok::<_, String>(env.base_value))
         .map(|x| x * 2) // Double it
         .map(|x| x + 10) // Add 10
         .map(|x| format!("Result: {}", x)); // Convert to string
@@ -82,10 +84,12 @@ async fn example_mapping() {
 async fn example_chaining() {
     println!("\n=== Example 4: Chaining Effects ===");
 
+    #[derive(Clone)]
     struct Database {
         value: i32,
     }
 
+    #[derive(Clone)]
     struct Env {
         db: Database,
     }
@@ -97,17 +101,19 @@ async fn example_chaining() {
     }
 
     // First effect: get value from database
-    fn get_value() -> Effect<i32, String, Env> {
-        Effect::from_fn(|env: &Env| Ok::<_, String>(env.db.value))
+    fn get_value() -> impl Effect<Output = i32, Error = String, Env = Env> {
+        from_fn(|env: &Env| Ok::<_, String>(env.db.value))
     }
 
     // Second effect: validate and double the value
-    fn validate_and_double(x: i32) -> Effect<i32, String, Env> {
-        if x > 0 {
-            Effect::pure(x * 2)
-        } else {
-            Effect::fail("Value must be positive".to_string())
-        }
+    fn validate_and_double(x: i32) -> impl Effect<Output = i32, Error = String, Env = Env> {
+        from_fn(move |_: &Env| {
+            if x > 0 {
+                Ok(x * 2)
+            } else {
+                Err("Value must be positive".to_string())
+            }
+        })
     }
 
     let env = Env {
@@ -132,12 +138,13 @@ async fn example_chaining() {
 async fn example_error_handling() {
     println!("\n=== Example 5: Error Handling ===");
 
+    #[derive(Clone)]
     struct Env {
         value: i32,
     }
 
     // Effect that might fail
-    let _effect = Effect::from_fn(|env: &Env| {
+    let _effect = from_fn(|env: &Env| {
         if env.value > 0 {
             Ok::<_, &str>(env.value)
         } else {
@@ -147,7 +154,7 @@ async fn example_error_handling() {
     .map_err(|e| format!("Error: {} is not allowed", e));
 
     let env1 = Env { value: 42 };
-    let effect1 = Effect::from_fn(|env: &Env| {
+    let effect1 = from_fn(|env: &Env| {
         if env.value > 0 {
             Ok::<_, &str>(env.value)
         } else {
@@ -158,7 +165,7 @@ async fn example_error_handling() {
     println!("Valid value: {:?}", effect1.run(&env1).await);
 
     let env2 = Env { value: -1 };
-    let effect2 = Effect::from_fn(|env: &Env| {
+    let effect2 = from_fn(|env: &Env| {
         if env.value > 0 {
             Ok::<_, &str>(env.value)
         } else {
@@ -177,10 +184,12 @@ async fn example_error_handling() {
 async fn example_async_effects() {
     println!("\n=== Example 6: Async Effects ===");
 
+    #[derive(Clone)]
     struct ApiClient {
         base_url: String,
     }
 
+    #[derive(Clone)]
     struct Env {
         api: ApiClient,
     }
@@ -198,7 +207,7 @@ async fn example_async_effects() {
     };
 
     // Async effect: simulate API call
-    let fetch_user = Effect::from_async(|env: &Env| {
+    let fetch_user = from_async(|env: &Env| {
         let url = env.api.base_url.clone();
         async move {
             // Simulate async work
@@ -219,19 +228,20 @@ async fn example_async_effects() {
 async fn example_tap() {
     println!("\n=== Example 7: Using tap() ===");
 
+    #[derive(Clone)]
     struct Env {
         value: i32,
     }
 
-    let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.value))
+    let effect = from_fn(|env: &Env| Ok::<_, String>(env.value))
         .tap(|x| {
             println!("  [DEBUG] Got value: {}", x);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(|x| x * 2)
         .tap(|x| {
             println!("  [DEBUG] After doubling: {}", x);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .map(|x| x + 5);
 
@@ -246,31 +256,36 @@ async fn example_tap() {
 async fn example_check() {
     println!("\n=== Example 8: Using check() ===");
 
+    #[derive(Clone)]
     struct Env {
         age: i32,
     }
 
     let env1 = Env { age: 25 };
-    let result1 = Effect::from_fn(|env: &Env| Ok::<_, String>(env.age))
+    let result1 = from_fn(|env: &Env| Ok::<_, String>(env.age))
         .and_then(|age| {
-            if age >= 18 {
-                Effect::pure(age)
-            } else {
-                Effect::fail(format!("Age {} is below minimum (18)", age))
-            }
+            from_fn(move |_: &Env| {
+                if age >= 18 {
+                    Ok(age)
+                } else {
+                    Err(format!("Age {} is below minimum (18)", age))
+                }
+            })
         })
         .run(&env1)
         .await;
     println!("Adult: {:?}", result1);
 
     let env2 = Env { age: 16 };
-    let result2 = Effect::from_fn(|env: &Env| Ok::<_, String>(env.age))
+    let result2 = from_fn(|env: &Env| Ok::<_, String>(env.age))
         .and_then(|age| {
-            if age >= 18 {
-                Effect::pure(age)
-            } else {
-                Effect::fail(format!("Age {} is below minimum (18)", age))
-            }
+            from_fn(move |_: &Env| {
+                if age >= 18 {
+                    Ok(age)
+                } else {
+                    Err(format!("Age {} is below minimum (18)", age))
+                }
+            })
         })
         .run(&env2)
         .await;
@@ -283,11 +298,13 @@ async fn example_check() {
 async fn example_with() {
     println!("\n=== Example 9: Using with() ===");
 
+    #[derive(Clone)]
     struct Config {
         width: i32,
         height: i32,
     }
 
+    #[derive(Clone)]
     struct Env {
         config: Config,
     }
@@ -299,8 +316,8 @@ async fn example_with() {
     }
 
     // Get width and height as separate effects, then combine
-    let area_effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.config.width))
-        .with(|_w| Effect::from_fn(|env: &Env| Ok::<_, String>(env.config.height)))
+    let area_effect = from_fn(|env: &Env| Ok::<_, String>(env.config.width))
+        .with(|_w| from_fn(|env: &Env| Ok::<_, String>(env.config.height)))
         .map(|(w, h)| w * h);
 
     let env = Env {
@@ -329,10 +346,12 @@ async fn example_composition() {
         age: i32,
     }
 
+    #[derive(Clone)]
     struct Database {
         users: Vec<User>,
     }
 
+    #[derive(Clone)]
     struct Env {
         db: Database,
     }
@@ -344,8 +363,8 @@ async fn example_composition() {
     }
 
     // Find user by ID
-    fn find_user(user_id: u64) -> Effect<User, String, Env> {
-        Effect::from_fn(move |env: &Env| {
+    fn find_user(user_id: u64) -> impl Effect<Output = User, Error = String, Env = Env> {
+        from_fn(move |env: &Env| {
             env.db
                 .users
                 .iter()
@@ -356,29 +375,31 @@ async fn example_composition() {
     }
 
     // Validate user age
-    fn validate_adult(user: User) -> Effect<User, String, Env> {
-        if user.age >= 18 {
-            Effect::pure(user)
-        } else {
-            Effect::fail(format!("User {} is not an adult", user.name))
-        }
+    fn validate_adult(user: User) -> impl Effect<Output = User, Error = String, Env = Env> {
+        from_fn(move |_: &Env| {
+            if user.age >= 18 {
+                Ok(user.clone())
+            } else {
+                Err(format!("User {} is not an adult", user.name))
+            }
+        })
     }
 
     // Format greeting
-    fn greet(user: User) -> Effect<String, String, Env> {
-        Effect::pure(format!("Hello, {}!", user.name))
+    fn greet(user: User) -> impl Effect<Output = String, Error = String, Env = Env> {
+        pure(format!("Hello, {}!", user.name))
     }
 
     // Compose the workflow
     let workflow = find_user(1)
         .tap(|u| {
             println!("  Found user: {}", u.name);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .and_then(validate_adult)
         .tap(|u| {
             println!("  Validated user: {}", u.name);
-            Effect::<(), String, Env>::pure(())
+            pure::<(), String, Env>(())
         })
         .and_then(greet);
 
