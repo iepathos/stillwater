@@ -11,7 +11,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use stillwater::{ContextError, Effect, Validation};
+use stillwater::{from_fn, ContextError, Effect, EffectContext, Validation};
 
 // ==================== Domain Types ====================
 
@@ -50,6 +50,7 @@ struct PipelineStats {
 // ==================== Extract ====================
 
 /// Mock data source
+#[derive(Clone)]
 struct DataSource {
     records: Vec<RawRecord>,
 }
@@ -179,6 +180,7 @@ fn transform_record(validated: ValidatedRecord) -> TransformedRecord {
 
 // ==================== Load ====================
 
+#[derive(Clone)]
 struct DataWarehouse {
     records: Arc<Mutex<HashMap<u64, TransformedRecord>>>,
 }
@@ -205,6 +207,7 @@ impl DataWarehouse {
 
 // ==================== Environment ====================
 
+#[derive(Clone)]
 struct Env {
     source: DataSource,
     warehouse: DataWarehouse,
@@ -234,9 +237,9 @@ impl AsRef<DataWarehouse> for Env {
 // ==================== Pipeline ====================
 
 /// Extract raw records from source
-fn extract_records<Env: AsRef<DataSource> + Sync + 'static>(
-) -> Effect<Vec<RawRecord>, ContextError<String>, Env> {
-    Effect::from_fn(|env: &Env| {
+fn extract_records<Env: AsRef<DataSource> + Clone + Send + Sync + 'static>(
+) -> impl Effect<Output = Vec<RawRecord>, Error = ContextError<String>, Env = Env> {
+    from_fn(|env: &Env| {
         let source: &DataSource = env.as_ref();
         Ok(source.fetch_all())
     })
@@ -244,10 +247,10 @@ fn extract_records<Env: AsRef<DataSource> + Sync + 'static>(
 }
 
 /// Load transformed record to warehouse
-fn load_record<Env: AsRef<DataWarehouse> + Sync + 'static>(
+fn load_record<Env: AsRef<DataWarehouse> + Clone + Send + Sync + 'static>(
     record: TransformedRecord,
-) -> Effect<(), ContextError<String>, Env> {
-    Effect::from_fn(move |env: &Env| {
+) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
+    from_fn(move |env: &Env| {
         let warehouse: &DataWarehouse = env.as_ref();
         warehouse.insert(record);
         Ok(())
@@ -256,7 +259,9 @@ fn load_record<Env: AsRef<DataWarehouse> + Sync + 'static>(
 }
 
 /// Run the complete ETL pipeline
-async fn run_pipeline<Env: AsRef<DataSource> + AsRef<DataWarehouse> + Sync + 'static>(
+async fn run_pipeline<
+    Env: AsRef<DataSource> + AsRef<DataWarehouse> + Clone + Send + Sync + 'static,
+>(
     env: &Env,
 ) -> Result<PipelineStats, ContextError<String>> {
     println!("Starting ETL pipeline...\n");

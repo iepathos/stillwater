@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// A failure value wrapped as an Effect.
 ///
@@ -12,7 +12,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = fail::<i32, _, ()>("error".to_string());
 /// assert_eq!(effect.execute(&()).await, Err("error".to_string()));

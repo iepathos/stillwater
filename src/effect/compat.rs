@@ -16,7 +16,7 @@
 //!
 //! ## Migration Steps
 //!
-//! 1. **Update imports**: Change `use stillwater::Effect` to `use stillwater::effect_v2::prelude::*`
+//! 1. **Update imports**: Change `use stillwater::Effect` to `use stillwater::effect::prelude::*`
 //!
 //! 2. **Update function signatures**: Change return types from `Effect<T, E, Env>` to
 //!    `impl Effect<Output = T, Error = E, Env = Env>` for zero-cost, or `BoxedEffect<T, E, Env>`
@@ -53,8 +53,8 @@
 //! }
 //! ```
 
-use crate::effect_v2::boxed::BoxedEffect;
-use crate::effect_v2::ext::EffectExt;
+use crate::effect::boxed::BoxedEffect;
+use crate::effect::ext::EffectExt;
 
 /// Type alias for backward compatibility.
 ///
@@ -99,7 +99,7 @@ impl<T, E, Env> LegacyConstructors<T, E, Env> for BoxedEffect<T, E, Env> {
         E: Send + 'static,
         Env: Clone + Send + Sync + 'static,
     {
-        crate::effect_v2::constructors::pure(value).boxed()
+        crate::effect::constructors::pure(value).boxed()
     }
 
     fn legacy_fail(error: E) -> BoxedEffect<T, E, Env>
@@ -108,20 +108,20 @@ impl<T, E, Env> LegacyConstructors<T, E, Env> for BoxedEffect<T, E, Env> {
         E: Send + 'static,
         Env: Clone + Send + Sync + 'static,
     {
-        crate::effect_v2::constructors::fail(error).boxed()
+        crate::effect::constructors::fail(error).boxed()
     }
 }
 
 /// Extension trait for running effects with unit environment.
 #[allow(async_fn_in_trait)]
-pub trait RunStandalone: crate::effect_v2::trait_def::Effect<Env = ()> {
+pub trait RunStandalone: crate::effect::trait_def::Effect<Env = ()> {
     /// Run an effect that doesn't require an environment.
     ///
     /// This is a convenience method for effects with `Env = ()` (unit type).
     async fn run_standalone(self) -> Result<Self::Output, Self::Error>;
 }
 
-impl<E: crate::effect_v2::trait_def::Effect<Env = ()>> RunStandalone for E {
+impl<E: crate::effect::trait_def::Effect<Env = ()>> RunStandalone for E {
     async fn run_standalone(self) -> Result<Self::Output, Self::Error> {
         self.run(&()).await
     }

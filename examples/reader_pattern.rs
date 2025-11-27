@@ -1,4 +1,4 @@
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 /// Application configuration
 #[derive(Clone, Debug)]
@@ -40,32 +40,30 @@ enum AppError {
 }
 
 // Example 1: Using ask() to access the entire environment
-fn get_environment() -> Effect<AppEnv, AppError, AppEnv> {
-    Effect::<AppEnv, AppError, AppEnv>::ask()
+fn get_environment() -> impl Effect<Output = AppEnv, Error = AppError, Env = AppEnv> {
+    ask::<AppError, AppEnv>()
 }
 
 // Example 2: Using asks() to extract specific configuration
-fn get_timeout() -> Effect<u64, AppError, AppEnv> {
-    Effect::<(), AppError, AppEnv>::asks(|env: &AppEnv| env.config.timeout_ms)
+fn get_timeout() -> impl Effect<Output = u64, Error = AppError, Env = AppEnv> {
+    asks(|env: &AppEnv| env.config.timeout_ms)
 }
 
-fn get_api_key() -> Effect<String, AppError, AppEnv> {
-    Effect::<(), AppError, AppEnv>::asks(|env: &AppEnv| env.config.api_key.clone())
+fn get_api_key() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    asks(|env: &AppEnv| env.config.api_key.clone())
 }
 
-fn get_log_level() -> Effect<LogLevel, AppError, AppEnv> {
-    Effect::<(), AppError, AppEnv>::asks(|env: &AppEnv| env.config.log_level.clone())
+fn get_log_level() -> impl Effect<Output = LogLevel, Error = AppError, Env = AppEnv> {
+    asks(|env: &AppEnv| env.config.log_level.clone())
 }
 
 // Example 3: Composing asks() queries
-fn get_db_connection_string() -> Effect<String, AppError, AppEnv> {
-    Effect::<(), AppError, AppEnv>::asks(|env: &AppEnv| {
-        format!("postgres://{}:{}", env.db.host, env.db.port)
-    })
+fn get_db_connection_string() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    asks(|env: &AppEnv| format!("postgres://{}:{}", env.db.host, env.db.port))
 }
 
 // Example 4: Using environment values in computations
-fn fetch_user_data(user_id: u32) -> Effect<String, AppError, AppEnv> {
+fn fetch_user_data(user_id: u32) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     get_api_key().and_then(move |api_key| {
         get_timeout().map(move |timeout| {
             format!(
@@ -77,7 +75,10 @@ fn fetch_user_data(user_id: u32) -> Effect<String, AppError, AppEnv> {
 }
 
 // Example 5: Conditional logic based on environment
-fn log_message(msg: String, level: LogLevel) -> Effect<(), AppError, AppEnv> {
+fn log_message(
+    msg: String,
+    level: LogLevel,
+) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     get_log_level().map(move |configured_level| {
         let should_log = match (&configured_level, &level) {
             (LogLevel::Debug, _) => true,
@@ -101,58 +102,67 @@ fn log_message(msg: String, level: LogLevel) -> Effect<(), AppError, AppEnv> {
 }
 
 // Example 5a: Helper functions for different log levels
-fn log_debug(msg: String) -> Effect<(), AppError, AppEnv> {
+fn log_debug(msg: String) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     log_message(msg, LogLevel::Debug)
 }
 
-fn log_info(msg: String) -> Effect<(), AppError, AppEnv> {
+fn log_info(msg: String) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     log_message(msg, LogLevel::Info)
 }
 
-fn log_warn(msg: String) -> Effect<(), AppError, AppEnv> {
+fn log_warn(msg: String) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     log_message(msg, LogLevel::Warn)
 }
 
-fn log_error(msg: String) -> Effect<(), AppError, AppEnv> {
+fn log_error(msg: String) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     log_message(msg, LogLevel::Error)
 }
 
 // Example 5b: Validation that can fail with specific errors
-fn validate_api_key() -> Effect<(), AppError, AppEnv> {
+fn validate_api_key() -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     get_api_key().and_then(|key| {
-        if key.is_empty() {
-            Effect::fail(AppError::Unauthorized)
-        } else {
-            Effect::pure(())
-        }
+        from_fn(move |_env: &AppEnv| {
+            if key.is_empty() {
+                Err(AppError::Unauthorized)
+            } else {
+                Ok(())
+            }
+        })
     })
 }
 
-fn check_timeout() -> Effect<(), AppError, AppEnv> {
+fn check_timeout() -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     get_timeout().and_then(|timeout| {
-        if timeout == 0 {
-            Effect::fail(AppError::Timeout)
-        } else {
-            Effect::pure(())
-        }
+        from_fn(move |_env: &AppEnv| {
+            if timeout == 0 {
+                Err(AppError::Timeout)
+            } else {
+                Ok(())
+            }
+        })
     })
 }
 
-fn safe_database_query(query: String) -> Effect<Vec<String>, AppError, AppEnv> {
-    if query.contains("DROP") || query.contains("DELETE") {
-        Effect::fail(AppError::DatabaseError(
-            "Dangerous query blocked".to_string(),
-        ))
-    } else {
-        query_database(query)
-    }
+fn safe_database_query(
+    query: String,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+    from_fn(move |_env: &AppEnv| {
+        if query.contains("DROP") || query.contains("DELETE") {
+            Err(AppError::DatabaseError(
+                "Dangerous query blocked".to_string(),
+            ))
+        } else {
+            Ok(query.clone())
+        }
+    })
+    .and_then(query_database)
 }
 
 // Example 6: Using local() to temporarily modify environment
 fn with_debug_logging<T: Send + 'static>(
-    effect: Effect<T, AppError, AppEnv>,
-) -> Effect<T, AppError, AppEnv> {
-    Effect::local(
+    effect: impl Effect<Output = T, Error = AppError, Env = AppEnv>,
+) -> impl Effect<Output = T, Error = AppError, Env = AppEnv> {
+    local(
         |env: &AppEnv| AppEnv {
             config: AppConfig {
                 log_level: LogLevel::Debug,
@@ -167,9 +177,9 @@ fn with_debug_logging<T: Send + 'static>(
 // Example 7: Extending timeout for specific operations
 fn with_extended_timeout<T: Send + 'static>(
     multiplier: u64,
-    effect: Effect<T, AppError, AppEnv>,
-) -> Effect<T, AppError, AppEnv> {
-    Effect::local(
+    effect: impl Effect<Output = T, Error = AppError, Env = AppEnv>,
+) -> impl Effect<Output = T, Error = AppError, Env = AppEnv> {
+    local(
         move |env: &AppEnv| AppEnv {
             config: AppConfig {
                 timeout_ms: env.config.timeout_ms * multiplier,
@@ -182,11 +192,13 @@ fn with_extended_timeout<T: Send + 'static>(
 }
 
 // Example 8: Real-world scenario - API request with retry
-fn make_api_request(endpoint: String) -> Effect<String, AppError, AppEnv> {
+fn make_api_request(
+    endpoint: String,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     get_api_key()
         .and_then(move |api_key| {
             get_timeout().and_then(move |timeout| {
-                Effect::<(), AppError, AppEnv>::asks(move |env: &AppEnv| {
+                asks(move |env: &AppEnv| {
                     format!(
                         "POST {} [key={}, timeout={}ms, retries={}]",
                         endpoint, api_key, timeout, env.config.max_retries
@@ -198,10 +210,12 @@ fn make_api_request(endpoint: String) -> Effect<String, AppError, AppEnv> {
 }
 
 // Example 9: Database operation with connection pooling
-fn query_database(query: String) -> Effect<Vec<String>, AppError, AppEnv> {
+fn query_database(
+    query: String,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
     get_db_connection_string()
         .and_then(move |conn_str| {
-            Effect::<(), AppError, AppEnv>::asks(move |env: &AppEnv| {
+            asks(move |env: &AppEnv| {
                 println!(
                     "Executing query on {} (max_connections={})",
                     conn_str, env.db.max_connections
@@ -215,7 +229,9 @@ fn query_database(query: String) -> Effect<Vec<String>, AppError, AppEnv> {
 }
 
 // Example 10: Complex workflow combining multiple patterns
-fn process_user_request(user_id: u32) -> Effect<String, AppError, AppEnv> {
+fn process_user_request(
+    user_id: u32,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     // Validate before processing
     validate_api_key()
         .and_then(move |_| check_timeout())

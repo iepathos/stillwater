@@ -8,7 +8,7 @@
 //!
 //! - **`sequence`**: Convert a collection of effects into an effect of a collection
 //!   - `Vec<Validation<T, E>>` → `Validation<Vec<T>, E>`
-//!   - `Vec<Effect<T, E, Env>>` → `Effect<Vec<T>, E, Env>`
+//!   - `Vec<BoxedEffect<T, E, Env>>` → `BoxedEffect<Vec<T>, E, Env>`
 //!
 //! - **`traverse`**: Map a function over a collection and sequence the results
 //!   - Equivalent to `map(f).sequence()` but more efficient
@@ -38,20 +38,22 @@
 //! ## Effect
 //!
 //! ```
-//! use stillwater::{Effect, traverse::traverse_effect};
+//! use stillwater::{BoxedEffect, traverse::traverse_effect};
+//! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
-//! fn process(x: i32) -> Effect<i32, String, ()> {
-//!     Effect::pure(x * 2)
+//! fn process(x: i32) -> BoxedEffect<i32, String, ()> {
+//!     pure(x * 2).boxed()
 //! }
 //!
 //! let numbers = vec![1, 2, 3];
 //! let effect = traverse_effect(numbers, process);
-//! assert_eq!(effect.run_standalone().await, Ok(vec![2, 4, 6]));
+//! let result = effect.run(&()).await;
+//! assert_eq!(result, Ok(vec![2, 4, 6]));
 //! # });
 //! ```
 
-use crate::{Effect, Semigroup, Validation};
+use crate::{BoxedEffect, Semigroup, Validation};
 
 /// Traverse a collection with a validation function.
 ///
@@ -147,35 +149,41 @@ where
 /// * `U` - Output element type
 /// * `E` - Error type
 /// * `Env` - Environment type
-/// * `F` - Function type that transforms `T` into `Effect<U, E, Env>`
+/// * `F` - Function type that transforms `T` into `BoxedEffect<U, E, Env>`
 /// * `I` - Input iterator type
 ///
 /// # Examples
 ///
 /// ```
-/// use stillwater::{Effect, traverse::traverse_effect};
+/// use stillwater::{BoxedEffect, traverse::traverse_effect};
+/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
-/// fn double(x: i32) -> Effect<i32, String, ()> {
-///     Effect::pure(x * 2)
+/// fn double(x: i32) -> BoxedEffect<i32, String, ()> {
+///     pure(x * 2).boxed()
 /// }
 ///
 /// let result = traverse_effect(vec![1, 2, 3], double);
-/// assert_eq!(result.run_standalone().await, Ok(vec![2, 4, 6]));
+/// assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
 /// # });
 /// ```
-pub fn traverse_effect<T, U, E, Env, F, I>(iter: I, f: F) -> Effect<Vec<U>, E, Env>
+pub fn traverse_effect<T, U, E, Env, F, I>(iter: I, f: F) -> BoxedEffect<Vec<U>, E, Env>
 where
     I: IntoIterator<Item = T>,
-    F: Fn(T) -> Effect<U, E, Env> + Clone + Send + 'static,
+    F: Fn(T) -> BoxedEffect<U, E, Env> + Clone + Send + 'static,
     T: Send + 'static,
     U: Send + 'static,
     E: Send + 'static,
-    Env: Sync + 'static,
+    Env: Clone + Send + Sync + 'static,
 {
+    use crate::effect::prelude::*;
     let items: Vec<_> = iter.into_iter().collect();
-    let effects: Vec<_> = items.into_iter().map(f).collect();
-    Effect::par_try_all(effects)
+    let effects: Vec<BoxedEffect<U, E, Env>> = items.into_iter().map(f).collect();
+    from_async(move |env: &Env| {
+        let env = env.clone();
+        async move { par_try_all(effects, &env).await }
+    })
+    .boxed()
 }
 
 /// Sequence a collection of effects.
@@ -193,27 +201,34 @@ where
 /// # Examples
 ///
 /// ```
-/// use stillwater::{Effect, traverse::sequence_effect};
+/// use stillwater::{BoxedEffect, traverse::sequence_effect};
+/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
 /// let effects = vec![
-///     Effect::<_, String, ()>::pure(1),
-///     Effect::pure(2),
-///     Effect::pure(3),
+///     pure::<_, String, ()>(1).boxed(),
+///     pure(2).boxed(),
+///     pure(3).boxed(),
 /// ];
 /// let result = sequence_effect(effects);
-/// assert_eq!(result.run_standalone().await, Ok(vec![1, 2, 3]));
+/// assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
 /// # });
 /// ```
-pub fn sequence_effect<T, E, Env, I>(iter: I) -> Effect<Vec<T>, E, Env>
+pub fn sequence_effect<T, E, Env, I>(iter: I) -> BoxedEffect<Vec<T>, E, Env>
 where
-    I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
+    I: IntoIterator<Item = BoxedEffect<T, E, Env>> + Send + 'static,
     I::IntoIter: Send,
     T: Send + 'static,
     E: Send + 'static,
-    Env: Sync + 'static,
+    Env: Clone + Send + Sync + 'static,
 {
-    Effect::par_try_all(iter)
+    use crate::effect::prelude::*;
+    let effects: Vec<BoxedEffect<T, E, Env>> = iter.into_iter().collect();
+    from_async(move |env: &Env| {
+        let env = env.clone();
+        async move { par_try_all(effects, &env).await }
+    })
+    .boxed()
 }
 
 #[cfg(test)]
@@ -303,66 +318,72 @@ mod tests {
     // Effect traverse tests
     #[tokio::test]
     async fn test_traverse_effect_all_success() {
-        fn double(x: i32) -> Effect<i32, String, ()> {
-            Effect::pure(x * 2)
+        use crate::effect::prelude::*;
+        fn double(x: i32) -> BoxedEffect<i32, String, ()> {
+            pure(x * 2).boxed()
         }
 
         let result = traverse_effect(vec![1, 2, 3], double);
-        assert_eq!(result.run_standalone().await, Ok(vec![2, 4, 6]));
+        assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
     }
 
     #[tokio::test]
     async fn test_traverse_effect_with_failure() {
-        fn check_positive(x: i32) -> Effect<i32, String, ()> {
+        use crate::effect::prelude::*;
+        fn check_positive(x: i32) -> BoxedEffect<i32, String, ()> {
             if x > 0 {
-                Effect::pure(x)
+                pure(x).boxed()
             } else {
-                Effect::fail(format!("{} is not positive", x))
+                fail(format!("{} is not positive", x)).boxed()
             }
         }
 
         let result = traverse_effect(vec![1, -2, 3], check_positive);
-        assert!(result.run_standalone().await.is_err());
+        assert!(result.run(&()).await.is_err());
     }
 
     #[tokio::test]
     async fn test_traverse_effect_empty() {
-        fn double(x: i32) -> Effect<i32, String, ()> {
-            Effect::pure(x * 2)
+        use crate::effect::prelude::*;
+        fn double(x: i32) -> BoxedEffect<i32, String, ()> {
+            pure(x * 2).boxed()
         }
 
         let result = traverse_effect(Vec::<i32>::new(), double);
-        assert_eq!(result.run_standalone().await, Ok(vec![]));
+        assert_eq!(result.run(&()).await, Ok(vec![]));
     }
 
     // Effect sequence tests
     #[tokio::test]
     async fn test_sequence_effect_all_success() {
+        use crate::effect::prelude::*;
         let effects = vec![
-            Effect::<_, String, ()>::pure(1),
-            Effect::pure(2),
-            Effect::pure(3),
+            pure::<_, String, ()>(1).boxed(),
+            pure(2).boxed(),
+            pure(3).boxed(),
         ];
         let result = sequence_effect(effects);
-        assert_eq!(result.run_standalone().await, Ok(vec![1, 2, 3]));
+        assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
     }
 
     #[tokio::test]
     async fn test_sequence_effect_with_failure() {
+        use crate::effect::prelude::*;
         let effects = vec![
-            Effect::<_, String, ()>::pure(1),
-            Effect::fail("error".to_string()),
-            Effect::pure(3),
+            pure::<_, String, ()>(1).boxed(),
+            fail("error".to_string()).boxed(),
+            pure(3).boxed(),
         ];
         let result = sequence_effect(effects);
-        assert!(result.run_standalone().await.is_err());
+        assert!(result.run(&()).await.is_err());
     }
 
     #[tokio::test]
     async fn test_sequence_effect_empty() {
-        let effects: Vec<Effect<i32, String, ()>> = vec![];
+        use crate::effect::prelude::*;
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![];
         let result = sequence_effect(effects);
-        assert_eq!(result.run_standalone().await, Ok(vec![]));
+        assert_eq!(result.run(&()).await, Ok(vec![]));
     }
 
     // Integration tests
@@ -385,12 +406,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_traverse_effect_with_env() {
+        use crate::effect::prelude::*;
+
+        #[derive(Clone)]
         struct Env {
             multiplier: i32,
         }
 
-        fn multiply(x: i32) -> Effect<i32, String, Env> {
-            Effect::<i32, String, Env>::asks(move |env: &Env| x * env.multiplier)
+        fn multiply(x: i32) -> BoxedEffect<i32, String, Env> {
+            asks(move |env: &Env| x * env.multiplier).boxed()
         }
 
         let env = Env { multiplier: 3 };

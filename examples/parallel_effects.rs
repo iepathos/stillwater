@@ -8,7 +8,7 @@
 
 use std::fmt;
 use std::time::{Duration, Instant};
-use stillwater::Effect;
+use stillwater::prelude::*;
 
 // Mock types for demonstration
 #[derive(Debug, Clone)]
@@ -39,10 +39,14 @@ async fn example_par_all() {
     let env = AppEnv;
 
     // Simulate fetching multiple users in parallel
-    let effects = vec![fetch_user(1, 50), fetch_user(2, 50), fetch_user(3, 50)];
+    let effects = vec![
+        fetch_user(1, 50).boxed(),
+        fetch_user(2, 50).boxed(),
+        fetch_user(3, 50).boxed(),
+    ];
 
     let start = Instant::now();
-    match Effect::par_all(effects).run(&env).await {
+    match par_all(effects, &env).await {
         Ok(users) => {
             println!("✓ Loaded {} users in {:?}", users.len(), start.elapsed());
             for user in users {
@@ -69,15 +73,16 @@ async fn example_par_all_with_errors() {
     let env = AppEnv;
 
     let effects = vec![
-        Effect::<User, AppError, _>::pure(User {
+        pure(User {
             id: 1,
             name: "Alice".into(),
-        }),
-        Effect::fail(AppError("Database timeout".into())),
-        Effect::fail(AppError("Network error".into())),
+        })
+        .boxed(),
+        fail(AppError("Database timeout".into())).boxed(),
+        fail(AppError("Network error".into())).boxed(),
     ];
 
-    match Effect::par_all(effects).run(&env).await {
+    match par_all(effects, &env).await {
         Ok(_) => println!("All succeeded"),
         Err(errors) => {
             println!("✓ Collected {} errors:", errors.len());
@@ -102,10 +107,14 @@ async fn example_par_try_all() {
 
     println!("Checking system health (all must succeed)...");
 
-    let effects = vec![check_database(), check_cache(), check_queue()];
+    let effects = vec![
+        check_database().boxed(),
+        check_cache().boxed(),
+        check_queue().boxed(),
+    ];
 
     let start = Instant::now();
-    match Effect::par_try_all(effects).run(&env).await {
+    match par_try_all(effects, &env).await {
         Ok(statuses) => {
             println!(
                 "✓ All {} services healthy in {:?}",
@@ -132,19 +141,19 @@ async fn example_race() {
     println!("Fetching data from multiple sources (using fastest)...");
 
     let effects = vec![
-        fetch_from_source("cache", 30),
-        fetch_from_source("primary_db", 80),
-        fetch_from_source("backup_db", 120),
+        fetch_from_source("cache", 30).boxed(),
+        fetch_from_source("primary_db", 80).boxed(),
+        fetch_from_source("backup_db", 120).boxed(),
     ];
 
     let start = Instant::now();
-    match Effect::race(effects).run(&env).await {
+    match race(effects, &env).await {
         Ok(data) => {
             println!("✓ Got data from {} in {:?}", data, start.elapsed());
             println!("\nNote: Returned as soon as cache responded (~30ms)");
         }
-        Err(errors) => {
-            println!("✗ All {} sources failed", errors.len());
+        Err(error) => {
+            println!("✗ First source failed: {:?}", error);
         }
     }
 }
@@ -159,28 +168,30 @@ async fn example_race_timeout() {
 
     println!("Fetching with 100ms timeout...");
 
-    fn slow_operation(ms: u64) -> Effect<String, AppError, AppEnv> {
-        Effect::from_async(move |_env| async move {
+    fn slow_operation(ms: u64) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+        from_async(move |_env| async move {
             tokio::time::sleep(Duration::from_millis(ms)).await;
             Ok(format!("Completed after {}ms", ms))
         })
     }
 
-    let timeout_effect = Effect::from_async(|_env| async {
+    let timeout_effect = from_async(|_env| async {
         tokio::time::sleep(Duration::from_millis(100)).await;
         Err(AppError("Operation timed out".into()))
     });
 
     // Try a slow operation with timeout
     let start = Instant::now();
-    match Effect::race([slow_operation(200), timeout_effect])
-        .run(&env)
-        .await
+    match race(
+        vec![slow_operation(200).boxed(), timeout_effect.boxed()],
+        &env,
+    )
+    .await
     {
         Ok(result) => println!("✓ {}", result),
-        Err(errors) => {
+        Err(error) => {
             println!("✗ Timed out after {:?}", start.elapsed());
-            println!("  Error: {:?}", errors[0]);
+            println!("  Error: {:?}", error);
         }
     }
 }
@@ -199,10 +210,13 @@ async fn example_par_all_limit() {
         user_ids.len()
     );
 
-    let effects: Vec<_> = user_ids.into_iter().map(|id| fetch_user(id, 30)).collect();
+    let effects: Vec<_> = user_ids
+        .into_iter()
+        .map(|id| fetch_user(id, 30).boxed())
+        .collect();
 
     let start = Instant::now();
-    match Effect::par_all_limit(effects, 3).run(&env).await {
+    match par_all_limit(effects, 3, &env).await {
         Ok(users) => {
             println!("✓ Processed {} users in {:?}", users.len(), start.elapsed());
             println!("\nNote: Only 3 users processed at once, preventing resource exhaustion");
@@ -228,9 +242,12 @@ async fn example_batch_user_loading() {
     let start = Instant::now();
 
     // Load all users in parallel using par_all
-    let user_effects: Vec<_> = user_ids.iter().map(|&id| fetch_user(id, 40)).collect();
+    let user_effects: Vec<_> = user_ids
+        .iter()
+        .map(|&id| fetch_user(id, 40).boxed())
+        .collect();
 
-    match Effect::par_all(user_effects).run(&env).await {
+    match par_all(user_effects, &env).await {
         Ok(users) => {
             println!("✓ Loaded {} users in {:?}", users.len(), start.elapsed());
             for user in &users {
@@ -263,12 +280,12 @@ async fn example_graceful_degradation() {
     if let Ok(user) = core_data {
         // Optional features (failures are okay)
         let optional_effects = vec![
-            fetch_recommendations(user.id, 30).map(Some),
-            fetch_recent_activity(user.id, 30).map(Some),
-            Effect::fail(AppError("Analytics unavailable".into())), // This one fails
+            fetch_recommendations(user.id, 30).map(Some).boxed(),
+            fetch_recent_activity(user.id, 30).map(Some).boxed(),
+            fail(AppError("Analytics unavailable".into())).boxed(), // This one fails
         ];
 
-        match Effect::par_all(optional_effects).run(&env).await {
+        match par_all(optional_effects, &env).await {
             Ok(_features) => {
                 println!("✓ Core data loaded, all features available");
             }
@@ -286,8 +303,11 @@ async fn example_graceful_degradation() {
 
 // Helper functions for examples
 
-fn fetch_user(id: i32, delay_ms: u64) -> Effect<User, AppError, AppEnv> {
-    Effect::from_async(move |_env| async move {
+fn fetch_user(
+    id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
+    from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(User {
             id,
@@ -296,36 +316,42 @@ fn fetch_user(id: i32, delay_ms: u64) -> Effect<User, AppError, AppEnv> {
     })
 }
 
-fn check_database() -> Effect<String, AppError, AppEnv> {
-    Effect::from_async(|_env| async {
+fn check_database() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    from_async(|_env| async {
         tokio::time::sleep(Duration::from_millis(50)).await;
         Ok("Database OK".to_string())
     })
 }
 
-fn check_cache() -> Effect<String, AppError, AppEnv> {
-    Effect::from_async(|_env| async {
+fn check_cache() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    from_async(|_env| async {
         tokio::time::sleep(Duration::from_millis(30)).await;
         Ok("Cache OK".to_string())
     })
 }
 
-fn check_queue() -> Effect<String, AppError, AppEnv> {
-    Effect::from_async(|_env| async {
+fn check_queue() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    from_async(|_env| async {
         tokio::time::sleep(Duration::from_millis(40)).await;
         Ok("Queue OK".to_string())
     })
 }
 
-fn fetch_from_source(source: &'static str, delay_ms: u64) -> Effect<String, AppError, AppEnv> {
-    Effect::from_async(move |_env| async move {
+fn fetch_from_source(
+    source: &'static str,
+    delay_ms: u64,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+    from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(source.to_string())
     })
 }
 
-fn fetch_recommendations(user_id: i32, delay_ms: u64) -> Effect<Vec<String>, AppError, AppEnv> {
-    Effect::from_async(move |_env| async move {
+fn fetch_recommendations(
+    user_id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+    from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(vec![
             format!("Recommendation 1 for user {}", user_id),
@@ -334,8 +360,11 @@ fn fetch_recommendations(user_id: i32, delay_ms: u64) -> Effect<Vec<String>, App
     })
 }
 
-fn fetch_recent_activity(user_id: i32, delay_ms: u64) -> Effect<Vec<String>, AppError, AppEnv> {
-    Effect::from_async(move |_env| async move {
+fn fetch_recent_activity(
+    user_id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+    from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(vec![
             format!("Activity 1 for user {}", user_id),

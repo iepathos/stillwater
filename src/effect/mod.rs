@@ -16,7 +16,7 @@
 //! # Zero-Cost by Default
 //!
 //! ```rust,ignore
-//! use stillwater::effect_v2::prelude::*;
+//! use stillwater::effect::prelude::*;
 //!
 //! // Zero heap allocations - compiler can inline everything
 //! let effect = pure::<_, String, ()>(42)
@@ -88,10 +88,15 @@ pub mod bracket;
 pub mod combinators;
 pub mod compat;
 pub mod constructors;
+pub mod context;
 pub mod ext;
 pub mod parallel;
 pub mod prelude;
 pub mod reader;
+#[cfg(feature = "async")]
+pub mod retry;
+#[cfg(feature = "tracing")]
+pub mod tracing;
 mod trait_def;
 
 // Re-export core trait
@@ -104,7 +109,10 @@ pub use ext::EffectExt;
 pub use boxed::{BoxFuture, BoxedEffect, BoxedLocalEffect};
 
 // Re-export all combinator types
-pub use combinators::{AndThen, Fail, FromAsync, FromFn, FromResult, Map, MapErr, OrElse, Pure};
+pub use combinators::{
+    AndThen, AndThenAuto, AndThenRef, Check, Fail, FromAsync, FromFn, FromResult, Map, MapErr,
+    OrElse, Pure, Tap, With,
+};
 
 // Re-export reader types
 pub use reader::{Ask, Asks, Local};
@@ -114,11 +122,22 @@ pub use bracket::{bracket, bracket_simple, Bracket};
 
 // Re-export constructors
 pub use constructors::{
-    ask, asks, fail, from_async, from_fn, from_option, from_result, local, pure,
+    ask, asks, fail, from_async, from_fn, from_option, from_result, from_validation, local, pure,
 };
 
 // Re-export parallel functions
-pub use parallel::{par2, par3, par4, par_all, par_try_all, race};
+pub use parallel::{par2, par3, par4, par_all, par_all_limit, par_try_all, race};
+
+// Re-export context trait
+pub use context::{EffectContext, EffectContextChain};
+
+// Re-export retry functions (when async feature is enabled)
+#[cfg(feature = "async")]
+pub use retry::{retry, retry_if, retry_with_hooks, with_timeout};
+
+// Re-export tracing (when tracing feature is enabled)
+#[cfg(feature = "tracing")]
+pub use tracing::{EffectTracingExt, Instrument};
 
 // Re-export compatibility items
 #[allow(deprecated)]

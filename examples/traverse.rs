@@ -9,8 +9,10 @@
 //! - Error accumulation with traverse
 //! - Practical use cases
 
+use stillwater::effect::{fail, from_fn, pure};
 use stillwater::prelude::*;
 use stillwater::traverse::{sequence, sequence_effect, traverse, traverse_effect};
+use stillwater::BoxedEffect;
 
 // ==================== Basic Traverse ====================
 
@@ -207,8 +209,8 @@ fn example_batch_user_validation() {
 async fn example_effect_traverse() {
     println!("\n=== Example 4: Effect Traverse ===");
 
-    fn process_number(x: i32) -> Effect<i32, String, ()> {
-        Effect::pure(x * 2)
+    fn process_number(x: i32) -> BoxedEffect<i32, String, ()> {
+        pure(x * 2).boxed()
     }
 
     let numbers = vec![1, 2, 3, 4, 5];
@@ -220,12 +222,15 @@ async fn example_effect_traverse() {
     }
 
     // With validation
-    fn validate_and_process(x: i32) -> Effect<i32, String, ()> {
-        if x > 0 {
-            Effect::pure(x * x)
-        } else {
-            Effect::fail(format!("Negative number: {}", x))
-        }
+    fn validate_and_process(x: i32) -> BoxedEffect<i32, String, ()> {
+        from_fn(move |_: &()| {
+            if x > 0 {
+                Ok(x * x)
+            } else {
+                Err(format!("Negative number: {}", x))
+            }
+        })
+        .boxed()
     }
 
     let mixed = vec![1, 2, -3, 4];
@@ -253,16 +258,19 @@ async fn example_batch_file_processing() {
     }
 
     // Simulate reading a file
-    fn read_file(path: String) -> Effect<FileContent, String, ()> {
-        // In real code, this would actually read files
-        if path.ends_with(".txt") {
-            Effect::pure(FileContent {
-                path: path.clone(),
-                lines: 100, // Simulated
-            })
-        } else {
-            Effect::fail(format!("Not a text file: {}", path))
-        }
+    fn read_file(path: String) -> BoxedEffect<FileContent, String, ()> {
+        from_fn(move |_: &()| {
+            // In real code, this would actually read files
+            if path.ends_with(".txt") {
+                Ok(FileContent {
+                    path: path.clone(),
+                    lines: 100, // Simulated
+                })
+            } else {
+                Err(format!("Not a text file: {}", path))
+            }
+        })
+        .boxed()
     }
 
     let files = vec![
@@ -307,11 +315,8 @@ async fn example_sequence_effect() {
     println!("\n=== Example 6: Sequence Effect ===");
 
     // Create a collection of effects
-    let effects = vec![
-        Effect::<i32, String, ()>::pure(1),
-        Effect::pure(2),
-        Effect::pure(3),
-    ];
+    let effects: Vec<BoxedEffect<i32, String, ()>> =
+        vec![pure(1).boxed(), pure(2).boxed(), pure(3).boxed()];
 
     println!("Sequence pure effects:");
     let result_effect = sequence_effect(effects);
@@ -321,10 +326,10 @@ async fn example_sequence_effect() {
     }
 
     // Mix with failure
-    let mixed_effects = vec![
-        Effect::<i32, String, ()>::pure(1),
-        Effect::fail("something went wrong".to_string()),
-        Effect::pure(3),
+    let mixed_effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+        pure(1).boxed(),
+        fail("something went wrong".to_string()).boxed(),
+        pure(3).boxed(),
     ];
 
     println!("\nSequence with failure (fail-fast):");

@@ -17,8 +17,9 @@
 //! This allows you to have a composite environment and extract specific services:
 //!
 //! ```
-//! # use stillwater::IO;
+//! # use stillwater::{Effect, IO};
 //! # use std::convert::Infallible;
+//! #[derive(Clone)]
 //! struct Database {
 //!     users: Vec<String>,
 //! }
@@ -29,6 +30,7 @@
 //!     }
 //! }
 //!
+//! #[derive(Clone)]
 //! struct AppEnv {
 //!     db: Database,
 //! }
@@ -63,9 +65,10 @@
 //! use interior mutability (`Arc<Mutex<T>>`, RefCell, etc.):
 //!
 //! ```
-//! # use stillwater::IO;
+//! # use stillwater::{Effect, IO};
 //! # use std::sync::{Arc, Mutex};
 //! # use std::collections::HashMap;
+//! #[derive(Clone)]
 //! struct Cache {
 //!     data: Arc<Mutex<HashMap<u64, String>>>,
 //! }
@@ -76,6 +79,7 @@
 //!     }
 //! }
 //!
+//! #[derive(Clone)]
 //! struct Env {
 //!     cache: Cache,
 //! }
@@ -104,7 +108,8 @@
 use std::convert::Infallible;
 use std::future::Future;
 
-use crate::Effect;
+use crate::effect::prelude::*;
+use crate::BoxedEffect;
 
 /// Helper for creating I/O effects
 ///
@@ -130,7 +135,8 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
+    /// #[derive(Clone)]
     /// struct Database {
     ///     users: Vec<String>,
     /// }
@@ -141,6 +147,7 @@ impl IO {
     ///     }
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     db: Database,
     /// }
@@ -163,14 +170,14 @@ impl IO {
     /// assert_eq!(count, Ok(2));
     /// # });
     /// ```
-    pub fn read<T, R, F, Env>(f: F) -> Effect<R, Infallible, Env>
+    pub fn read<T, R, F, Env>(f: F) -> BoxedEffect<R, Infallible, Env>
     where
         F: FnOnce(&T) -> R + Send + 'static,
         R: Send + 'static,
         T: Send + Sync + 'static,
-        Env: AsRef<T> + Send + Sync + 'static,
+        Env: AsRef<T> + Clone + Send + Sync + 'static,
     {
-        Effect::from_fn(move |env: &Env| Ok(f(env.as_ref())))
+        from_fn(move |env: &Env| Ok(f(env.as_ref()))).boxed()
     }
 
     /// Create an effect from a mutating synchronous operation
@@ -189,8 +196,9 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::sync::{Arc, Mutex};
+    /// #[derive(Clone)]
     /// struct Logger {
     ///     messages: Arc<Mutex<Vec<String>>>,
     /// }
@@ -201,6 +209,7 @@ impl IO {
     ///     }
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     logger: Logger,
     /// }
@@ -226,14 +235,14 @@ impl IO {
     /// assert_eq!(env.logger.messages.lock().unwrap().len(), 1);
     /// # });
     /// ```
-    pub fn write<T, R, F, Env>(f: F) -> Effect<R, Infallible, Env>
+    pub fn write<T, R, F, Env>(f: F) -> BoxedEffect<R, Infallible, Env>
     where
         F: FnOnce(&T) -> R + Send + 'static,
         R: Send + 'static,
         T: Send + Sync + 'static,
-        Env: AsRef<T> + Send + Sync + 'static,
+        Env: AsRef<T> + Clone + Send + Sync + 'static,
     {
-        Effect::from_fn(move |env: &Env| Ok(f(env.as_ref())))
+        from_fn(move |env: &Env| Ok(f(env.as_ref()))).boxed()
     }
 
     /// Create an effect from an async read-only operation
@@ -253,12 +262,14 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::future::ready;
+    /// #[derive(Clone)]
     /// struct Database {
     ///     value: String,
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     db: Database,
     /// }
@@ -285,18 +296,19 @@ impl IO {
     /// assert!(result.is_ok());
     /// # });
     /// ```
-    pub fn read_async<T, R, F, Fut, Env>(f: F) -> Effect<R, Infallible, Env>
+    pub fn read_async<T, R, F, Fut, Env>(f: F) -> BoxedEffect<R, Infallible, Env>
     where
         F: FnOnce(&T) -> Fut + Send + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: Send + 'static,
         T: Send + Sync + 'static,
-        Env: AsRef<T> + Send + Sync + 'static,
+        Env: AsRef<T> + Clone + Send + Sync + 'static,
     {
-        Effect::from_async(move |env: &Env| {
+        from_async(move |env: &Env| {
             let fut = f(env.as_ref());
             async move { Ok(fut.await) }
         })
+        .boxed()
     }
 
     /// Create an effect from an async mutating operation
@@ -316,13 +328,15 @@ impl IO {
     /// # Examples
     ///
     /// ```
-    /// # use stillwater::IO;
+    /// # use stillwater::{Effect, IO};
     /// # use std::sync::{Arc, Mutex};
     /// # use std::future::ready;
+    /// #[derive(Clone)]
     /// struct Cache {
     ///     data: Arc<Mutex<Vec<String>>>,
     /// }
     ///
+    /// #[derive(Clone)]
     /// struct Env {
     ///     cache: Cache,
     /// }
@@ -349,18 +363,19 @@ impl IO {
     /// assert_eq!(env.cache.data.lock().unwrap().len(), 1);
     /// # });
     /// ```
-    pub fn write_async<T, R, F, Fut, Env>(f: F) -> Effect<R, Infallible, Env>
+    pub fn write_async<T, R, F, Fut, Env>(f: F) -> BoxedEffect<R, Infallible, Env>
     where
         F: FnOnce(&T) -> Fut + Send + 'static,
         Fut: Future<Output = R> + Send + 'static,
         R: Send + 'static,
         T: Send + Sync + 'static,
-        Env: AsRef<T> + Send + Sync + 'static,
+        Env: AsRef<T> + Clone + Send + Sync + 'static,
     {
-        Effect::from_async(move |env: &Env| {
+        from_async(move |env: &Env| {
             let fut = f(env.as_ref());
             async move { Ok(fut.await) }
         })
+        .boxed()
     }
 }
 
@@ -373,6 +388,7 @@ mod tests {
     // Test read with simple service
     #[tokio::test]
     async fn test_io_read_simple() {
+        #[derive(Clone)]
         struct Database {
             value: i32,
         }
@@ -383,6 +399,7 @@ mod tests {
             }
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
         }
@@ -412,6 +429,7 @@ mod tests {
             name: String,
         }
 
+        #[derive(Clone)]
         struct Database {
             users: Vec<User>,
         }
@@ -422,6 +440,7 @@ mod tests {
             }
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
         }
@@ -456,6 +475,7 @@ mod tests {
     // Test write with interior mutability
     #[tokio::test]
     async fn test_io_write_with_mutex() {
+        #[derive(Clone)]
         struct Logger {
             messages: Arc<Mutex<Vec<String>>>,
         }
@@ -466,6 +486,7 @@ mod tests {
             }
         }
 
+        #[derive(Clone)]
         struct Env {
             logger: Logger,
         }
@@ -496,10 +517,12 @@ mod tests {
     async fn test_io_read_async() {
         use std::future::ready;
 
+        #[derive(Clone)]
         struct Database {
             value: String,
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
         }
@@ -530,10 +553,12 @@ mod tests {
     async fn test_io_write_async() {
         use std::future::ready;
 
+        #[derive(Clone)]
         struct Cache {
             data: Arc<Mutex<Vec<String>>>,
         }
 
+        #[derive(Clone)]
         struct Env {
             cache: Cache,
         }
@@ -562,16 +587,20 @@ mod tests {
     // Test multiple services in same environment
     #[tokio::test]
     async fn test_multiple_services() {
+        #[derive(Clone)]
         struct Database {
             data: String,
         }
+        #[derive(Clone)]
         struct Cache {
             data: String,
         }
+        #[derive(Clone)]
         struct Logger {
             data: String,
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
             cache: Cache,
@@ -619,10 +648,12 @@ mod tests {
     // Test composition with Effect combinators
     #[tokio::test]
     async fn test_composition_with_combinators() {
+        #[derive(Clone)]
         struct Database {
             value: i32,
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
         }
@@ -650,10 +681,12 @@ mod tests {
     async fn test_real_world_composition() {
         use std::future::ready;
 
+        #[derive(Clone)]
         struct Database {
             data: HashMap<u64, String>,
         }
 
+        #[derive(Clone)]
         struct Cache {
             data: Arc<Mutex<HashMap<u64, String>>>,
         }
@@ -668,6 +701,7 @@ mod tests {
             }
         }
 
+        #[derive(Clone)]
         struct Env {
             db: Database,
             cache: Cache,
@@ -698,7 +732,7 @@ mod tests {
         // First call - should hit database
         let effect = IO::read(move |cache: &Cache| cache.get(1)).and_then(|cached| {
             if cached.is_some() {
-                Effect::pure(cached)
+                pure(cached).boxed()
             } else {
                 IO::read_async(|db: &Database| {
                     let value = db.data.get(&1).cloned();
@@ -711,10 +745,12 @@ mod tests {
                             cache.set(1, v);
                         })
                         .map(move |_| value.clone())
+                        .boxed()
                     } else {
-                        Effect::pure(value)
+                        pure(value).boxed()
                     }
                 })
+                .boxed()
             }
         });
 

@@ -36,11 +36,11 @@
 //!
 //! ```rust
 //! use stillwater::testing::TestEffect;
-//! use stillwater::Effect;
+//! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
 //! // Wrap an effect for deterministic testing
-//! let effect = Effect::<_, String, ()>::pure(42);
+//! let effect = pure::<_, String, ()>(42).boxed();
 //! let test_effect = TestEffect::new(effect);
 //!
 //! // Run without real I/O
@@ -48,7 +48,7 @@
 //! # });
 //! ```
 
-use crate::Effect;
+use crate::BoxedEffect;
 
 /// Wrapper for testing effects deterministically without real I/O.
 ///
@@ -62,10 +62,10 @@ use crate::Effect;
 ///
 /// ```rust
 /// use stillwater::testing::TestEffect;
-/// use stillwater::Effect;
+/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
-/// let effect = Effect::<_, String, ()>::pure(42);
+/// let effect = pure::<_, String, ()>(42).boxed();
 /// let test_effect = TestEffect::new(effect);
 ///
 /// assert_eq!(test_effect.run_standalone().await, Ok(42));
@@ -76,10 +76,10 @@ use crate::Effect;
 ///
 /// ```rust
 /// use stillwater::testing::TestEffect;
-/// use stillwater::Effect;
+/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
-/// let effect = Effect::<i32, _, ()>::fail("error");
+/// let effect = fail::<i32, _, ()>("error").boxed();
 /// let test_effect = TestEffect::new(effect);
 ///
 /// assert_eq!(test_effect.run_standalone().await, Err("error"));
@@ -90,9 +90,10 @@ use crate::Effect;
 ///
 /// ```rust
 /// use stillwater::testing::{TestEffect, MockEnv};
-/// use stillwater::Effect;
+/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
+/// #[derive(Clone)]
 /// struct Database {
 ///     value: i32,
 /// }
@@ -101,9 +102,9 @@ use crate::Effect;
 ///     .with(|| Database { value: 42 })
 ///     .build();
 ///
-/// let effect = Effect::from_fn(|(_, db): &((), Database)| {
+/// let effect = from_fn(|(_, db): &((), Database)| {
 ///     Ok::<_, String>(db.value * 2)
-/// });
+/// }).boxed();
 ///
 /// let test_effect = TestEffect::new(effect);
 /// assert_eq!(test_effect.run(&env).await, Ok(84));
@@ -111,22 +112,22 @@ use crate::Effect;
 /// ```
 #[derive(Debug)]
 pub struct TestEffect<T, E, Env> {
-    effect: Effect<T, E, Env>,
+    effect: BoxedEffect<T, E, Env>,
 }
 
 impl<T, E, Env> TestEffect<T, E, Env> {
-    /// Create a new TestEffect from an Effect.
+    /// Create a new TestEffect from a BoxedEffect.
     ///
     /// # Example
     ///
     /// ```rust
     /// use stillwater::testing::TestEffect;
-    /// use stillwater::Effect;
+    /// use stillwater::effect::prelude::*;
     ///
-    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let effect = pure::<_, String, ()>(42).boxed();
     /// let test_effect = TestEffect::new(effect);
     /// ```
-    pub fn new(effect: Effect<T, E, Env>) -> Self {
+    pub fn new(effect: BoxedEffect<T, E, Env>) -> Self {
         Self { effect }
     }
 
@@ -139,10 +140,10 @@ impl<T, E, Env> TestEffect<T, E, Env> {
     ///
     /// ```rust
     /// use stillwater::testing::TestEffect;
-    /// use stillwater::Effect;
+    /// use stillwater::effect::prelude::*;
     ///
     /// # tokio_test::block_on(async {
-    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let effect = pure::<_, String, ()>(42).boxed();
     /// let test_effect = TestEffect::new(effect);
     ///
     /// let result = test_effect.run_standalone().await;
@@ -153,9 +154,9 @@ impl<T, E, Env> TestEffect<T, E, Env> {
     where
         T: Send + 'static,
         E: Send + 'static,
-        Env: Sync + 'static,
+        Env: Clone + Send + Sync + 'static,
     {
-        self.effect.run(env).await
+        crate::effect::Effect::run(self.effect, env).await
     }
 
     /// Unwrap the underlying effect.
@@ -166,13 +167,13 @@ impl<T, E, Env> TestEffect<T, E, Env> {
     ///
     /// ```rust
     /// use stillwater::testing::TestEffect;
-    /// use stillwater::Effect;
+    /// use stillwater::effect::prelude::*;
     ///
-    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let effect = pure::<_, String, ()>(42).boxed();
     /// let test_effect = TestEffect::new(effect);
     /// let unwrapped = test_effect.into_effect();
     /// ```
-    pub fn into_effect(self) -> Effect<T, E, Env> {
+    pub fn into_effect(self) -> BoxedEffect<T, E, Env> {
         self.effect
     }
 }
@@ -191,10 +192,10 @@ where
     ///
     /// ```rust
     /// use stillwater::testing::TestEffect;
-    /// use stillwater::Effect;
+    /// use stillwater::effect::prelude::*;
     ///
     /// # tokio_test::block_on(async {
-    /// let effect = Effect::<_, String, ()>::pure(42);
+    /// let effect = pure::<_, String, ()>(42).boxed();
     /// let test_effect = TestEffect::new(effect);
     ///
     /// let result = test_effect.run_standalone().await;
@@ -464,7 +465,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_effect_new_and_run() {
-        let effect = Effect::<_, String, ()>::pure(42);
+        use crate::effect::prelude::*;
+        let effect = pure::<_, String, ()>(42).boxed();
         let test_effect = TestEffect::new(effect);
         let result = test_effect.run_standalone().await;
         assert_eq!(result, Ok(42));
@@ -472,7 +474,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_effect_with_failure() {
-        let effect = Effect::<i32, _, ()>::fail("error");
+        use crate::effect::prelude::*;
+        let effect = fail::<i32, _, ()>("error").boxed();
         let test_effect = TestEffect::new(effect);
         let result = test_effect.run_standalone().await;
         assert_eq!(result, Err("error"));
@@ -480,6 +483,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_effect_with_mock_env() {
+        use crate::effect::prelude::*;
+
+        #[derive(Clone)]
         struct Config {
             multiplier: i32,
         }
@@ -487,7 +493,7 @@ mod tests {
         let env = MockEnv::new().with(|| Config { multiplier: 21 }).build();
 
         let effect =
-            Effect::from_fn(|(_, config): &((), Config)| Ok::<_, String>(config.multiplier * 2));
+            from_fn(|(_, config): &((), Config)| Ok::<_, String>(config.multiplier * 2)).boxed();
 
         let test_effect = TestEffect::new(effect);
         let result = test_effect.run(&env).await;
@@ -496,10 +502,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_effect_into_effect() {
-        let effect = Effect::<_, String, ()>::pure(42);
+        use crate::effect::prelude::*;
+        let effect = pure::<_, String, ()>(42).boxed();
         let test_effect = TestEffect::new(effect);
         let unwrapped = test_effect.into_effect();
-        let result = unwrapped.run_standalone().await;
+        let result = unwrapped.run(&()).await;
         assert_eq!(result, Ok(42));
     }
 

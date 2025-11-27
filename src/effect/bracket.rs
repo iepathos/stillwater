@@ -3,7 +3,7 @@
 //! The bracket pattern ensures resources are properly released even when
 //! errors occur or panics happen during use.
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// Bracket combinator type for resource management.
 ///
@@ -15,7 +15,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = bracket(
 ///     // Acquire: open file handle
@@ -99,7 +99,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// // Database connection example
 /// let effect = bracket(
@@ -142,7 +142,7 @@ where
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = bracket_simple(
 ///     from_fn(|_| Ok::<_, String>(acquire_resource())),

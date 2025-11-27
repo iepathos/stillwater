@@ -12,7 +12,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-use stillwater::{Effect, RetryPolicy, TimeoutError};
+use stillwater::effect::prelude::*;
+use stillwater::{RetryPolicy, TimeoutError};
 
 // ==================== Basic Retry ====================
 
@@ -25,12 +26,12 @@ async fn example_basic_retry() {
     // Track the number of attempts
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -126,12 +127,12 @@ async fn example_conditional_retry() {
     let attempts = Arc::new(AtomicU32::new(0));
 
     // This effect returns a Permanent error - should NOT retry
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         attempts.fetch_add(1, Ordering::SeqCst);
@@ -153,12 +154,12 @@ async fn example_conditional_retry() {
     attempts.store(0, Ordering::SeqCst);
 
     // This effect returns Transient errors then succeeds
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -191,12 +192,12 @@ async fn example_retry_with_hooks() {
 
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry_with_hooks(
+    let effect = retry_with_hooks(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -251,12 +252,14 @@ async fn example_timeout() {
     println!("\n=== Example 5: Timeout ===");
 
     // Effect that takes too long
-    let slow_effect = Effect::from_async(|_: &()| async {
-        println!("  Starting slow operation...");
-        tokio::time::sleep(Duration::from_secs(10)).await;
-        Ok::<_, String>("done")
-    })
-    .with_timeout(Duration::from_millis(100));
+    let slow_effect = with_timeout(
+        from_async(|_: &()| async {
+            println!("  Starting slow operation...");
+            tokio::time::sleep(Duration::from_secs(10)).await;
+            Ok::<_, String>("done")
+        }),
+        Duration::from_millis(100),
+    );
 
     println!("Running with 100ms timeout:");
     match slow_effect.run_standalone().await {
@@ -268,12 +271,14 @@ async fn example_timeout() {
     }
 
     // Effect that completes in time
-    let fast_effect = Effect::from_async(|_: &()| async {
-        println!("\n  Starting fast operation...");
-        tokio::time::sleep(Duration::from_millis(10)).await;
-        Ok::<_, String>("done quickly!")
-    })
-    .with_timeout(Duration::from_millis(100));
+    let fast_effect = with_timeout(
+        from_async(|_: &()| async {
+            println!("\n  Starting fast operation...");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+            Ok::<_, String>("done quickly!")
+        }),
+        Duration::from_millis(100),
+    );
 
     println!("Running with 100ms timeout:");
     match fast_effect.run_standalone().await {
@@ -299,27 +304,29 @@ async fn example_retry_with_timeout() {
     let attempts = Arc::new(AtomicU32::new(0));
 
     // Each attempt has its own timeout, and we retry on timeout
-    let effect = Effect::retry(
+    let effect = retry(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
-                    let attempts = attempts.clone();
-                    async move {
-                        let n = attempts.fetch_add(1, Ordering::SeqCst);
-                        println!("  Attempt {} starting...", n + 1);
+                with_timeout(
+                    from_async(move |_: &()| {
+                        let attempts = attempts.clone();
+                        async move {
+                            let n = attempts.fetch_add(1, Ordering::SeqCst);
+                            println!("  Attempt {} starting...", n + 1);
 
-                        if n < 2 {
-                            // First two attempts are slow (will timeout)
-                            tokio::time::sleep(Duration::from_millis(500)).await;
+                            if n < 2 {
+                                // First two attempts are slow (will timeout)
+                                tokio::time::sleep(Duration::from_millis(500)).await;
+                            }
+                            // Third attempt is fast
+                            tokio::time::sleep(Duration::from_millis(10)).await;
+                            Ok::<_, String>("connected!")
                         }
-                        // Third attempt is fast
-                        tokio::time::sleep(Duration::from_millis(10)).await;
-                        Ok::<_, String>("connected!")
-                    }
-                })
-                .with_timeout(Duration::from_millis(100))
+                    }),
+                    Duration::from_millis(100),
+                )
                 .map_err(|e| format!("{}", e))
             }
         },
@@ -397,12 +404,12 @@ async fn example_http_pattern() {
     let attempts = Arc::new(AtomicU32::new(0));
 
     // Simulate an API that fails twice with server errors then succeeds
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         let n = attempts.fetch_add(1, Ordering::SeqCst);
@@ -434,12 +441,12 @@ async fn example_http_pattern() {
     println!("\n--- Client Error (should NOT retry) ---");
     let attempts = Arc::new(AtomicU32::new(0));
 
-    let effect = Effect::retry_if(
+    let effect = retry_if(
         {
             let attempts = attempts.clone();
             move || {
                 let attempts = attempts.clone();
-                Effect::from_async(move |_: &()| {
+                from_async(move |_: &()| {
                     let attempts = attempts.clone();
                     async move {
                         attempts.fetch_add(1, Ordering::SeqCst);

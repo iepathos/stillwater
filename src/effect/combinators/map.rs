@@ -1,6 +1,6 @@
 //! Map combinator - transforms the success value of an effect.
 
-use crate::effect_v2::trait_def::Effect;
+use crate::effect::trait_def::Effect;
 
 /// Map combinator - transforms the success value.
 ///
@@ -10,7 +10,7 @@ use crate::effect_v2::trait_def::Effect;
 /// # Example
 ///
 /// ```rust,ignore
-/// use stillwater::effect_v2::prelude::*;
+/// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(21).map(|x| x * 2);
 /// assert_eq!(effect.execute(&()).await, Ok(42));
