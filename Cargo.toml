@@ -16,11 +16,14 @@ tokio = { version = "1", features = ["full"], optional = true }
 futures = "0.3"
 proptest = { version = "1.0", optional = true }
 rand = { version = "0.8", optional = true }
+tracing = { version = "0.1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-test = "0.4"
 proptest = "1.0"
+tracing-subscriber = { version = "0.3", features = ["fmt"] }
+tracing-test = "0.2"
 
 [features]
 default = []
@@ -28,8 +31,13 @@ async = ["tokio"]
 try_trait = []
 proptest = ["dep:proptest"]
 jitter = ["dep:rand"]
+tracing = ["dep:tracing"]
 
 [[example]]
 name = "retry_patterns"
 required-features = ["async"]
+
+[[example]]
+name = "tracing_demo"
+required-features = ["tracing", "async"]
 
