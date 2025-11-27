@@ -1348,6 +1348,88 @@ where
     }
 }
 
+// Tracing support - feature-gated
+#[cfg(feature = "tracing")]
+impl<T, E, Env> Effect<T, E, Env>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Sync + 'static,
+{
+    /// Wrap this Effect in a tracing span
+    ///
+    /// The span is entered when the Effect executes and exited when it completes.
+    /// This enables observability into Effect execution flow.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use stillwater::Effect;
+    /// use tracing::info_span;
+    ///
+    /// let effect = Effect::<_, String, ()>::pure(42)
+    ///     .instrument(info_span!("my_operation", value = 42));
+    /// ```
+    pub fn instrument(self, span: tracing::Span) -> Self {
+        use tracing::Instrument;
+        Effect {
+            run_fn: Box::new(move |env| {
+                let fut = (self.run_fn)(env);
+                Box::pin(fut.instrument(span))
+            }),
+        }
+    }
+
+    /// Auto-instrument with caller source location
+    ///
+    /// Creates a debug span capturing the file and line where `.traced()` was called.
+    /// This makes it easy to see where in your code each Effect originates.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use stillwater::Effect;
+    ///
+    /// fn my_operation() -> Effect<i32, String, ()> {
+    ///     Effect::pure(42).traced()  // Span captures this location
+    /// }
+    /// ```
+    ///
+    /// Output in logs:
+    /// ```text
+    /// DEBUG effect{file="src/lib.rs" line=42}: executing
+    /// ```
+    #[track_caller]
+    pub fn traced(self) -> Self {
+        let location = std::panic::Location::caller();
+        let span = tracing::debug_span!("effect", file = location.file(), line = location.line(),);
+        self.instrument(span)
+    }
+
+    /// Give this Effect a name for tracing
+    ///
+    /// Creates a debug span with the given name. Useful for identifying
+    /// specific operations in trace output.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,ignore
+    /// use stillwater::Effect;
+    ///
+    /// let effect = fetch_user(id).named("fetch-user");
+    /// ```
+    ///
+    /// Output in logs:
+    /// ```text
+    /// DEBUG effect{name="fetch-user"}: executing
+    /// ```
+    pub fn named(self, name: impl Into<String>) -> Self {
+        let name = name.into();
+        let span = tracing::debug_span!("effect", name = %name);
+        self.instrument(span)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2386,5 +2468,107 @@ mod tests {
 
         let result = Effect::par_all(effects).run(&env).await;
         assert!(result.is_err());
+    }
+}
+
+#[cfg(all(test, feature = "tracing"))]
+mod tracing_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_instrument_returns_value() {
+        let effect = Effect::<_, String, ()>::pure(42).instrument(tracing::info_span!("test_span"));
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_traced_returns_value() {
+        let effect = Effect::<_, String, ()>::pure(42).traced();
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_named_returns_value() {
+        let effect = Effect::<_, String, ()>::pure(42).named("my-operation");
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(42));
+    }
+
+    #[tokio::test]
+    async fn test_error_in_span_propagates() {
+        let effect = Effect::<i32, _, ()>::fail("oops".to_string())
+            .instrument(tracing::info_span!("failing"));
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Err("oops".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_nested_spans_chain() {
+        let inner = Effect::<_, String, ()>::pure(1).named("inner");
+        let outer = inner.and_then(|x| Effect::pure(x + 1).named("outer"));
+
+        let result = outer.run(&()).await;
+
+        assert_eq!(result, Ok(2));
+    }
+
+    #[tokio::test]
+    async fn test_composition_with_tracing() {
+        let effect = Effect::<_, String, ()>::pure(5)
+            .traced()
+            .map(|x| x * 2)
+            .traced()
+            .and_then(|x| Effect::pure(x + 10).traced());
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(20));
+    }
+
+    #[tokio::test]
+    async fn test_parallel_with_tracing() {
+        let effects = vec![
+            Effect::<_, String, ()>::pure(1).named("task-1"),
+            Effect::<_, String, ()>::pure(2).named("task-2"),
+            Effect::<_, String, ()>::pure(3).named("task-3"),
+        ];
+
+        let result = Effect::par_all(effects).run(&()).await;
+
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+    }
+
+    #[tokio::test]
+    async fn test_traced_with_map() {
+        let effect = Effect::<_, String, ()>::pure(10).traced().map(|x| x * 3);
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(30));
+    }
+
+    #[tokio::test]
+    async fn test_instrument_with_environment() {
+        struct Env {
+            value: i32,
+        }
+
+        let effect = Effect::from_fn(|env: &Env| Ok::<_, String>(env.value))
+            .instrument(tracing::debug_span!("env_access"));
+
+        let env = Env { value: 42 };
+        let result = effect.run(&env).await;
+
+        assert_eq!(result, Ok(42));
     }
 }
