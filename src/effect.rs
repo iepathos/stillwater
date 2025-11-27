@@ -1528,7 +1528,10 @@ mod tests {
     #[tokio::test]
     async fn test_map_err_failure() {
         let effect = Effect::<i32, _, ()>::fail("error").map_err(|e| format!("Failed: {}", e));
-        assert_eq!(effect.run_standalone().await, Err("Failed: error".to_string()));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err("Failed: error".to_string())
+        );
     }
 
     #[tokio::test]
@@ -1849,7 +1852,10 @@ mod tests {
         let effect = Effect::<_, String, ()>::pure(5)
             .with(|_value| Effect::<i32, String, ()>::fail("second failed".to_string()));
 
-        assert_eq!(effect.run_standalone().await, Err("second failed".to_string()));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err("second failed".to_string())
+        );
     }
 
     #[tokio::test]
@@ -1873,7 +1879,10 @@ mod tests {
         let effect = Effect::<_, Error2, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
 
-        assert_eq!(effect.run_standalone().await, Err(Error2::Other(Error1::Fail)));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err(Error2::Other(Error1::Fail))
+        );
     }
 
     #[tokio::test]
@@ -1902,7 +1911,10 @@ mod tests {
         // Test error conversion path
         let effect = Effect::<_, Error2, ()>::pure(42)
             .and_then_auto(|_| Effect::<i32, Error1, ()>::fail(Error1::Fail));
-        assert_eq!(effect.run_standalone().await, Err(Error2::Other(Error1::Fail)));
+        assert_eq!(
+            effect.run_standalone().await,
+            Err(Error2::Other(Error1::Fail))
+        );
     }
 
     #[tokio::test]
