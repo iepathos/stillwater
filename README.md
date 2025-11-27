@@ -161,13 +161,66 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 # });
 ```
 
+### 6. "Retry logic is scattered and hard to test"
+
+```rust
+use stillwater::{Effect, RetryPolicy};
+use std::time::Duration;
+
+// Traditional approach: retry logic mixed with business logic ❌
+// - Can't test retry behavior without calling the API
+// - Can't reuse the same policy across different operations
+// - Hard to tune or modify without code changes
+
+// Stillwater: Policy as Data ✓
+// Define retry policies as pure, composable, testable values
+let api_policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(5)
+    .with_max_delay(Duration::from_secs(2))
+    .with_jitter(0.25);
+
+// Test the policy without any I/O
+assert_eq!(api_policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
+assert_eq!(api_policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
+assert_eq!(api_policy.delay_for_attempt(2), Some(Duration::from_millis(400)));
+
+// Reuse the same policy across different effects
+Effect::retry(|| fetch_user(id), api_policy.clone());
+Effect::retry(|| save_order(order), api_policy.clone());
+
+// Conditional retry: only retry transient failures
+Effect::retry_if(
+    || api_call(),
+    api_policy,
+    |err| matches!(err, ApiError::Timeout | ApiError::ServerError(_))
+    // Don't retry client errors (4xx) - they won't succeed on retry
+);
+
+// Observability: hook into retry events for logging/metrics
+Effect::retry_with_hooks(
+    || api_call(),
+    policy,
+    |event| log::warn!(
+        "Attempt {} failed: {}, retrying in {:?}",
+        event.attempt, event.error, event.next_delay
+    )
+);
+```
+
+**Why "Policy as Data" matters:**
+- **Testable**: Test retry timing without mocks or network calls
+- **Reusable**: One policy definition, many use sites
+- **Composable**: Builder pattern for flexible configuration
+- **Inspectable**: Query policy parameters before execution
+- **Safe**: Enforces bounds (max_retries OR max_delay required)
+
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect<T, E, Env>`** - Separate pure logic from I/O effects
 - **Parallel effect execution** - Run independent effects concurrently with `par_all()`, `race()`, and `par_all_limit()`
-- **Retry and resilience** - Configurable retry policies with exponential, linear, constant, and Fibonacci backoff strategies, plus timeout support
+- **Retry and resilience** - Policy-as-data approach: define retry policies as pure, testable values with exponential, linear, constant, and Fibonacci backoff strategies. Includes jitter (proportional, full, decorrelated), conditional retry with predicates, retry hooks for observability, and timeout support
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
   - Validate entire collections with error accumulation
   - Process collections with effects using fail-fast semantics
