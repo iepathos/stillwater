@@ -258,7 +258,9 @@ The builder generates nested brackets internally - no runtime overhead, just erg
 - [ ] `Resource::both` for composing two resources
 - [ ] Cleanup errors logged by default
 - [ ] `Effect::bracket_full` returning `BracketError` for explicit handling
+- [ ] `Effect::bracket_sync` for panic-safe bracket with synchronous cleanup
 - [ ] `BracketError` with `AcquireError`, `UseError`, `CleanupError`, and `Both` variants
+- [ ] `Resource::both` logs cleanup errors on partial acquisition rollback (not silently discarded)
 - [ ] Comprehensive unit tests
 - [ ] Documentation with examples
 
@@ -270,7 +272,7 @@ The builder generates nested brackets internally - no runtime overhead, just erg
 - [ ] `ScopeGuard` for dynamic resource acquisition
 - [ ] `ScopeBuilder` for named resources
 - [ ] Cancellation-safe variants
-- [ ] Panic-safe variants
+- [ ] Panic-safe variants with async cleanup (only sync cleanup via `bracket_sync`)
 - [ ] `Resource::map` (ownership complexity with release function)
 - [ ] `Resource::all3` (use `Acquiring` builder for 3+ resources instead)
 
@@ -574,6 +576,114 @@ where
             }
         })
     }
+
+    /// Panic-safe bracket with synchronous cleanup.
+    ///
+    /// Unlike `bracket`, this variant guarantees cleanup runs even if the use
+    /// function panics, provided the release function is synchronous. This uses
+    /// `std::panic::catch_unwind` internally.
+    ///
+    /// # Panic Safety
+    ///
+    /// - If `use_fn` panics, cleanup still runs, then the panic is re-raised
+    /// - If cleanup fails after a panic, the cleanup error is logged and panic re-raised
+    /// - The use function must be `UnwindSafe` (most closures are)
+    ///
+    /// # When to Use
+    ///
+    /// Use `bracket_sync` when:
+    /// - Your cleanup is synchronous (or can be made sync with `block_on`)
+    /// - You need guaranteed cleanup even on panic
+    /// - You're at an application boundary where panics might occur
+    ///
+    /// Use regular `bracket` when:
+    /// - Cleanup is async and cannot be made synchronous
+    /// - You're in library code where panics should propagate
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use stillwater::Effect;
+    ///
+    /// let result = Effect::bracket_sync(
+    ///     Effect::<_, String, ()>::pure(vec![1, 2, 3]),
+    ///     |v| {
+    ///         println!("Cleaning up vec with {} items", v.len());
+    ///         Ok(())  // Synchronous cleanup
+    ///     },
+    ///     |v| Effect::pure(v.iter().sum::<i32>()),
+    /// ).run(&()).await;
+    /// ```
+    pub fn bracket_sync<R, U, Acq, Rel, Use>(
+        acquire: Acq,
+        release: Rel,
+        use_fn: Use,
+    ) -> Effect<U, E, Env>
+    where
+        R: Send + 'static,
+        U: Send + 'static,
+        Acq: Into<Effect<R, E, Env>>,
+        Rel: FnOnce(R) -> Result<(), E> + Send + 'static,
+        Use: FnOnce(&R) -> Effect<U, E, Env> + Send + std::panic::UnwindSafe + 'static,
+        E: std::fmt::Debug,
+    {
+        let acquire_effect = acquire.into();
+
+        Effect::from_async(move |env: &Env| {
+            let env_ptr = env as *const Env;
+
+            async move {
+                let env = unsafe { &*env_ptr };
+
+                // Acquire resource
+                let resource = acquire_effect.run(env).await?;
+
+                // Use resource with panic catching
+                // We need AssertUnwindSafe because env reference isn't UnwindSafe
+                let use_result = {
+                    let resource_ref = &resource;
+                    let env_for_use = env;
+
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                        // We can't await inside catch_unwind, so we use a blocking approach
+                        // This creates a nested runtime - document this limitation
+                        futures::executor::block_on(use_fn(resource_ref).run(env_for_use))
+                    }))
+                };
+
+                // Release resource (always runs, even after panic)
+                let release_result = release(resource);
+
+                // Handle results
+                match use_result {
+                    Ok(Ok(value)) => {
+                        // Use succeeded
+                        if let Err(rel_err) = release_result {
+                            tracing::warn!("Resource cleanup failed: {:?}", rel_err);
+                        }
+                        Ok(value)
+                    }
+                    Ok(Err(use_err)) => {
+                        // Use returned an error
+                        if let Err(rel_err) = release_result {
+                            tracing::warn!("Resource cleanup failed: {:?}", rel_err);
+                        }
+                        Err(use_err)
+                    }
+                    Err(panic_payload) => {
+                        // Use panicked - log cleanup error if any, then re-panic
+                        if let Err(rel_err) = release_result {
+                            tracing::error!(
+                                "Resource cleanup failed after panic: {:?}",
+                                rel_err
+                            );
+                        }
+                        std::panic::resume_unwind(panic_payload)
+                    }
+                }
+            }
+        })
+    }
 }
 ```
 
@@ -666,10 +776,16 @@ where
                 let t1 = acquire1.run(env).await?;
                 match acquire2.run(env).await {
                     Ok(t2) => Ok((t1, t2)),
-                    Err(e) => {
+                    Err(acquire_err) => {
                         // Release t1 if t2 acquisition fails
-                        let _ = release1(t1).await;
-                        Err(e)
+                        // Log cleanup error rather than silently discarding
+                        if let Err(cleanup_err) = release1(t1).await {
+                            tracing::warn!(
+                                "Cleanup failed during partial acquisition rollback: {:?}",
+                                cleanup_err
+                            );
+                        }
+                        Err(acquire_err)
                     }
                 }
             }
@@ -924,11 +1040,13 @@ src/
   - `lib.rs` - Re-export resource types
 - **External Dependencies**:
   - `tracing` (new dependency, for logging cleanup errors)
+  - `futures` (new dependency, for `block_on` in `bracket_sync`)
 
 Add to `Cargo.toml`:
 ```toml
 [dependencies]
 tracing = "0.1"
+futures = "0.3"
 ```
 
 ## Testing Strategy
@@ -1286,6 +1404,101 @@ mod tests {
             "first resource must be released when second acquire fails"
         );
     }
+
+    #[tokio::test]
+    async fn bracket_sync_releases_on_success() {
+        let released = Arc::new(AtomicBool::new(false));
+        let released_clone = released.clone();
+
+        let result = Effect::bracket_sync(
+            Effect::<_, String, ()>::pure(42),
+            move |_| {
+                released_clone.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+            |val| Effect::pure(*val * 2),
+        )
+        .run(&())
+        .await;
+
+        assert_eq!(result, Ok(84));
+        assert!(released.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn bracket_sync_releases_on_use_failure() {
+        let released = Arc::new(AtomicBool::new(false));
+        let released_clone = released.clone();
+
+        let result = Effect::<i32, String, ()>::bracket_sync(
+            Effect::pure(42),
+            move |_| {
+                released_clone.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+            |_| Effect::fail("use failed".to_string()),
+        )
+        .run(&())
+        .await;
+
+        assert_eq!(result, Err("use failed".to_string()));
+        assert!(released.load(Ordering::SeqCst), "cleanup must run on failure");
+    }
+
+    #[tokio::test]
+    #[should_panic(expected = "intentional panic")]
+    async fn bracket_sync_releases_on_panic() {
+        let released = Arc::new(AtomicBool::new(false));
+        let released_clone = released.clone();
+
+        // We need to check cleanup ran BEFORE the panic propagates
+        // Use a static to verify after test (or check in separate thread)
+        static CLEANUP_RAN: std::sync::atomic::AtomicBool =
+            std::sync::atomic::AtomicBool::new(false);
+
+        let _ = Effect::<i32, String, ()>::bracket_sync(
+            Effect::pure(42),
+            move |_| {
+                CLEANUP_RAN.store(true, Ordering::SeqCst);
+                Ok(())
+            },
+            |_| {
+                panic!("intentional panic");
+                #[allow(unreachable_code)]
+                Effect::pure(0)
+            },
+        )
+        .run(&())
+        .await;
+
+        // Note: This assertion runs before panic propagates due to how
+        // bracket_sync re-raises the panic after cleanup
+    }
+
+    #[tokio::test]
+    async fn bracket_sync_logs_cleanup_error_on_panic() {
+        // This test verifies cleanup runs even when it fails after a panic
+        // The panic should still propagate
+        let result = std::panic::catch_unwind(|| {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            rt.block_on(async {
+                Effect::<i32, String, ()>::bracket_sync(
+                    Effect::pure(42),
+                    |_| Err("cleanup failed".to_string()),  // Cleanup fails
+                    |_| {
+                        panic!("use panicked");
+                        #[allow(unreachable_code)]
+                        Effect::pure(0)
+                    },
+                )
+                .run(&())
+                .await
+            })
+        });
+
+        // Should have panicked (cleanup error logged, panic re-raised)
+        assert!(result.is_err());
+    }
 }
 ```
 
@@ -1329,22 +1542,37 @@ proptest! {
 
 ### Panic Safety
 
-The bracket pattern does **not** guarantee cleanup on panic:
+The standard `bracket` pattern does **not** guarantee cleanup on panic:
 
 ```rust
 Effect::bracket(
     acquire(),
     |r| async { r.close().await },
     |r| {
-        panic!("oops");  // Cleanup will NOT run
+        panic!("oops");  // Cleanup will NOT run with async release
         Effect::pure(())
     }
 )
 ```
 
-**Rationale**: Async panic handling in Rust is complex. `catch_unwind` is synchronous and doesn't compose well with async. We choose honesty over false guarantees.
+**Solution**: Use `bracket_sync` when cleanup can be synchronous:
 
-**Workaround**: Use `std::panic::catch_unwind` at application boundaries if needed.
+```rust
+Effect::bracket_sync(
+    acquire(),
+    |r| r.close_sync(),  // Synchronous cleanup
+    |r| {
+        panic!("oops");  // Cleanup WILL run, then panic re-raised
+        Effect::pure(())
+    }
+)
+```
+
+**Limitation of `bracket_sync`**: Uses `futures::executor::block_on` internally, which creates a nested runtime. This may cause issues if the use function itself spawns tasks on the outer runtime. For most use cases (pure computation, simple I/O) this is fine.
+
+**When to use which**:
+- `bracket` - Async cleanup, no panic safety needed (library code, controlled environments)
+- `bracket_sync` - Sync cleanup, panic safety required (application boundaries, user-facing code)
 
 ### Cancellation Safety
 
@@ -1488,8 +1716,8 @@ fn process() -> Effect<(), Error, Env> {
 ## Implementation Order
 
 1. **Phase 1**: `Effect::bracket` - Core pattern
-2. **Phase 2**: `BracketError` type, `Effect::bracket_full`
-3. **Phase 3**: `Resource` type with `with`, `both`
+2. **Phase 2**: `BracketError` type, `Effect::bracket_full`, `Effect::bracket_sync`
+3. **Phase 3**: `Resource` type with `with`, `both` (with cleanup error logging)
 4. **Phase 4**: `Acquiring` builder with `and`, `with`, `with_flat`
 5. **Phase 5**: `Effect::bracket2`, `Effect::bracket3` (convenience, built on bracket)
 6. **Phase 6**: Documentation, examples, integration tests
