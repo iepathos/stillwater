@@ -40,7 +40,7 @@ jobs:
       with:
         coverage-file: target/coverage/lcov.info
         command: analyze
-        format: html
+        format: markdown
 
     # Optional: Uncomment to enforce tech debt thresholds
     # - name: Validate tech debt thresholds
