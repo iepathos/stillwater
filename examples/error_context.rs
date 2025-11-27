@@ -149,7 +149,9 @@ async fn example_layered_context() {
     }
 
     // Low-level: fetch user from database
-    fn fetch_user(user_id: u64) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
+    fn fetch_user(
+        user_id: u64,
+    ) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
         from_fn(move |env: &Env| {
             env.db
                 .users
@@ -162,13 +164,17 @@ async fn example_layered_context() {
     }
 
     // Mid-level: load user profile
-    fn load_user_profile(user_id: u64) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
+    fn load_user_profile(
+        user_id: u64,
+    ) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
         fetch_user(user_id)
             .map_err(move |e| e.context(format!("loading profile for user {}", user_id)))
     }
 
     // High-level: display user dashboard
-    fn display_dashboard(user_id: u64) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
+    fn display_dashboard(
+        user_id: u64,
+    ) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
         load_user_profile(user_id)
             .map(|user| format!("Dashboard for {}", user.name))
             .map_err(move |e| e.context(format!("rendering dashboard for user {}", user_id)))
@@ -214,7 +220,9 @@ async fn example_realistic_error_handling() {
     }
 
     // Read file
-    fn read_file(path: String) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
+    fn read_file(
+        path: String,
+    ) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
         let path_for_context = path.clone();
         from_fn(move |env: &Env| {
             env.fs
@@ -228,7 +236,9 @@ async fn example_realistic_error_handling() {
     }
 
     // Parse config
-    fn parse_config(content: String) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
+    fn parse_config(
+        content: String,
+    ) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
         from_fn(move |_env: &Env| {
             if content.contains("timeout") {
                 Ok(Config { timeout: 30 })
@@ -240,7 +250,9 @@ async fn example_realistic_error_handling() {
     }
 
     // Load and parse config
-    fn load_config(path: String) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
+    fn load_config(
+        path: String,
+    ) -> impl Effect<Output = Config, Error = ContextError<String>, Env = Env> {
         read_file(path.clone())
             .and_then(parse_config)
             .map_err(move |e| e.context(format!("loading config from '{}'", path)))
@@ -309,7 +321,9 @@ async fn example_custom_errors() {
     #[derive(Clone)]
     struct Env;
 
-    fn validate_user_input(input: String) -> impl Effect<Output = String, Error = AppError, Env = Env> {
+    fn validate_user_input(
+        input: String,
+    ) -> impl Effect<Output = String, Error = AppError, Env = Env> {
         from_fn(move |_env: &Env| {
             if input.is_empty() {
                 Err(AppError::InvalidInput("input cannot be empty".to_string()))

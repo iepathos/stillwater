@@ -303,7 +303,10 @@ async fn example_graceful_degradation() {
 
 // Helper functions for examples
 
-fn fetch_user(id: i32, delay_ms: u64) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
+fn fetch_user(
+    id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
     from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(User {
@@ -334,14 +337,20 @@ fn check_queue() -> impl Effect<Output = String, Error = AppError, Env = AppEnv>
     })
 }
 
-fn fetch_from_source(source: &'static str, delay_ms: u64) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+fn fetch_from_source(
+    source: &'static str,
+    delay_ms: u64,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(source.to_string())
     })
 }
 
-fn fetch_recommendations(user_id: i32, delay_ms: u64) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+fn fetch_recommendations(
+    user_id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
     from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(vec![
@@ -351,7 +360,10 @@ fn fetch_recommendations(user_id: i32, delay_ms: u64) -> impl Effect<Output = Ve
     })
 }
 
-fn fetch_recent_activity(user_id: i32, delay_ms: u64) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+fn fetch_recent_activity(
+    user_id: i32,
+    delay_ms: u64,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
     from_async(move |_env| async move {
         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
         Ok(vec![

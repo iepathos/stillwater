@@ -85,7 +85,10 @@ fn fetch_user(user_id: String) -> impl Effect<Output = User, Error = String, Env
     .instrument(tracing::debug_span!("fetch_user", user_id = %span_user_id))
 }
 
-fn fetch_order(order_id: String, user: &User) -> impl Effect<Output = Order, Error = String, Env = ()> {
+fn fetch_order(
+    order_id: String,
+    user: &User,
+) -> impl Effect<Output = Order, Error = String, Env = ()> {
     let user_id = user.id.clone();
     let span_order_id = order_id.clone();
     let span_user_id = user_id.clone();

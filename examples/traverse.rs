@@ -9,9 +9,9 @@
 //! - Error accumulation with traverse
 //! - Practical use cases
 
+use stillwater::effect::{fail, from_fn, pure};
 use stillwater::prelude::*;
 use stillwater::traverse::{sequence, sequence_effect, traverse, traverse_effect};
-use stillwater::effect::{fail, from_fn, pure};
 use stillwater::BoxedEffect;
 
 // ==================== Basic Traverse ====================
@@ -229,7 +229,8 @@ async fn example_effect_traverse() {
             } else {
                 Err(format!("Negative number: {}", x))
             }
-        }).boxed()
+        })
+        .boxed()
     }
 
     let mixed = vec![1, 2, -3, 4];
@@ -268,7 +269,8 @@ async fn example_batch_file_processing() {
             } else {
                 Err(format!("Not a text file: {}", path))
             }
-        }).boxed()
+        })
+        .boxed()
     }
 
     let files = vec![
@@ -313,11 +315,8 @@ async fn example_sequence_effect() {
     println!("\n=== Example 6: Sequence Effect ===");
 
     // Create a collection of effects
-    let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-        pure(1).boxed(),
-        pure(2).boxed(),
-        pure(3).boxed(),
-    ];
+    let effects: Vec<BoxedEffect<i32, String, ()>> =
+        vec![pure(1).boxed(), pure(2).boxed(), pure(3).boxed()];
 
     println!("Sequence pure effects:");
     let result_effect = sequence_effect(effects);

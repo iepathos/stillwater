@@ -339,7 +339,9 @@ async fn example_cache_aside() {
     };
 
     // Function to get user with cache-aside pattern
-    fn get_user(user_id: u64) -> impl EffectExt<Output = Option<User>, Error = std::convert::Infallible, Env = Env> {
+    fn get_user(
+        user_id: u64,
+    ) -> impl EffectExt<Output = Option<User>, Error = std::convert::Infallible, Env = Env> {
         // Check cache first
         IO::read(move |cache: &Cache| cache.get(user_id)).and_then(move |cached| {
             match cached {

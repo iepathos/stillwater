@@ -10,7 +10,9 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use stillwater::{from_fn, from_validation, ContextError, Effect, EffectContext, EffectExt, Validation};
+use stillwater::{
+    from_fn, from_validation, ContextError, Effect, EffectContext, EffectExt, Validation,
+};
 
 // ==================== Domain Types ====================
 
@@ -247,7 +249,9 @@ impl AsRef<EmailService> for Env {
 // ==================== Effects ====================
 
 /// Check if username is already taken (effectful - requires database)
-fn check_username_available(username: String) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
+fn check_username_available(
+    username: String,
+) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
     let username_for_context = username.clone();
     from_fn(move |env: &Env| {
         if env.db.username_exists(&username) {
@@ -263,7 +267,9 @@ fn check_username_available(username: String) -> impl Effect<Output = (), Error 
 }
 
 /// Check if email is already registered (effectful - requires database)
-fn check_email_available(email: String) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
+fn check_email_available(
+    email: String,
+) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
     let email_for_context = email.clone();
     from_fn(move |env: &Env| {
         if env.db.email_exists(&email) {
@@ -279,7 +285,9 @@ fn check_email_available(email: String) -> impl Effect<Output = (), Error = Cont
 }
 
 /// Hash password (effectful - uses hasher service)
-fn hash_password(password: String) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
+fn hash_password(
+    password: String,
+) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
     from_fn(move |env: &Env| Ok::<_, String>(env.hasher.hash(&password)))
         .context("hashing password".to_string())
 }
@@ -295,7 +303,9 @@ fn save_user(user: User) -> impl Effect<Output = User, Error = ContextError<Stri
 }
 
 /// Send welcome email
-fn send_welcome_email(email: String) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
+fn send_welcome_email(
+    email: String,
+) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
     let email_for_context = email.clone();
     from_fn(move |env: &Env| {
         env.email.send_welcome_email(&email);
@@ -307,7 +317,9 @@ fn send_welcome_email(email: String) -> impl Effect<Output = (), Error = Context
 // ==================== Registration Workflow ====================
 
 /// Complete registration workflow combining validation and effects
-fn register_user(input: RegistrationInput) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
+fn register_user(
+    input: RegistrationInput,
+) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
     // Step 1: Pure validation (convert Validation to Effect)
     from_validation(validate_registration_input(&input).map_err(|errors| errors.join("; ")))
         .context("validating registration input".to_string())

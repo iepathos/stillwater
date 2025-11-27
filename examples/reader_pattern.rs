@@ -59,9 +59,7 @@ fn get_log_level() -> impl Effect<Output = LogLevel, Error = AppError, Env = App
 
 // Example 3: Composing asks() queries
 fn get_db_connection_string() -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
-    asks(|env: &AppEnv| {
-        format!("postgres://{}:{}", env.db.host, env.db.port)
-    })
+    asks(|env: &AppEnv| format!("postgres://{}:{}", env.db.host, env.db.port))
 }
 
 // Example 4: Using environment values in computations
@@ -77,7 +75,10 @@ fn fetch_user_data(user_id: u32) -> impl Effect<Output = String, Error = AppErro
 }
 
 // Example 5: Conditional logic based on environment
-fn log_message(msg: String, level: LogLevel) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
+fn log_message(
+    msg: String,
+    level: LogLevel,
+) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     get_log_level().map(move |configured_level| {
         let should_log = match (&configured_level, &level) {
             (LogLevel::Debug, _) => true,
@@ -142,7 +143,9 @@ fn check_timeout() -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     })
 }
 
-fn safe_database_query(query: String) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+fn safe_database_query(
+    query: String,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
     from_fn(move |_env: &AppEnv| {
         if query.contains("DROP") || query.contains("DELETE") {
             Err(AppError::DatabaseError(
@@ -189,7 +192,9 @@ fn with_extended_timeout<T: Send + 'static>(
 }
 
 // Example 8: Real-world scenario - API request with retry
-fn make_api_request(endpoint: String) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+fn make_api_request(
+    endpoint: String,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     get_api_key()
         .and_then(move |api_key| {
             get_timeout().and_then(move |timeout| {
@@ -205,7 +210,9 @@ fn make_api_request(endpoint: String) -> impl Effect<Output = String, Error = Ap
 }
 
 // Example 9: Database operation with connection pooling
-fn query_database(query: String) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
+fn query_database(
+    query: String,
+) -> impl Effect<Output = Vec<String>, Error = AppError, Env = AppEnv> {
     get_db_connection_string()
         .and_then(move |conn_str| {
             asks(move |env: &AppEnv| {
@@ -222,7 +229,9 @@ fn query_database(query: String) -> impl Effect<Output = Vec<String>, Error = Ap
 }
 
 // Example 10: Complex workflow combining multiple patterns
-fn process_user_request(user_id: u32) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
+fn process_user_request(
+    user_id: u32,
+) -> impl Effect<Output = String, Error = AppError, Env = AppEnv> {
     // Validate before processing
     validate_api_key()
         .and_then(move |_| check_timeout())

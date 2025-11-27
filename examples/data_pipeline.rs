@@ -259,7 +259,9 @@ fn load_record<Env: AsRef<DataWarehouse> + Clone + Send + Sync + 'static>(
 }
 
 /// Run the complete ETL pipeline
-async fn run_pipeline<Env: AsRef<DataSource> + AsRef<DataWarehouse> + Clone + Send + Sync + 'static>(
+async fn run_pipeline<
+    Env: AsRef<DataSource> + AsRef<DataWarehouse> + Clone + Send + Sync + 'static,
+>(
     env: &Env,
 ) -> Result<PipelineStats, ContextError<String>> {
     println!("Starting ETL pipeline...\n");

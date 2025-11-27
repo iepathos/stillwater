@@ -279,7 +279,10 @@ async fn example_testing_side_effects() {
 
 // ==================== Testing Error Cases ====================
 
-fn divide<Env: Clone + Send + Sync + 'static>(a: i32, b: i32) -> impl Effect<Output = i32, Error = String, Env = Env> {
+fn divide<Env: Clone + Send + Sync + 'static>(
+    a: i32,
+    b: i32,
+) -> impl Effect<Output = i32, Error = String, Env = Env> {
     from_fn(move |_env: &Env| {
         if b == 0 {
             Err("Division by zero".to_string())

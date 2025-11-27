@@ -372,7 +372,9 @@ async fn example_complex_pipeline() {
     }
 
     // Stage 2: Compute statistics
-    fn compute_stats(data: CleanData) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
+    fn compute_stats(
+        data: CleanData,
+    ) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
         pure::<_, String, Env>(data).map(|d| {
             let word_count = d.words.len();
             let total_chars: usize = d.words.iter().map(|w| w.len()).sum();
@@ -386,9 +388,7 @@ async fn example_complex_pipeline() {
     }
 
     // Complete pipeline
-    fn analyze_text(
-        raw: RawData,
-    ) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
+    fn analyze_text(raw: RawData) -> impl Effect<Output = Statistics, Error = String, Env = Env> {
         clean_and_tokenize(raw).and_then_auto(compute_stats)
     }
 
