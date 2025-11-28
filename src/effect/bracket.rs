@@ -1873,4 +1873,426 @@ mod tests {
         let releases = order.lock().unwrap();
         assert_eq!(*releases, vec!["release_2", "release_1"]);
     }
+
+    // ========================================================================
+    // Debug impl tests for coverage (spec 039)
+    // ========================================================================
+
+    #[test]
+    fn debug_impl_bracket() {
+        let b = Bracket::new(
+            pure::<_, String, ()>(42),
+            |_: i32| async { Ok::<(), String>(()) },
+            |v: &i32| pure::<_, String, ()>(*v),
+        );
+        let debug_str = format!("{:?}", b);
+        assert!(debug_str.contains("Bracket"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_bracket_full() {
+        let b = BracketFull::new(
+            pure::<_, String, ()>(42),
+            |_: i32| async { Ok::<(), String>(()) },
+            |v: &i32| pure::<_, String, ()>(*v),
+        );
+        let debug_str = format!("{:?}", b);
+        assert!(debug_str.contains("BracketFull"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_bracket_sync() {
+        let b = BracketSync::new(
+            pure::<_, String, ()>(42),
+            |_: i32| Ok::<(), String>(()),
+            |v: &i32| pure::<_, String, ()>(*v),
+        );
+        let debug_str = format!("{:?}", b);
+        assert!(debug_str.contains("BracketSync"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_bracket2() {
+        let b = Bracket2 {
+            acquire1: pure::<_, String, ()>(1),
+            acquire2: pure::<_, String, ()>(2),
+            use_fn: |_: &&i32, _: &&i32| pure::<_, String, ()>(0),
+            release1: |_: i32| async { Ok::<(), String>(()) },
+            release2: |_: i32| async { Ok::<(), String>(()) },
+        };
+        let debug_str = format!("{:?}", b);
+        assert!(debug_str.contains("Bracket2"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_bracket3() {
+        let b = Bracket3 {
+            acquire1: pure::<_, String, ()>(1),
+            acquire2: pure::<_, String, ()>(2),
+            acquire3: pure::<_, String, ()>(3),
+            use_fn: |_: &&i32, _: &&i32, _: &&i32| pure::<_, String, ()>(0),
+            release1: |_: i32| async { Ok::<(), String>(()) },
+            release2: |_: i32| async { Ok::<(), String>(()) },
+            release3: |_: i32| async { Ok::<(), String>(()) },
+        };
+        let debug_str = format!("{:?}", b);
+        assert!(debug_str.contains("Bracket3"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_resource() {
+        let r: Resource<i32, String, ()> =
+            Resource::new(pure::<_, String, ()>(42), |_: i32| async { Ok(()) });
+        let debug_str = format!("{:?}", r);
+        assert!(debug_str.contains("Resource"));
+        assert!(debug_str.contains("<effect>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_resource_with() {
+        let r: Resource<i32, String, ()> =
+            Resource::new(pure::<_, String, ()>(42), |_: i32| async { Ok(()) });
+        let rw = r.with(|v: &i32| pure::<_, String, ()>(*v));
+        let debug_str = format!("{:?}", rw);
+        assert!(debug_str.contains("ResourceWith"));
+        assert!(debug_str.contains("<resource>"));
+        assert!(debug_str.contains("<function>"));
+    }
+
+    #[test]
+    fn debug_impl_acquiring() {
+        let a: Acquiring<i32, String, ()> =
+            acquiring(pure::<_, String, ()>(42), |_: i32| async { Ok(()) });
+        let debug_str = format!("{:?}", a);
+        assert!(debug_str.contains("Acquiring"));
+        assert!(debug_str.contains("<resource>"));
+    }
+
+    // ========================================================================
+    // BracketError tests for coverage (spec 039)
+    // ========================================================================
+
+    #[test]
+    fn bracket_error_map_all_variants() {
+        // Test map for AcquireError
+        let err: BracketError<i32> = BracketError::AcquireError(10);
+        let mapped = err.map(|x| x * 2);
+        assert_eq!(mapped, BracketError::AcquireError(20));
+
+        // Test map for UseError
+        let err: BracketError<i32> = BracketError::UseError(10);
+        let mapped = err.map(|x| x * 2);
+        assert_eq!(mapped, BracketError::UseError(20));
+
+        // Test map for CleanupError
+        let err: BracketError<i32> = BracketError::CleanupError(10);
+        let mapped = err.map(|x| x * 2);
+        assert_eq!(mapped, BracketError::CleanupError(20));
+
+        // Test map for Both
+        let err: BracketError<i32> = BracketError::Both {
+            use_error: 10,
+            cleanup_error: 20,
+        };
+        let mapped = err.map(|x| x * 2);
+        assert_eq!(
+            mapped,
+            BracketError::Both {
+                use_error: 20,
+                cleanup_error: 40
+            }
+        );
+    }
+
+    #[test]
+    fn bracket_error_std_error_impl() {
+        use std::error::Error;
+
+        // AcquireError source
+        let err: BracketError<std::io::Error> =
+            BracketError::AcquireError(std::io::Error::other("acquire"));
+        assert!(err.source().is_some());
+
+        // UseError source
+        let err: BracketError<std::io::Error> =
+            BracketError::UseError(std::io::Error::other("use"));
+        assert!(err.source().is_some());
+
+        // CleanupError source
+        let err: BracketError<std::io::Error> =
+            BracketError::CleanupError(std::io::Error::other("cleanup"));
+        assert!(err.source().is_some());
+
+        // Both source (returns use_error)
+        let err: BracketError<std::io::Error> = BracketError::Both {
+            use_error: std::io::Error::other("use"),
+            cleanup_error: std::io::Error::other("cleanup"),
+        };
+        let source = err.source().unwrap();
+        assert!(source.to_string().contains("use"));
+    }
+
+    // ========================================================================
+    // Execution order tracking tests (spec 039)
+    // ========================================================================
+
+    #[tokio::test]
+    async fn bracket_execution_order_happy_path() {
+        // Test that acquire -> use -> release order is maintained
+        let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_acquire = log.clone();
+        let log_use = log.clone();
+        let log_release = log.clone();
+
+        let effect = bracket(
+            crate::effect::from_fn(move |_: &()| {
+                log_acquire.lock().unwrap().push("acquire");
+                Ok::<_, String>("resource")
+            }),
+            move |_: &str| {
+                log_release.lock().unwrap().push("release");
+                async { Ok(()) }
+            },
+            move |resource: &&str| {
+                log_use.lock().unwrap().push("use");
+                pure::<_, String, ()>(format!("used {}", resource))
+            },
+        );
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok("used resource".to_string()));
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["acquire", "use", "release"],
+            "execution order must be acquire -> use -> release"
+        );
+    }
+
+    #[tokio::test]
+    async fn bracket_execution_order_use_fails() {
+        // Critical test: release MUST run even when use fails
+        let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_acquire = log.clone();
+        let log_use = log.clone();
+        let log_release = log.clone();
+
+        let effect = bracket(
+            crate::effect::from_fn(move |_: &()| {
+                log_acquire.lock().unwrap().push("acquire");
+                Ok::<_, String>(42)
+            }),
+            move |_: i32| {
+                log_release.lock().unwrap().push("release");
+                async { Ok(()) }
+            },
+            move |_resource: &i32| {
+                log_use.lock().unwrap().push("use");
+                fail::<i32, String, ()>("use failed".to_string())
+            },
+        );
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Err("use failed".to_string()));
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["acquire", "use", "release"],
+            "release MUST run even when use fails"
+        );
+    }
+
+    #[tokio::test]
+    async fn bracket_execution_order_acquire_fails() {
+        // When acquire fails, use and release should NOT run
+        let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_acquire = log.clone();
+        let log_use = log.clone();
+        let log_release = log.clone();
+
+        let effect = bracket(
+            crate::effect::from_fn(move |_: &()| {
+                log_acquire.lock().unwrap().push("acquire");
+                Err::<i32, _>("acquire failed".to_string())
+            }),
+            move |_: i32| {
+                log_release.lock().unwrap().push("release");
+                async { Ok(()) }
+            },
+            move |_resource: &i32| {
+                log_use.lock().unwrap().push("use");
+                pure::<_, String, ()>(0)
+            },
+        );
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Err("acquire failed".to_string()));
+        assert_eq!(
+            *log.lock().unwrap(),
+            vec!["acquire"],
+            "only acquire should run when it fails"
+        );
+    }
+
+    #[tokio::test]
+    async fn bracket_resource_passed_correctly_through_all_phases() {
+        // Verify the exact same resource flows through acquire -> use -> release
+        #[derive(Clone, Debug, PartialEq)]
+        struct TrackedResource {
+            id: u32,
+        }
+
+        let acquired_id = Arc::new(std::sync::Mutex::new(None));
+        let used_id = Arc::new(std::sync::Mutex::new(None));
+        let released_id = Arc::new(std::sync::Mutex::new(None));
+
+        let acquired_id_clone = acquired_id.clone();
+        let used_id_clone = used_id.clone();
+        let released_id_clone = released_id.clone();
+
+        let effect = bracket(
+            crate::effect::from_fn(move |_: &()| {
+                let resource = TrackedResource { id: 42 };
+                *acquired_id_clone.lock().unwrap() = Some(resource.id);
+                Ok::<_, String>(resource)
+            }),
+            move |resource: TrackedResource| {
+                *released_id_clone.lock().unwrap() = Some(resource.id);
+                async { Ok(()) }
+            },
+            move |resource: &TrackedResource| {
+                *used_id_clone.lock().unwrap() = Some(resource.id);
+                pure::<_, String, ()>(resource.id * 2)
+            },
+        );
+
+        let result = effect.run(&()).await;
+
+        assert_eq!(result, Ok(84));
+        assert_eq!(*acquired_id.lock().unwrap(), Some(42));
+        assert_eq!(*used_id.lock().unwrap(), Some(42));
+        assert_eq!(*released_id.lock().unwrap(), Some(42));
+    }
+
+    // ========================================================================
+    // bracket_full execution order tests (spec 039)
+    // ========================================================================
+
+    #[tokio::test]
+    async fn bracket_full_execution_order_happy_path() {
+        let log = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let log_acquire = log.clone();
+        let log_use = log.clone();
+        let log_release = log.clone();
+
+        let effect = bracket_full(
+            crate::effect::from_fn(move |_: &()| {
+                log_acquire.lock().unwrap().push("acquire");
+                Ok::<_, String>("resource")
+            }),
+            move |_: &str| {
+                log_release.lock().unwrap().push("release");
+                async { Ok(()) }
+            },
+            move |_resource: &&str| {
+                log_use.lock().unwrap().push("use");
+                pure::<_, String, ()>("done")
+            },
+        );
+
+        let result = effect.run(&()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(*log.lock().unwrap(), vec!["acquire", "use", "release"]);
+    }
+
+    // ========================================================================
+    // Bracket3 partial acquisition failure tests (spec 039)
+    // ========================================================================
+
+    #[tokio::test]
+    async fn bracket3_releases_first_two_if_third_acquire_fails() {
+        let order = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let order1 = order.clone();
+        let order2 = order.clone();
+
+        let result = bracket3(
+            pure::<_, String, ()>("first"),
+            pure::<_, String, ()>("second"),
+            fail::<&str, String, ()>("acquire3 failed".to_string()),
+            move |_: &str| {
+                order1.lock().unwrap().push("release_first");
+                async { Ok(()) }
+            },
+            move |_: &str| {
+                order2.lock().unwrap().push("release_second");
+                async { Ok(()) }
+            },
+            |_: &str| async { Ok(()) },
+            |_: &&str, _: &&str, _: &&str| pure::<_, String, ()>("done"),
+        )
+        .run(&())
+        .await;
+
+        assert!(result.is_err());
+        // First two resources should be released in LIFO order
+        let releases = order.lock().unwrap();
+        assert_eq!(*releases, vec!["release_second", "release_first"]);
+    }
+
+    #[tokio::test]
+    async fn bracket3_releases_first_if_second_acquire_fails() {
+        let released = Arc::new(AtomicBool::new(false));
+        let released_clone = released.clone();
+
+        let result = bracket3(
+            pure::<_, String, ()>("first"),
+            fail::<&str, String, ()>("acquire2 failed".to_string()),
+            pure::<_, String, ()>("third"),
+            move |_: &str| {
+                released_clone.store(true, Ordering::SeqCst);
+                async { Ok(()) }
+            },
+            |_: &str| async { Ok(()) },
+            |_: &str| async { Ok(()) },
+            |_: &&str, _: &&str, _: &&str| pure::<_, String, ()>("done"),
+        )
+        .run(&())
+        .await;
+
+        assert!(result.is_err());
+        assert!(
+            released.load(Ordering::SeqCst),
+            "first resource must be released when second acquire fails"
+        );
+    }
+
+    // ========================================================================
+    // with_flat4 test (spec 039)
+    // ========================================================================
+
+    #[tokio::test]
+    async fn acquiring_builder_with_flat4_four_resources() {
+        let result = acquiring(pure::<_, String, ()>(1), |_: i32| async { Ok(()) })
+            .and(pure::<_, String, ()>(2), |_: i32| async { Ok(()) })
+            .and(pure::<_, String, ()>(3), |_: i32| async { Ok(()) })
+            .and(pure::<_, String, ()>(4), |_: i32| async { Ok(()) })
+            .with_flat4(|a: &i32, b: &i32, c: &i32, d: &i32| pure::<_, String, ()>(a + b + c + d))
+            .run(&())
+            .await;
+
+        assert_eq!(result, Ok(10));
+    }
 }
