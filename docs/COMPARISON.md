@@ -295,37 +295,37 @@ fn process_order(order_id: u64) -> Result<Receipt, ContextError> {
 }
 ```
 
-**After** (With Stillwater - 12 lines, 50% reduction):
+**After** (With Stillwater - 16 lines, 33% reduction):
 ```rust
 use stillwater::effect::prelude::*;
-use stillwater::effect::context::EffectContext;
+use stillwater::effect::context::{EffectContext, EffectContextChain};
+use stillwater::context::ContextError;
 
 fn process_order(order_id: u64) -> impl Effect<Output = Receipt, Error = ContextError<String>, Env = AppEnv> {
-    from_async(move |env: &AppEnv| {
-        let db = env.db.clone();
-        async move { db.fetch_order(order_id).await }
-    })
-    .context("fetching order")
-    .and_then(move |order| {
-        from_async(move |env: &AppEnv| {
-            let db = env.db.clone();
-            async move { db.check_inventory(&order.items).await }
+    fetch_order_effect(order_id)
+        .context("fetching order")
+        .context_chain(format!("processing order {}", order_id))
+        .and_then(move |order| {
+            check_inventory_effect(order)
+                .context("checking inventory")
+                .context_chain(format!("processing order {}", order_id))
+                .and_then(move |order| {
+                    create_receipt_effect(order)
+                        .context("creating receipt")
+                        .context_chain(format!("processing order {}", order_id))
+                })
         })
-        .context("checking inventory")
-        .and_then(move |inventory| {
-            from_fn(move |_| create_receipt(&order, &inventory))
-                .context("creating receipt")
-        })
-    })
-    .context_chain(format!("processing order {}", order_id))
 }
 ```
 
 **Key Improvements**:
-- Context automatically accumulates through `context_chain`
-- No manual error wrapping at each step
-- Error trail shows: "processing order 123" → "creating receipt" → "checking inventory"
-- Full backtrace without boilerplate
+- `.context()` wraps any error in `ContextError<E>` with the given message
+- `.context_chain()` adds additional context to an existing `ContextError`
+- Error trail shows: `["fetching order", "processing order 999"]` on failure
+- Each operation gets its own context; outer context added via `context_chain`
+
+> **Note**: `.context()` creates a new `ContextError` wrapping the inner error.
+> Use `.context_chain()` to add to an existing `ContextError`'s trail.
 
 ---
 
@@ -367,7 +367,7 @@ async fn send_welcome_email(email_service: &EmailService, user: &User) -> Result
 }
 ```
 
-**After** (With Stillwater Reader Pattern - 22 lines, 31% reduction):
+**After** (With Stillwater Reader Pattern - 24 lines, 25% reduction):
 ```rust
 use stillwater::effect::prelude::*;
 
@@ -375,9 +375,11 @@ fn process_user_signup(input: SignupInput) -> impl Effect<Output = User, Error =
     from_result(validate_signup(&input))
         .and_then(create_user)
         .and_then(|user| {
+            let user_for_email = user.clone();
+            let user_to_return = user.clone();
             cache_user_session(&user)
-                .and_then(move |_| send_welcome_email(&user))
-                .map(move |_| user)
+                .and_then(move |_| send_welcome_email(&user_for_email))
+                .map(move |_| user_to_return)
         })
 }
 
@@ -411,6 +413,9 @@ fn send_welcome_email(user: &User) -> impl Effect<Output = (), Error = Error, En
 - Functions are self-contained and composable
 - Adding a new dependency requires only changing `AppEnv`
 - Testing is trivial (just provide a test environment)
+
+> **Note**: When composing effects that need the same value, clone upfront to satisfy
+> Rust's ownership rules. The helper functions already extract only what they need.
 
 ---
 
@@ -507,13 +512,17 @@ async fn fetch_with_retry(url: &str, max_retries: u32) -> Result<Response, Error
 }
 ```
 
-**After** (With Stillwater - 10 lines, 71% reduction):
+**After** (With Stillwater - 14 lines, 60% reduction):
 ```rust
 use stillwater::effect::prelude::*;
+use stillwater::effect::retry::retry;
+use stillwater::retry::RetryExhausted;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
-fn fetch_with_retry(url: String) -> impl Effect<Output = Response, Error = RetryExhausted<Error>, Env = AppEnv> {
+fn fetch_with_retry(url: String)
+    -> impl Effect<Output = RetryExhausted<Response>, Error = RetryExhausted<Error>, Env = AppEnv>
+{
     retry(
         move || {
             let url = url.clone();
@@ -527,13 +536,21 @@ fn fetch_with_retry(url: String) -> impl Effect<Output = Response, Error = Retry
             .with_max_delay(Duration::from_secs(30)),
     )
 }
+
+// Usage: extract the response from RetryExhausted
+// let result = fetch_with_retry(url).run(&env).await?;
+// let response = result.into_value();  // Get the Response
+// let attempts = result.attempts;       // How many attempts it took
 ```
 
 **Key Improvements**:
-- 71% less code (35 → 10 lines)
+- 60% less code (35 → 14 lines)
 - Built-in jitter and backoff calculations
 - Configurable retry policy
-- Automatic attempt tracking and timing
+- `RetryExhausted` tracks attempt count and total duration on both success and failure
+
+> **Note**: Both success and failure are wrapped in `RetryExhausted<T>` which provides
+> `.into_value()`, `.attempts`, and `.total_duration` for observability.
 
 ---
 
@@ -569,14 +586,16 @@ async fn fetch_user_dashboard(user_id: u64) -> Result<Dashboard, Error> {
 }
 ```
 
-**After** (With Stillwater - 15 lines, 40% reduction):
+**After** (With Stillwater - 17 lines, 32% reduction):
 ```rust
 use stillwater::effect::prelude::*;
+use stillwater::effect::retry::with_timeout;
+use stillwater::TimeoutError;
 use std::time::Duration;
 
 fn fetch_user_dashboard(user_id: u64) -> impl Effect<Output = Dashboard, Error = TimeoutError<Error>, Env = AppEnv> {
     with_timeout(
-        par3(
+        zip3(
             fetch_profile(user_id),
             fetch_recent_orders(user_id),
             fetch_recommendations(user_id),
@@ -592,10 +611,13 @@ fn fetch_user_dashboard(user_id: u64) -> impl Effect<Output = Dashboard, Error =
 ```
 
 **Key Improvements**:
-- 40% less code
-- `par3` for type-safe parallel execution
+- 32% less code
+- `zip3` for type-safe parallel composition (returns an Effect)
 - Integrated timeout handling
 - Clear error type showing timeout vs inner error
+
+> **Note**: Use `zip3` for Effect composition. The `par3` function is an async helper
+> that returns a tuple of Results directly, useful when you need individual error handling.
 
 ---
 
@@ -745,44 +767,43 @@ async fn transfer_funds(
 }
 ```
 
-**After** (With Stillwater bracket - 20 lines, 33% reduction):
+**After** (With Stillwater bracket - 24 lines, 20% reduction):
 ```rust
 use stillwater::effect::prelude::*;
+use stillwater::effect::bracket::{bracket_full, BracketError};
 
 fn transfer_funds(
     from_account: u64,
     to_account: u64,
     amount: Decimal,
-) -> impl Effect<Output = Transfer, Error = Error, Env = AppEnv> {
-    bracket(
+) -> impl Effect<Output = Transfer, Error = BracketError<Error>, Env = AppEnv> {
+    bracket_full(
         // Acquire: begin transaction
         from_async(|env: &AppEnv| {
             let db = env.db.clone();
             async move { db.begin_transaction().await }
         }),
-        // Use: perform transfer
-        move |tx| {
-            check_balance(&tx, from_account, amount)
-                .and_then(move |_| debit_account(&tx, from_account, amount))
-                .and_then(move |_| credit_account(&tx, to_account, amount))
-                .and_then(move |_| record_transfer(&tx, from_account, to_account, amount))
+        // Release: always attempt commit (rollback on drop if uncommitted)
+        |tx| async move { tx.commit().await },
+        // Use: perform transfer operations
+        |tx| {
+            check_balance(tx, from_account, amount)
+                .and_then(move |_| debit_account(tx, from_account, amount))
+                .and_then(move |_| credit_account(tx, to_account, amount))
+                .and_then(move |_| record_transfer(tx, from_account, to_account, amount))
         },
-        // Release: commit or rollback
-        |tx, result| from_async(move |_: &AppEnv| async move {
-            match result {
-                Ok(_) => tx.commit().await,
-                Err(_) => tx.rollback().await,
-            }
-        }),
     )
 }
 ```
 
 **Key Improvements**:
-- Resource safety via `bracket` pattern
-- Automatic cleanup on success or failure
-- Transaction logic clearly separated
+- Resource safety via `bracket_full` pattern
+- `BracketError` distinguishes acquire/use/cleanup failures
+- Transaction auto-rollbacks on drop if not committed
 - Composable operations within transaction
+
+> **Note**: `bracket_full` returns `BracketError<E>` which tells you exactly which phase
+> failed. Use plain `bracket` if you only need the use error (cleanup errors are logged).
 
 ---
 
@@ -876,15 +897,15 @@ fn validate_port(port: Option<i32>) -> Validation<u16, Vec<ConfigError>> {
 | 3-field validation | 22 | 8 | **64%** |
 | 5-field nested validation | 42 | 18 | **57%** |
 | Conditional validation | 20 | 14 | **30%** |
-| Error context chain (4 levels) | 24 | 12 | **50%** |
-| Dependency threading (3 deps) | 32 | 22 | **31%** |
-| Retry with backoff | 35 | 10 | **71%** |
-| Parallel with timeout | 25 | 15 | **40%** |
+| Error context chain | 24 | 16 | **33%** |
+| Dependency threading (3 deps) | 32 | 24 | **25%** |
+| Retry with backoff | 35 | 14 | **60%** |
+| Parallel with timeout | 25 | 17 | **32%** |
 | API request handler | 45 | 30 | **33%** |
-| Database transaction | 30 | 20 | **33%** |
+| Database transaction | 30 | 24 | **20%** |
 | Config validation | 40 | 22 | **45%** |
 
-**Average reduction across all examples: ~46%**
+**Average reduction across all examples: ~40%**
 
 ---
 
