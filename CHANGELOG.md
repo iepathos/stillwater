@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2025-11-28
+
+### Added
+
+#### Predicate Combinators Module (Spec 028)
+
+- **`predicate` module** - Composable validation logic for building complex predicates from simple, reusable pieces
+  - `Predicate<T>` trait - Core abstraction for composable predicates
+  - `PredicateExt` trait - Extension methods for combining predicates
+
+- **Logical combinators** - Compose predicates with boolean logic
+  - `.and()`, `.or()`, `.not()` - Method chaining for predicate composition
+  - `all_of()`, `any_of()`, `none_of()` - Zero-allocation array-based combinators using const generics
+
+- **String predicates** - Common string validation predicates
+  - Length: `len_between()`, `len_min()`, `len_max()`, `len_eq()`, `not_empty()`
+  - Content: `starts_with()`, `ends_with()`, `contains()`
+  - Characters: `all_chars()`, `any_char()`, `is_alphabetic()`, `is_alphanumeric()`, `is_numeric()`, `is_ascii()`
+
+- **Number predicates** - Comparison and range predicates
+  - Comparison: `gt()`, `ge()`, `lt()`, `le()`, `eq()`, `ne()`
+  - Range: `between()`, `positive()`, `negative()`, `non_negative()`
+  - Works with any `PartialOrd` type including floats
+
+- **Collection predicates** - Validation for Vec and slice types
+  - Length: `has_len()`, `has_min_len()`, `has_max_len()`, `is_empty()`, `is_not_empty()`
+  - Elements: `all()`, `any()`, `contains_element()`
+
+- **Validation integration** - Seamless integration with `Validation<T, E>`
+  - `validate()` - Create validation from predicate
+  - `validate_with()` - Create validation with error factory
+  - `.ensure()` method on `Validation` for chaining predicate checks
+
+- **New example** - `examples/predicates.rs` demonstrating all predicate features with real-world user registration validation
+
 ## [0.11.0] - 2025-11-27
 
 ### Breaking Changes

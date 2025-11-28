@@ -267,6 +267,11 @@ Effect::retry_with_hooks(
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
+- **Predicate combinators** - Composable validation logic with `and`, `or`, `not`, `all_of`, `any_of`
+  - String predicates: `len_between`, `contains`, `starts_with`, `all_chars`, etc.
+  - Number predicates: `between`, `gt`, `lt`, `positive`, `negative`, etc.
+  - Collection predicates: `all`, `any`, `has_len`, `is_empty`, etc.
+  - Seamless integration with `Validation` via `ensure()` and `validate()`
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
   - Zero heap allocations by default
@@ -448,6 +453,7 @@ Run any example with `cargo run --example <name>`:
 
 | Example | Demonstrates |
 |---------|--------------|
+| [predicates](examples/predicates.rs) | Composable predicate combinators for validation logic |
 | [form_validation](examples/form_validation.rs) | Validation error accumulation |
 | [homogeneous_validation](examples/homogeneous_validation.rs) | Type-safe validation for discriminated unions before combining |
 | [nonempty](examples/nonempty.rs) | NonEmptyVec type for guaranteed non-empty collections |
@@ -477,7 +483,7 @@ See [examples/](examples/) directory for full code.
 
 - 355 unit tests passing
 - 113 documentation tests passing
-- 20 runnable examples
+- 21 runnable examples
 - Zero clippy warnings
 - Full async support
 - CI/CD pipeline with security audits
