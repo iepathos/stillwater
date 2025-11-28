@@ -78,6 +78,7 @@ pub mod either;
 pub mod io;
 pub mod monoid;
 pub mod nonempty;
+pub mod predicate;
 pub mod retry;
 pub mod semigroup;
 pub mod testing;
