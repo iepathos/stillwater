@@ -198,8 +198,9 @@ pub trait PredicateExt<T: ?Sized>: Predicate<T> + Sized {
 - [ ] **AC4**: `and(p1, p2)` returns true only when both are true
 - [ ] **AC5**: `or(p1, p2)` returns true when either is true
 - [ ] **AC6**: `not(p)` inverts the result
-- [ ] **AC7**: `all_of([p1, p2, p3])` works correctly
-- [ ] **AC8**: `any_of([p1, p2, p3])` works correctly
+- [ ] **AC7**: `all_of([p1, p2, p3])` works correctly (const generic array)
+- [ ] **AC8**: `any_of([p1, p2, p3])` works correctly (const generic array)
+- [ ] **AC8a**: `none_of([p1, p2, p3])` works correctly (const generic array)
 - [ ] **AC9**: Chaining works: `p1.and(p2).or(p3).not()`
 
 ### String Predicates
@@ -214,6 +215,7 @@ pub trait PredicateExt<T: ?Sized>: Predicate<T> + Sized {
 - [ ] **AC14**: `positive().check(&5)` returns true
 - [ ] **AC15**: `between(0, 100).check(&50)` returns true
 - [ ] **AC16**: `gt(10).and(lt(20)).check(&15)` returns true
+- [ ] **AC16a**: `ne(5).check(&4)` returns true
 
 ### Collection Predicates
 
@@ -298,7 +300,7 @@ impl<T: ?Sized, P: Predicate<T>> PredicateExt<T> for P {}
 // src/predicate/combinators.rs
 
 /// AND combinator - both predicates must be true.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct And<P1, P2>(pub P1, pub P2);
 
 impl<T: ?Sized, P1: Predicate<T>, P2: Predicate<T>> Predicate<T> for And<P1, P2> {
@@ -308,11 +310,10 @@ impl<T: ?Sized, P1: Predicate<T>, P2: Predicate<T>> Predicate<T> for And<P1, P2>
     }
 }
 
-unsafe impl<P1: Send, P2: Send> Send for And<P1, P2> {}
-unsafe impl<P1: Sync, P2: Sync> Sync for And<P1, P2> {}
+// Send/Sync are auto-derived when P1 and P2 are Send/Sync
 
 /// OR combinator - either predicate must be true.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Or<P1, P2>(pub P1, pub P2);
 
 impl<T: ?Sized, P1: Predicate<T>, P2: Predicate<T>> Predicate<T> for Or<P1, P2> {
@@ -322,11 +323,10 @@ impl<T: ?Sized, P1: Predicate<T>, P2: Predicate<T>> Predicate<T> for Or<P1, P2> 
     }
 }
 
-unsafe impl<P1: Send, P2: Send> Send for Or<P1, P2> {}
-unsafe impl<P1: Sync, P2: Sync> Sync for Or<P1, P2> {}
+// Send/Sync are auto-derived when P1 and P2 are Send/Sync
 
 /// NOT combinator - inverts the predicate.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Not<P>(pub P);
 
 impl<T: ?Sized, P: Predicate<T>> Predicate<T> for Not<P> {
@@ -336,41 +336,51 @@ impl<T: ?Sized, P: Predicate<T>> Predicate<T> for Not<P> {
     }
 }
 
-unsafe impl<P: Send> Send for Not<P> {}
-unsafe impl<P: Sync> Sync for Not<P> {}
+// Send/Sync are auto-derived when P is Send/Sync
 
-/// Check if all predicates are satisfied.
-pub fn all_of<T, I, P>(predicates: I) -> AllOf<P>
-where
-    I: IntoIterator<Item = P>,
-    P: Predicate<T>,
-{
-    AllOf(predicates.into_iter().collect())
-}
+/// Check if all predicates are satisfied (const generic, zero-allocation).
+#[derive(Clone, Copy, Debug)]
+pub struct AllOf<P, const N: usize>(pub [P; N]);
 
-pub struct AllOf<P>(Vec<P>);
-
-impl<T: ?Sized, P: Predicate<T>> Predicate<T> for AllOf<P> {
+impl<T: ?Sized, P: Predicate<T>, const N: usize> Predicate<T> for AllOf<P, N> {
+    #[inline]
     fn check(&self, value: &T) -> bool {
         self.0.iter().all(|p| p.check(value))
     }
 }
 
-/// Check if any predicate is satisfied.
-pub fn any_of<T, I, P>(predicates: I) -> AnyOf<P>
-where
-    I: IntoIterator<Item = P>,
-    P: Predicate<T>,
-{
-    AnyOf(predicates.into_iter().collect())
+pub fn all_of<P, const N: usize>(predicates: [P; N]) -> AllOf<P, N> {
+    AllOf(predicates)
 }
 
-pub struct AnyOf<P>(Vec<P>);
+/// Check if any predicate is satisfied (const generic, zero-allocation).
+#[derive(Clone, Copy, Debug)]
+pub struct AnyOf<P, const N: usize>(pub [P; N]);
 
-impl<T: ?Sized, P: Predicate<T>> Predicate<T> for AnyOf<P> {
+impl<T: ?Sized, P: Predicate<T>, const N: usize> Predicate<T> for AnyOf<P, N> {
+    #[inline]
     fn check(&self, value: &T) -> bool {
         self.0.iter().any(|p| p.check(value))
     }
+}
+
+pub fn any_of<P, const N: usize>(predicates: [P; N]) -> AnyOf<P, N> {
+    AnyOf(predicates)
+}
+
+/// Check if no predicates are satisfied (const generic, zero-allocation).
+#[derive(Clone, Copy, Debug)]
+pub struct NoneOf<P, const N: usize>(pub [P; N]);
+
+impl<T: ?Sized, P: Predicate<T>, const N: usize> Predicate<T> for NoneOf<P, N> {
+    #[inline]
+    fn check(&self, value: &T) -> bool {
+        !self.0.iter().any(|p| p.check(value))
+    }
+}
+
+pub fn none_of<P, const N: usize>(predicates: [P; N]) -> NoneOf<P, N> {
+    NoneOf(predicates)
 }
 ```
 
@@ -383,7 +393,7 @@ use super::*;
 use std::marker::PhantomData;
 
 /// Predicate that checks if a string is not empty.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct NotEmpty;
 
 impl Predicate<str> for NotEmpty {
@@ -405,7 +415,7 @@ pub fn not_empty() -> NotEmpty {
 }
 
 /// Predicate that checks string length is in range.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct LenBetween {
     min: usize,
     max: usize,
@@ -436,7 +446,7 @@ pub fn len_eq(len: usize) -> LenBetween {
 }
 
 /// Predicate that checks if string starts with a prefix.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct StartsWith<S>(pub S);
 
 impl<S: AsRef<str> + Send + Sync> Predicate<str> for StartsWith<S> {
@@ -451,7 +461,7 @@ pub fn starts_with<S: AsRef<str> + Send + Sync>(prefix: S) -> StartsWith<S> {
 }
 
 /// Predicate that checks if string ends with a suffix.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EndsWith<S>(pub S);
 
 impl<S: AsRef<str> + Send + Sync> Predicate<str> for EndsWith<S> {
@@ -466,7 +476,7 @@ pub fn ends_with<S: AsRef<str> + Send + Sync>(suffix: S) -> EndsWith<S> {
 }
 
 /// Predicate that checks if string contains a substring.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Contains<S>(pub S);
 
 impl<S: AsRef<str> + Send + Sync> Predicate<str> for Contains<S> {
@@ -481,7 +491,7 @@ pub fn contains<S: AsRef<str> + Send + Sync>(substring: S) -> Contains<S> {
 }
 
 /// Predicate that checks if all characters satisfy a predicate.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AllChars<F>(pub F);
 
 impl<F: Fn(char) -> bool + Send + Sync> Predicate<str> for AllChars<F> {
@@ -496,7 +506,7 @@ pub fn all_chars<F: Fn(char) -> bool + Send + Sync>(f: F) -> AllChars<F> {
 }
 
 /// Predicate that checks if any character satisfies a predicate.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct AnyChar<F>(pub F);
 
 impl<F: Fn(char) -> bool + Send + Sync> Predicate<str> for AnyChar<F> {
@@ -537,7 +547,7 @@ use super::*;
 use std::cmp::PartialOrd;
 
 /// Predicate for equality.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Eq<T>(pub T);
 
 impl<T: PartialEq + Send + Sync> Predicate<T> for Eq<T> {
@@ -551,8 +561,23 @@ pub fn eq<T: PartialEq + Send + Sync>(value: T) -> Eq<T> {
     Eq(value)
 }
 
+/// Predicate for not equal.
+#[derive(Clone, Copy, Debug)]
+pub struct Ne<T>(pub T);
+
+impl<T: PartialEq + Send + Sync> Predicate<T> for Ne<T> {
+    #[inline]
+    fn check(&self, value: &T) -> bool {
+        *value != self.0
+    }
+}
+
+pub fn ne<T: PartialEq + Send + Sync>(value: T) -> Ne<T> {
+    Ne(value)
+}
+
 /// Predicate for greater than.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Gt<T>(pub T);
 
 impl<T: PartialOrd + Send + Sync> Predicate<T> for Gt<T> {
@@ -567,7 +592,7 @@ pub fn gt<T: PartialOrd + Send + Sync>(value: T) -> Gt<T> {
 }
 
 /// Predicate for greater than or equal.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Ge<T>(pub T);
 
 impl<T: PartialOrd + Send + Sync> Predicate<T> for Ge<T> {
@@ -582,7 +607,7 @@ pub fn ge<T: PartialOrd + Send + Sync>(value: T) -> Ge<T> {
 }
 
 /// Predicate for less than.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Lt<T>(pub T);
 
 impl<T: PartialOrd + Send + Sync> Predicate<T> for Lt<T> {
@@ -597,7 +622,7 @@ pub fn lt<T: PartialOrd + Send + Sync>(value: T) -> Lt<T> {
 }
 
 /// Predicate for less than or equal.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Le<T>(pub T);
 
 impl<T: PartialOrd + Send + Sync> Predicate<T> for Le<T> {
@@ -612,7 +637,7 @@ pub fn le<T: PartialOrd + Send + Sync>(value: T) -> Le<T> {
 }
 
 /// Predicate for value in range (inclusive).
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Between<T> {
     min: T,
     max: T,
@@ -651,6 +676,196 @@ where
     T: PartialOrd + Default + Send + Sync,
 {
     Ge(T::default())
+}
+```
+
+#### Collection Predicates
+
+```rust
+// src/predicate/collection.rs
+
+use super::*;
+
+/// Predicate that checks if a collection is empty.
+#[derive(Clone, Copy, Default, Debug)]
+pub struct IsEmpty;
+
+impl<T> Predicate<Vec<T>> for IsEmpty {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.is_empty()
+    }
+}
+
+impl<T> Predicate<[T]> for IsEmpty {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.is_empty()
+    }
+}
+
+pub fn is_empty() -> IsEmpty {
+    IsEmpty
+}
+
+/// Predicate that checks if a collection is not empty.
+#[derive(Clone, Copy, Default, Debug)]
+pub struct IsNotEmpty;
+
+impl<T> Predicate<Vec<T>> for IsNotEmpty {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        !value.is_empty()
+    }
+}
+
+impl<T> Predicate<[T]> for IsNotEmpty {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        !value.is_empty()
+    }
+}
+
+pub fn is_not_empty() -> IsNotEmpty {
+    IsNotEmpty
+}
+
+/// Predicate that checks collection length.
+#[derive(Clone, Copy, Debug)]
+pub struct HasLen {
+    expected: usize,
+}
+
+impl<T> Predicate<Vec<T>> for HasLen {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.len() == self.expected
+    }
+}
+
+impl<T> Predicate<[T]> for HasLen {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.len() == self.expected
+    }
+}
+
+pub fn has_len(expected: usize) -> HasLen {
+    HasLen { expected }
+}
+
+/// Predicate that checks minimum collection length.
+#[derive(Clone, Copy, Debug)]
+pub struct HasMinLen {
+    min: usize,
+}
+
+impl<T> Predicate<Vec<T>> for HasMinLen {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.len() >= self.min
+    }
+}
+
+impl<T> Predicate<[T]> for HasMinLen {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.len() >= self.min
+    }
+}
+
+pub fn has_min_len(min: usize) -> HasMinLen {
+    HasMinLen { min }
+}
+
+/// Predicate that checks maximum collection length.
+#[derive(Clone, Copy, Debug)]
+pub struct HasMaxLen {
+    max: usize,
+}
+
+impl<T> Predicate<Vec<T>> for HasMaxLen {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.len() <= self.max
+    }
+}
+
+impl<T> Predicate<[T]> for HasMaxLen {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.len() <= self.max
+    }
+}
+
+pub fn has_max_len(max: usize) -> HasMaxLen {
+    HasMaxLen { max }
+}
+
+/// Predicate that checks if all elements satisfy a predicate.
+#[derive(Clone, Copy, Debug)]
+pub struct All<P>(pub P);
+
+impl<T, P: Predicate<T>> Predicate<Vec<T>> for All<P> {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.iter().all(|item| self.0.check(item))
+    }
+}
+
+impl<T, P: Predicate<T>> Predicate<[T]> for All<P> {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.iter().all(|item| self.0.check(item))
+    }
+}
+
+pub fn all<P>(predicate: P) -> All<P> {
+    All(predicate)
+}
+
+/// Predicate that checks if any element satisfies a predicate.
+#[derive(Clone, Copy, Debug)]
+pub struct Any<P>(pub P);
+
+impl<T, P: Predicate<T>> Predicate<Vec<T>> for Any<P> {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.iter().any(|item| self.0.check(item))
+    }
+}
+
+impl<T, P: Predicate<T>> Predicate<[T]> for Any<P> {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.iter().any(|item| self.0.check(item))
+    }
+}
+
+pub fn any<P>(predicate: P) -> Any<P> {
+    Any(predicate)
+}
+
+/// Predicate that checks if collection contains a specific element.
+#[derive(Clone, Copy, Debug)]
+pub struct ContainsElement<T>(pub T);
+
+impl<T: PartialEq + Send + Sync> Predicate<Vec<T>> for ContainsElement<T> {
+    #[inline]
+    fn check(&self, value: &Vec<T>) -> bool {
+        value.contains(&self.0)
+    }
+}
+
+impl<T: PartialEq + Send + Sync> Predicate<[T]> for ContainsElement<T> {
+    #[inline]
+    fn check(&self, value: &[T]) -> bool {
+        value.contains(&self.0)
+    }
+}
+
+pub fn contains_element<T: PartialEq + Send + Sync>(element: T) -> ContainsElement<T> {
+    ContainsElement(element)
 }
 ```
 
@@ -726,8 +941,13 @@ impl<T, E> Validation<T, E> {
         F: FnOnce(&T) -> E,
     {
         match self {
-            Validation::Success(ref value) if predicate.check(value) => self,
-            Validation::Success(ref value) => Validation::Failure(error_fn(value)),
+            Validation::Success(value) => {
+                if predicate.check(&value) {
+                    Validation::Success(value)
+                } else {
+                    Validation::Failure(error_fn(&value))
+                }
+            }
             Validation::Failure(e) => Validation::Failure(e),
         }
     }
@@ -797,10 +1017,17 @@ mod tests {
 
     #[test]
     fn test_all_of() {
-        let p = all_of([gt(0), lt(100), |x: &i32| x % 2 == 0]);
+        // Note: all_of requires homogeneous predicate types (same type in array)
+        // For mixed predicates, use .and() chaining instead
+        let p = gt(0).and(lt(100)).and(|x: &i32| x % 2 == 0);
         assert!(p.check(&50));
         assert!(!p.check(&51)); // odd
         assert!(!p.check(&0));  // not > 0
+
+        // Homogeneous example with all_of
+        let bounds = all_of([gt(0), lt(100)]);
+        assert!(bounds.check(&50));
+        assert!(!bounds.check(&0));
     }
 
     // String predicate tests
@@ -849,6 +1076,32 @@ mod tests {
         assert!(p.check(&1));
         assert!(!p.check(&0));
         assert!(!p.check(&-1));
+    }
+
+    #[test]
+    fn test_ne() {
+        let p = ne(5);
+        assert!(p.check(&4));
+        assert!(p.check(&6));
+        assert!(!p.check(&5));
+    }
+
+    #[test]
+    fn test_any_of() {
+        let p = any_of([eq(1), eq(5), eq(10)]);
+        assert!(p.check(&1));
+        assert!(p.check(&5));
+        assert!(p.check(&10));
+        assert!(!p.check(&2));
+    }
+
+    #[test]
+    fn test_none_of() {
+        let p = none_of([eq(1), eq(5), eq(10)]);
+        assert!(!p.check(&1));
+        assert!(!p.check(&5));
+        assert!(p.check(&2));
+        assert!(p.check(&7));
     }
 
     // Chaining tests
@@ -1007,6 +1260,9 @@ let result = validate(email, basic_email, "Invalid email format");
 | Send + Sync required | Thread-safe by default |
 | Blanket impl for Fn | Closures work naturally |
 | Copy where possible | Predicates are cheap to copy |
+| Auto-derived Send/Sync | No unsafe impls needed; compiler derives when inner types qualify |
+| Const generic AllOf/AnyOf | Zero-allocation via `[P; N]` arrays instead of `Vec<P>` |
+| Debug on all types | Enables debugging and error message generation |
 
 ### Future Enhancements
 
