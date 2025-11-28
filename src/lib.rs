@@ -107,7 +107,12 @@ pub use effect::combinators::{
 pub use effect::reader::{Ask, Asks, Local};
 
 // Re-export bracket
-pub use effect::bracket::{bracket, bracket_simple, Bracket};
+#[allow(deprecated)]
+pub use effect::bracket::bracket_simple;
+pub use effect::bracket::{
+    acquiring, bracket, bracket2, bracket3, bracket_full, bracket_sync, Acquiring, Bracket,
+    Bracket2, Bracket3, BracketError, BracketFull, BracketSync, Resource, ResourceWith,
+};
 
 // Re-export compat items
 #[allow(deprecated)]
