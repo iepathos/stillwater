@@ -74,6 +74,7 @@
 
 pub mod context;
 pub mod effect;
+pub mod either;
 pub mod io;
 pub mod monoid;
 pub mod nonempty;
@@ -134,6 +135,9 @@ pub use retry::{
 pub use semigroup::{First, Intersection, Last, Semigroup};
 pub use validation::Validation;
 
+// Re-export Either type and utilities
+pub use either::Either;
+
 /// Prelude module for convenient imports
 pub mod prelude {
     // Effect system
@@ -141,6 +145,7 @@ pub mod prelude {
 
     // Other types
     pub use crate::context::ContextError;
+    pub use crate::either::Either;
     pub use crate::io::IO;
     pub use crate::monoid::Monoid;
     pub use crate::nonempty::NonEmptyVec;
