@@ -425,8 +425,10 @@ async fn test_zip_with_first_fails() {
 
 #[tokio::test]
 async fn test_zip_with_second_fails() {
-    let effect =
-        pure::<_, String, ()>(2).zip_with(fail::<i32, _, ()>("error".to_string()), |a: i32, b: i32| a * b);
+    let effect = pure::<_, String, ()>(2)
+        .zip_with(fail::<i32, _, ()>("error".to_string()), |a: i32, b: i32| {
+            a * b
+        });
     assert_eq!(effect.run_standalone().await, Err("error".to_string()));
 }
 
@@ -445,13 +447,21 @@ async fn test_zip3_first_fails() {
 
 #[tokio::test]
 async fn test_zip3_second_fails() {
-    let effect = zip3(pure::<_, String, ()>(1), fail::<i32, _, ()>("error".to_string()), pure(3));
+    let effect = zip3(
+        pure::<_, String, ()>(1),
+        fail::<i32, _, ()>("error".to_string()),
+        pure(3),
+    );
     assert_eq!(effect.run_standalone().await, Err("error".to_string()));
 }
 
 #[tokio::test]
 async fn test_zip3_third_fails() {
-    let effect = zip3(pure::<_, String, ()>(1), pure(2), fail::<i32, _, ()>("error".to_string()));
+    let effect = zip3(
+        pure::<_, String, ()>(1),
+        pure(2),
+        fail::<i32, _, ()>("error".to_string()),
+    );
     assert_eq!(effect.run_standalone().await, Err("error".to_string()));
 }
 
