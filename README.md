@@ -183,7 +183,48 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 // Uses timeout=60 without changing the original config
 ```
 
-### 7. "Retry logic is scattered and hard to test"
+### 7. "I need guaranteed cleanup even when errors occur"
+
+```rust
+use stillwater::effect::bracket::{bracket, bracket2, acquiring, BracketError};
+use stillwater::prelude::*;
+
+// Single resource with guaranteed cleanup
+let result = bracket(
+    open_connection(),                           // Acquire
+    |conn| async move { conn.close().await },    // Release (always runs)
+    |conn| fetch_user(conn, user_id),            // Use
+).run(&env).await;
+
+// Multiple resources with LIFO cleanup order
+let result = bracket2(
+    open_database(),
+    open_file(path),
+    |db| async move { db.close().await },        // Released second
+    |file| async move { file.close().await },    // Released first (LIFO)
+    |db, file| process(db, file),
+).run(&env).await;
+
+// Fluent builder for ergonomic multi-resource management
+let result = acquiring(open_conn(), |c| async move { c.close().await })
+    .and(open_file(), |f| async move { f.close().await })
+    .and(acquire_lock(), |l| async move { l.release().await })
+    .with_flat3(|conn, file, lock| do_work(conn, file, lock))
+    .run(&env)
+    .await;
+
+// Explicit error handling with BracketError
+let result = bracket_full(acquire, release, use_fn).run(&env).await;
+match result {
+    Ok(value) => println!("Success"),
+    Err(BracketError::AcquireError(e)) => println!("Acquire failed"),
+    Err(BracketError::UseError(e)) => println!("Use failed, cleanup succeeded"),
+    Err(BracketError::CleanupError(e)) => println!("Use succeeded, cleanup failed"),
+    Err(BracketError::Both { use_error, cleanup_error }) => println!("Both failed"),
+}
+```
+
+### 8. "Retry logic is scattered and hard to test"
 
 ```rust
 use stillwater::{Effect, RetryPolicy};
@@ -239,7 +280,11 @@ Effect::retry_with_hooks(
   - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
   - Boxed: `par_all()`, `par_try_all()`, `race()`, `par_all_limit()` for homogeneous collections
 - **Retry and resilience** - Policy-as-data approach with exponential, linear, constant, and Fibonacci backoff. Includes jitter, conditional retry, retry hooks, and timeout support
-- **Resource management** - `bracket()` and `bracket_simple()` for safe acquire/use/release patterns
+- **Resource management** - Comprehensive bracket pattern for safe acquire/use/release
+  - `bracket()`, `bracket2()`, `bracket3()` for single and multiple resources with LIFO cleanup
+  - `bracket_full()` returns `BracketError` with explicit error handling for all failure modes
+  - `acquiring()` builder for fluent multi-resource management with `with_flat2/3/4`
+  - Guaranteed cleanup even on errors, partial acquisition rollback
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
@@ -422,6 +467,7 @@ Run any example with `cargo run --example <name>`:
 | [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
 | [tracing_demo](examples/tracing_demo.rs) | Tracing integration with semantic spans and context |
 | [boxing_decisions](examples/boxing_decisions.rs) | When to use `.boxed()` vs zero-cost effects |
+| [resource_scopes](examples/resource_scopes.rs) | Bracket pattern for safe resource management with guaranteed cleanup |
 
 See [examples/](examples/) directory for full code.
 
@@ -429,9 +475,9 @@ See [examples/](examples/) directory for full code.
 
 **Status: 0.11.0 - Production Ready**
 
-- 240 unit tests passing
+- 355 unit tests passing
 - 113 documentation tests passing
-- 19 runnable examples
+- 20 runnable examples
 - Zero clippy warnings
 - Full async support
 - CI/CD pipeline with security audits
