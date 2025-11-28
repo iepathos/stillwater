@@ -881,6 +881,7 @@ where
     E: Send + 'static,
     Env: Clone + Send + Sync + 'static,
 {
+    #[allow(clippy::type_complexity)]
     acquire: Box<dyn FnOnce(&Env) -> BoxFuture<'static, Result<T, E>> + Send>,
     release: Box<dyn FnOnce(T) -> BoxFuture<'static, Result<(), E>> + Send>,
 }
@@ -1217,6 +1218,7 @@ where
     ///     .and(resource2, release2)
     ///     .with_flat2(|a, b| use_resources(a, b))
     /// ```
+    #[allow(clippy::type_complexity)]
     pub fn with_flat2<U, F, UseEffect>(
         self,
         f: F,
@@ -1250,6 +1252,7 @@ where
     ///     .and(resource3, release3)
     ///     .with_flat3(|a, b, c| use_resources(a, b, c))
     /// ```
+    #[allow(clippy::type_complexity)]
     pub fn with_flat3<U, F, UseEffect>(
         self,
         f: F,
@@ -1285,6 +1288,7 @@ where
     ///     .and(resource4, release4)
     ///     .with_flat4(|a, b, c, d| use_resources(a, b, c, d))
     /// ```
+    #[allow(clippy::type_complexity)]
     pub fn with_flat4<U, F, UseEffect>(
         self,
         f: F,

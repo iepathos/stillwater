@@ -54,10 +54,7 @@ async fn example_basic_bracket() {
 
     let result = effect.run(&()).await;
     println!("  Result: {:?}", result);
-    println!(
-        "  Cleanup ran: {}",
-        cleaned_up.load(Ordering::SeqCst)
-    );
+    println!("  Cleanup ran: {}", cleaned_up.load(Ordering::SeqCst));
 }
 
 // ==================== Bracket with Use Failure ====================
@@ -86,10 +83,7 @@ async fn example_bracket_use_failure() {
 
     let result = effect.run(&()).await;
     println!("  Result: {:?}", result);
-    println!(
-        "  Cleanup ran: {}",
-        cleaned_up.load(Ordering::SeqCst)
-    );
+    println!("  Cleanup ran: {}", cleaned_up.load(Ordering::SeqCst));
 }
 
 // ==================== Multiple Resources with LIFO Cleanup ====================
@@ -157,13 +151,10 @@ async fn example_acquiring_builder() {
     let order2 = cleanup_order.clone();
     let order3 = cleanup_order.clone();
 
-    let effect = acquiring(
-        pure::<_, String, ()>("connection"),
-        move |_: &str| {
-            order1.lock().unwrap().push("connection");
-            async { Ok(()) }
-        },
-    )
+    let effect = acquiring(pure::<_, String, ()>("connection"), move |_: &str| {
+        order1.lock().unwrap().push("connection");
+        async { Ok(()) }
+    })
     .and(pure::<_, String, ()>("transaction"), move |_: &str| {
         order2.lock().unwrap().push("transaction");
         async { Ok(()) }
@@ -314,10 +305,7 @@ async fn example_file_io() {
 
     let result = effect.run(&()).await;
     println!("  Result: {:?}", result);
-    println!(
-        "  File closed: {}",
-        file_closed.load(Ordering::SeqCst)
-    );
+    println!("  File closed: {}", file_closed.load(Ordering::SeqCst));
 
     // Verify the file was created
     if temp_path.exists() {
@@ -391,7 +379,9 @@ async fn example_connection_pool() {
         }),
         move |conn: Connection| {
             println!("  Releasing connection #{}", conn.id);
-            pool_for_release.active_connections.fetch_sub(1, Ordering::SeqCst);
+            pool_for_release
+                .active_connections
+                .fetch_sub(1, Ordering::SeqCst);
             async move { Ok(()) }
         },
         |conn: &Connection| {

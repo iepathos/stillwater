@@ -54,7 +54,10 @@ async fn bracket_cleans_up_temp_file_on_success() {
 
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "test content");
-    assert!(cleanup_ran.load(Ordering::SeqCst), "cleanup should have run");
+    assert!(
+        cleanup_ran.load(Ordering::SeqCst),
+        "cleanup should have run"
+    );
     assert!(!path.exists(), "temp file should be deleted");
 }
 
@@ -93,7 +96,10 @@ async fn bracket_cleans_up_temp_file_on_use_failure() {
         cleanup_ran.load(Ordering::SeqCst),
         "cleanup must run on use failure"
     );
-    assert!(!path.exists(), "temp file should be deleted despite failure");
+    assert!(
+        !path.exists(),
+        "temp file should be deleted despite failure"
+    );
 }
 
 #[tokio::test]
@@ -429,7 +435,10 @@ async fn bracket_works_with_tokio_async_file_operations() {
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), "async test content");
     assert!(cleanup_ran.load(Ordering::SeqCst));
-    assert!(!path_for_release.exists(), "file should be deleted by async cleanup");
+    assert!(
+        !path_for_release.exists(),
+        "file should be deleted by async cleanup"
+    );
 }
 
 #[tokio::test]
