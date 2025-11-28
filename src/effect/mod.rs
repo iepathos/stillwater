@@ -111,7 +111,7 @@ pub use boxed::{BoxFuture, BoxedEffect, BoxedLocalEffect};
 // Re-export all combinator types
 pub use combinators::{
     AndThen, AndThenAuto, AndThenRef, Check, Fail, FromAsync, FromFn, FromResult, Map, MapErr,
-    OrElse, Pure, Tap, With,
+    OrElse, Pure, Tap, With, Zip, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8, ZipWith,
 };
 
 // Re-export reader types
@@ -123,6 +123,7 @@ pub use bracket::{bracket, bracket_simple, Bracket};
 // Re-export constructors
 pub use constructors::{
     ask, asks, fail, from_async, from_fn, from_option, from_result, from_validation, local, pure,
+    zip3, zip4, zip5, zip6, zip7, zip8,
 };
 
 // Re-export parallel functions

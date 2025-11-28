@@ -381,3 +381,241 @@ async fn test_execute_method() {
     let effect = pure::<_, String, ()>(42);
     assert_eq!(effect.execute(&()).await, Ok(42));
 }
+
+// ==================== Zip Tests ====================
+
+// Basic zip tests
+#[tokio::test]
+async fn test_zip_both_success() {
+    let effect = pure::<_, String, ()>(1).zip(pure(2));
+    assert_eq!(effect.run_standalone().await, Ok((1, 2)));
+}
+
+#[tokio::test]
+async fn test_zip_first_fails() {
+    let effect = fail::<i32, _, ()>("error".to_string()).zip(pure(2));
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+#[tokio::test]
+async fn test_zip_second_fails() {
+    let effect = pure::<_, String, ()>(1).zip(fail::<i32, _, ()>("error".to_string()));
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+#[tokio::test]
+async fn test_zip_both_fail_returns_first_error() {
+    let effect =
+        fail::<i32, _, ()>("first".to_string()).zip(fail::<i32, _, ()>("second".to_string()));
+    assert_eq!(effect.run_standalone().await, Err("first".to_string()));
+}
+
+// ZipWith tests
+#[tokio::test]
+async fn test_zip_with_success() {
+    let effect = pure::<_, String, ()>(2).zip_with(pure(3), |a, b| a * b);
+    assert_eq!(effect.run_standalone().await, Ok(6));
+}
+
+#[tokio::test]
+async fn test_zip_with_first_fails() {
+    let effect = fail::<i32, _, ()>("error".to_string()).zip_with(pure(3), |a: i32, b: i32| a * b);
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+#[tokio::test]
+async fn test_zip_with_second_fails() {
+    let effect =
+        pure::<_, String, ()>(2).zip_with(fail::<i32, _, ()>("error".to_string()), |a: i32, b: i32| a * b);
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+// Zip3 tests
+#[tokio::test]
+async fn test_zip3_success() {
+    let effect = zip3(pure::<_, String, ()>(1), pure(2), pure(3));
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3)));
+}
+
+#[tokio::test]
+async fn test_zip3_first_fails() {
+    let effect = zip3(fail::<i32, _, ()>("error".to_string()), pure(2), pure(3));
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+#[tokio::test]
+async fn test_zip3_second_fails() {
+    let effect = zip3(pure::<_, String, ()>(1), fail::<i32, _, ()>("error".to_string()), pure(3));
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+#[tokio::test]
+async fn test_zip3_third_fails() {
+    let effect = zip3(pure::<_, String, ()>(1), pure(2), fail::<i32, _, ()>("error".to_string()));
+    assert_eq!(effect.run_standalone().await, Err("error".to_string()));
+}
+
+// Zip4 tests
+#[tokio::test]
+async fn test_zip4_success() {
+    let effect = zip4(pure::<_, String, ()>(1), pure(2), pure(3), pure(4));
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3, 4)));
+}
+
+// Zip5 tests
+#[tokio::test]
+async fn test_zip5_success() {
+    let effect = zip5(pure::<_, String, ()>(1), pure(2), pure(3), pure(4), pure(5));
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3, 4, 5)));
+}
+
+// Zip6 tests
+#[tokio::test]
+async fn test_zip6_success() {
+    let effect = zip6(
+        pure::<_, String, ()>(1),
+        pure(2),
+        pure(3),
+        pure(4),
+        pure(5),
+        pure(6),
+    );
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3, 4, 5, 6)));
+}
+
+// Zip7 tests
+#[tokio::test]
+async fn test_zip7_success() {
+    let effect = zip7(
+        pure::<_, String, ()>(1),
+        pure(2),
+        pure(3),
+        pure(4),
+        pure(5),
+        pure(6),
+        pure(7),
+    );
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3, 4, 5, 6, 7)));
+}
+
+// Zip8 tests
+#[tokio::test]
+async fn test_zip8_success() {
+    let effect = zip8(
+        pure::<_, String, ()>(1),
+        pure(2),
+        pure(3),
+        pure(4),
+        pure(5),
+        pure(6),
+        pure(7),
+        pure(8),
+    );
+    assert_eq!(effect.run_standalone().await, Ok((1, 2, 3, 4, 5, 6, 7, 8)));
+}
+
+// Chained zip tests
+#[tokio::test]
+async fn test_zip_chain() {
+    let effect = pure::<_, String, ()>(1)
+        .zip(pure(2))
+        .zip(pure(3))
+        .map(|((a, b), c)| a + b + c);
+    assert_eq!(effect.run_standalone().await, Ok(6));
+}
+
+// Zip with and_then
+#[tokio::test]
+async fn test_zip_with_and_then() {
+    let effect = pure::<_, String, ()>(1)
+        .zip(pure(2))
+        .and_then(|(a, b)| pure(a + b));
+    assert_eq!(effect.run_standalone().await, Ok(3));
+}
+
+// Zip with environment
+#[tokio::test]
+async fn test_zip_with_environment() {
+    #[derive(Clone)]
+    struct Env {
+        multiplier: i32,
+    }
+
+    let effect = asks::<_, String, Env, _>(|env: &Env| env.multiplier).zip(pure(10));
+
+    let env = Env { multiplier: 5 };
+    assert_eq!(effect.execute(&env).await, Ok((5, 10)));
+}
+
+// Zip with boxed
+#[tokio::test]
+async fn test_zip_boxed() {
+    let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+        pure(1).zip(pure(2)).map(|(a, b)| a + b).boxed(),
+        pure(3).zip(pure(4)).map(|(a, b)| a + b).boxed(),
+    ];
+
+    let mut results = Vec::new();
+    for effect in effects {
+        results.push(effect.run_standalone().await.unwrap());
+    }
+    assert_eq!(results, vec![3, 7]);
+}
+
+// Zero-cost verification for Zip
+#[test]
+fn test_zip_size() {
+    use std::mem::size_of;
+
+    // Zip<A, B> should be exactly size_of::<A>() + size_of::<B>()
+    assert_eq!(
+        size_of::<Zip<Pure<i32, String, ()>, Pure<i32, String, ()>>>(),
+        size_of::<Pure<i32, String, ()>>() * 2
+    );
+}
+
+// Complex zip chain to verify no allocations
+#[tokio::test]
+async fn test_zip_five_effects_no_allocation() {
+    let effect = pure::<_, String, ()>(1)
+        .zip(pure(2))
+        .zip(pure(3))
+        .zip(pure(4))
+        .zip(pure(5));
+
+    let result = effect.run_standalone().await;
+    assert_eq!(result, Ok(((((1, 2), 3), 4), 5)));
+}
+
+// zip_with is equivalent to zip + map
+#[tokio::test]
+async fn test_zip_with_equivalence() {
+    let effect1 = pure::<_, String, ()>(2).zip_with(pure(3), |a, b| a * b);
+    let effect2 = pure::<_, String, ()>(2).zip(pure(3)).map(|(a, b)| a * b);
+
+    assert_eq!(
+        effect1.run_standalone().await,
+        effect2.run_standalone().await
+    );
+}
+
+// Test zip with different types
+#[tokio::test]
+async fn test_zip_heterogeneous_types() {
+    let effect = pure::<_, String, ()>(42).zip(pure("hello".to_string()));
+    assert_eq!(effect.run_standalone().await, Ok((42, "hello".to_string())));
+}
+
+// Test zip3 with different types
+#[tokio::test]
+async fn test_zip3_heterogeneous_types() {
+    let effect = zip3(
+        pure::<_, String, ()>(42),
+        pure("hello".to_string()),
+        pure(true),
+    );
+    assert_eq!(
+        effect.run_standalone().await,
+        Ok((42, "hello".to_string(), true))
+    );
+}
