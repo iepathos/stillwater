@@ -3,7 +3,7 @@ number: 026
 title: Either<L, R> Sum Type
 category: foundation
 priority: high
-status: draft
+status: ready
 dependencies: []
 created: 2025-11-27
 ---
@@ -12,7 +12,7 @@ created: 2025-11-27
 
 **Category**: foundation
 **Priority**: high
-**Status**: draft
+**Status**: ready
 **Dependencies**: None
 
 ## Context
@@ -78,8 +78,8 @@ pub enum Either<L, R> {
 - **MUST** provide `Either::right(value)` constructor
 - **MUST** provide `is_left(&self) -> bool`
 - **MUST** provide `is_right(&self) -> bool`
-- **MUST** provide `left(self) -> Option<L>`
-- **MUST** provide `right(self) -> Option<R>`
+- **MUST** provide `into_left(self) -> Option<L>`
+- **MUST** provide `into_right(self) -> Option<R>`
 - **MUST** provide `as_ref(&self) -> Either<&L, &R>`
 - **MUST** provide `as_mut(&mut self) -> Either<&mut L, &mut R>`
 
@@ -157,7 +157,7 @@ pub enum Either<L, R> {
 - [ ] **AC2**: `Either::left(42)` creates `Either::Left(42)`
 - [ ] **AC3**: `Either::right("hello")` creates `Either::Right("hello")`
 - [ ] **AC4**: `is_left()` and `is_right()` return correct booleans
-- [ ] **AC5**: `left()` and `right()` return correct Options
+- [ ] **AC5**: `into_left()` and `into_right()` return correct Options
 
 ### Transformations
 
@@ -203,8 +203,6 @@ pub enum Either<L, R> {
 
 ```rust
 // src/either.rs
-
-use std::fmt;
 
 /// A value that is either `Left(L)` or `Right(R)`.
 ///
@@ -291,18 +289,18 @@ impl<L, R> Either<L, R> {
 
     // ========== Extractors ==========
 
-    /// Returns the left value if present.
+    /// Returns the left value if present, consuming self.
     #[inline]
-    pub fn left(self) -> Option<L> {
+    pub fn into_left(self) -> Option<L> {
         match self {
             Either::Left(l) => Some(l),
             Either::Right(_) => None,
         }
     }
 
-    /// Returns the right value if present.
+    /// Returns the right value if present, consuming self.
     #[inline]
-    pub fn right(self) -> Option<R> {
+    pub fn into_right(self) -> Option<R> {
         match self {
             Either::Left(_) => None,
             Either::Right(r) => Some(r),
@@ -540,14 +538,8 @@ impl<L, R> Either<L, Either<L, R>> {
 
 // ========== Trait Implementations ==========
 
-impl<L: fmt::Debug, R: fmt::Debug> fmt::Debug for Either<L, R> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Either::Left(l) => f.debug_tuple("Left").field(l).finish(),
-            Either::Right(r) => f.debug_tuple("Right").field(r).finish(),
-        }
-    }
-}
+// Note: Debug is derived via #[derive(Debug)] on the enum definition.
+// The derived impl produces equivalent output to a manual implementation.
 
 impl<L, R> From<Result<R, L>> for Either<L, R> {
     fn from(result: Result<R, L>) -> Self {
@@ -573,12 +565,30 @@ where
 
 // ========== Iterator Support ==========
 
+impl<L, R> Either<L, R> {
+    /// Returns an iterator over the right value, if present.
+    ///
+    /// This is right-biased: only `Right` values yield an element.
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &R> {
+        self.as_ref().into_right().into_iter()
+    }
+
+    /// Returns a mutable iterator over the right value, if present.
+    ///
+    /// This is right-biased: only `Right` values yield an element.
+    #[inline]
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut R> {
+        self.as_mut().into_right().into_iter()
+    }
+}
+
 impl<L, R> IntoIterator for Either<L, R> {
     type Item = R;
     type IntoIter = std::option::IntoIter<R>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.right().into_iter()
+        self.into_right().into_iter()
     }
 }
 
@@ -587,7 +597,7 @@ impl<'a, L, R> IntoIterator for &'a Either<L, R> {
     type IntoIter = std::option::IntoIter<&'a R>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.as_ref().right().into_iter()
+        self.as_ref().into_right().into_iter()
     }
 }
 
@@ -616,7 +626,7 @@ pub fn lefts<L, R, I>(iter: I) -> impl Iterator<Item = L>
 where
     I: IntoIterator<Item = Either<L, R>>,
 {
-    iter.into_iter().filter_map(|e| e.left())
+    iter.into_iter().filter_map(|e| e.into_left())
 }
 
 /// Extract all Right values from an iterator.
@@ -624,7 +634,7 @@ pub fn rights<L, R, I>(iter: I) -> impl Iterator<Item = R>
 where
     I: IntoIterator<Item = Either<L, R>>,
 {
-    iter.into_iter().filter_map(|e| e.right())
+    iter.into_iter().filter_map(|e| e.into_right())
 }
 ```
 
@@ -748,7 +758,7 @@ mod tests {
     #[test]
     fn test_or_else() {
         let e: Either<i32, &str> = Either::left(1);
-        assert_eq!(e.or_else(|x| Either::right(&"recovered")), Either::right(&"recovered"));
+        assert_eq!(e.or_else(|_| Either::right("recovered")), Either::right("recovered"));
 
         let e: Either<i32, &str> = Either::right("ok");
         assert_eq!(e.or_else(|x| Either::left(x * 2)), Either::right("ok"));
@@ -795,6 +805,47 @@ mod tests {
 
         let nested: Either<&str, Either<&str, i32>> = Either::left("outer");
         assert_eq!(nested.flatten(), Either::left("outer"));
+    }
+
+    #[test]
+    fn test_into_left_into_right() {
+        let left: Either<i32, &str> = Either::left(42);
+        assert_eq!(left.into_left(), Some(42));
+
+        let right: Either<i32, &str> = Either::right("hello");
+        assert_eq!(right.into_right(), Some("hello"));
+
+        let left: Either<i32, &str> = Either::left(42);
+        assert_eq!(left.into_right(), None);
+
+        let right: Either<i32, &str> = Either::right("hello");
+        assert_eq!(right.into_left(), None);
+    }
+
+    #[test]
+    fn test_iter() {
+        let right: Either<&str, i32> = Either::right(42);
+        let collected: Vec<_> = right.iter().collect();
+        assert_eq!(collected, vec![&42]);
+
+        let left: Either<&str, i32> = Either::left("error");
+        let collected: Vec<_> = left.iter().collect();
+        assert!(collected.is_empty());
+    }
+
+    #[test]
+    fn test_iter_mut() {
+        let mut right: Either<&str, i32> = Either::right(42);
+        for val in right.iter_mut() {
+            *val *= 2;
+        }
+        assert_eq!(right, Either::right(84));
+
+        let mut left: Either<&str, i32> = Either::left("error");
+        for val in left.iter_mut() {
+            *val *= 2; // This won't run
+        }
+        assert_eq!(left, Either::left("error"));
     }
 }
 ```
@@ -867,13 +918,11 @@ mod proptests {
 | Right-biased | Follows Scala/fp-ts convention; `Right` is the "happy path" |
 | No `?` operator | Would conflict with Result's error semantics |
 | Derives over manual impls | Simpler, correct by construction |
-| `left()` returns `Option` | Consistent with `Result::ok()` / `Result::err()` |
+| `into_left()` returns `Option` | Consistent with `Result::ok()` / `Result::err()`, avoids name collision with constructor |
 
-### Naming Conflict
+### Naming Convention
 
-Note: `left()` is used both as a constructor and an extractor. The constructor is `Either::left(value)` (associated function), while the extractor is `self.left()` (method). This follows the `either` crate convention.
-
-If this causes confusion, consider renaming the extractor to `into_left()` / `into_right()`.
+The constructors `Either::left(value)` and `Either::right(value)` are associated functions, while the extractors `into_left()` and `into_right()` are methods that consume self. This avoids the naming conflict present in the `either` crate where both constructor and extractor share the same name.
 
 ## Migration and Compatibility
 
