@@ -34,17 +34,19 @@ pub use crate::effect::combinators::{
 // Reader Types
 pub use crate::effect::reader::{Ask, Asks, Local};
 
-// Bracket
-pub use crate::effect::bracket::Bracket;
+// Bracket types and constructors
+#[allow(deprecated)]
+pub use crate::effect::bracket::bracket_simple;
+pub use crate::effect::bracket::{
+    acquiring, bracket, bracket2, bracket3, bracket_full, bracket_sync, Acquiring, Bracket,
+    Bracket2, Bracket3, BracketError, BracketFull, BracketSync, Resource, ResourceWith,
+};
 
 // Constructors
 pub use crate::effect::constructors::{
     ask, asks, fail, from_async, from_fn, from_option, from_result, from_validation, local, pure,
     zip3, zip4, zip5, zip6, zip7, zip8,
 };
-
-// Bracket constructor
-pub use crate::effect::bracket::{bracket, bracket_simple};
 
 // Parallel (homogeneous, requires boxing)
 pub use crate::effect::parallel::{par_all, par_all_limit, par_try_all, race};

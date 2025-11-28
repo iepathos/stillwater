@@ -308,11 +308,11 @@ async fn test_bracket_basic() {
 
     let effect = bracket(
         pure::<_, String, ()>(42),
-        |resource| pure(resource * 2),
-        move |_| {
+        move |_: i32| {
             released_clone.store(true, Ordering::SeqCst);
-            pure(())
+            async { Ok(()) }
         },
+        |resource: &i32| pure::<_, String, ()>(*resource * 2),
     );
 
     let result = effect.run_standalone().await;
@@ -330,11 +330,11 @@ async fn test_bracket_releases_on_error() {
 
     let effect = bracket(
         pure::<_, String, ()>(42),
-        |_| fail::<i32, _, ()>("use error".to_string()),
-        move |_| {
+        move |_: i32| {
             released_clone.store(true, Ordering::SeqCst);
-            pure(())
+            async { Ok(()) }
         },
+        |_: &i32| fail::<i32, _, ()>("use error".to_string()),
     );
 
     let result = effect.run_standalone().await;
