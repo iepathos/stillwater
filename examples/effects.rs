@@ -7,9 +7,10 @@
 //! - Chaining effects with and_then
 //! - Error handling with map_err
 //! - Helper combinators (tap, check, with)
+//! - Combining independent effects with zip
 //! - Environment-based dependency injection
 
-use stillwater::{fail, from_async, from_fn, pure, Effect, EffectExt, RunStandalone};
+use stillwater::{fail, from_async, from_fn, pure, zip3, Effect, EffectExt, RunStandalone};
 
 // ==================== Basic Effects ====================
 
@@ -331,13 +332,102 @@ async fn example_with() {
     println!("Area: {}", area);
 }
 
+// ==================== Combining Independent Effects ====================
+
+/// Example 10: Using zip for independent effects
+///
+/// Demonstrates zip(), zip_with(), and zip3() for combining independent effects.
+/// Unlike and_then() which expresses sequential dependency, zip() expresses
+/// that effects are independent and both results are needed.
+async fn example_zip() {
+    println!("\n=== Example 10: Using zip() ===");
+
+    #[derive(Clone, Debug)]
+    struct User {
+        name: String,
+    }
+
+    #[derive(Clone, Debug)]
+    struct Settings {
+        theme: String,
+    }
+
+    #[derive(Clone)]
+    struct Env {
+        user_name: String,
+        theme: String,
+    }
+
+    // Two independent effects - neither depends on the other
+    fn fetch_user() -> impl Effect<Output = User, Error = String, Env = Env> {
+        from_fn(|env: &Env| {
+            Ok(User {
+                name: env.user_name.clone(),
+            })
+        })
+    }
+
+    fn fetch_settings() -> impl Effect<Output = Settings, Error = String, Env = Env> {
+        from_fn(|env: &Env| {
+            Ok(Settings {
+                theme: env.theme.clone(),
+            })
+        })
+    }
+
+    let env = Env {
+        user_name: "Alice".to_string(),
+        theme: "dark".to_string(),
+    };
+
+    // Basic zip: combine two effects into a tuple
+    let result = fetch_user().zip(fetch_settings()).run(&env).await;
+    println!("Basic zip: {:?}", result);
+
+    // zip_with: combine with a function directly (more efficient than zip + map)
+    let greeting = fetch_user()
+        .zip_with(fetch_settings(), |user, settings| {
+            format!("Hello {}, your theme is {}", user.name, settings.theme)
+        })
+        .run(&env)
+        .await;
+    println!("zip_with: {:?}", greeting);
+
+    // Chain multiple zips (creates nested tuples)
+    let chained = pure::<_, String, Env>(1)
+        .zip(pure(2))
+        .zip(pure(3))
+        .map(|((a, b), c)| a + b + c)
+        .run(&env)
+        .await;
+    println!("Chained zips ((a, b), c): {:?}", chained);
+
+    // zip3: flat tuple result (cleaner than chained zips)
+    let flat = zip3(
+        pure::<_, String, Env>(1),
+        pure::<_, String, Env>(2),
+        pure::<_, String, Env>(3),
+    )
+    .map(|(a, b, c)| a + b + c)
+    .run(&env)
+    .await;
+    println!("zip3 (a, b, c): {:?}", flat);
+
+    // Error handling: fail-fast semantics
+    let with_error = pure::<_, String, Env>(1)
+        .zip(fail::<i32, _, Env>("second failed".to_string()))
+        .run(&env)
+        .await;
+    println!("With error: {:?}", with_error);
+}
+
 // ==================== Combining Multiple Effects ====================
 
-/// Example 10: Real-world composition
+/// Example 11: Real-world composition
 ///
 /// Demonstrates combining multiple patterns into a realistic workflow.
 async fn example_composition() {
-    println!("\n=== Example 10: Real-world Composition ===");
+    println!("\n=== Example 11: Real-world Composition ===");
 
     #[derive(Clone)]
     struct User {
@@ -450,6 +540,7 @@ async fn main() {
     example_tap().await;
     example_check().await;
     example_with().await;
+    example_zip().await;
     example_composition().await;
 
     println!("\n=== All examples completed successfully! ===");

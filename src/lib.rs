@@ -92,6 +92,7 @@ pub use effect::boxed::{BoxFuture, BoxedLocalEffect};
 // Re-export constructors
 pub use effect::constructors::{
     ask, asks, fail, from_async, from_fn, from_option, from_result, from_validation, local, pure,
+    zip3, zip4, zip5, zip6, zip7, zip8,
 };
 
 // Re-export parallel functions
@@ -100,7 +101,7 @@ pub use effect::parallel::{par2, par3, par4, par_all, par_all_limit, par_try_all
 // Re-export combinator types (for advanced use)
 pub use effect::combinators::{
     AndThen, AndThenAuto, AndThenRef, Check, Fail, FromAsync, FromFn, FromResult, Map, MapErr,
-    OrElse, Pure, Tap, With,
+    OrElse, Pure, Tap, With, Zip, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8, ZipWith,
 };
 
 // Re-export reader types

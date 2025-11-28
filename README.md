@@ -108,7 +108,35 @@ async fn test_with_mock_db() {
 }
 ```
 
-### 4. "My errors lose context as they bubble up"
+### 4. "I need to fetch multiple independent resources"
+
+```rust
+use stillwater::prelude::*;
+
+// Combine independent effects - neither depends on the other
+fn load_user_profile(id: UserId) -> impl Effect<Output = UserProfile, Error = AppError, Env = AppEnv> {
+    fetch_user(id)
+        .zip(fetch_settings(id))
+        .zip(fetch_preferences(id))
+        .map(|((user, settings), prefs)| UserProfile { user, settings, prefs })
+}
+
+// Or use zip3 for cleaner flat tuples
+fn load_user_profile_v2(id: UserId) -> impl Effect<Output = UserProfile, Error = AppError, Env = AppEnv> {
+    zip3(
+        fetch_user(id),
+        fetch_settings(id),
+        fetch_preferences(id),
+    )
+    .map(|(user, settings, prefs)| UserProfile { user, settings, prefs })
+}
+
+// Combine results with a function directly using zip_with
+let effect = fetch_price(item_id)
+    .zip_with(fetch_quantity(item_id), |price, qty| price * qty);
+```
+
+### 5. "My errors lose context as they bubble up"
 
 ```rust
 use stillwater::prelude::*;
@@ -125,7 +153,7 @@ fetch_user(id)
 //   -> Processing user data
 ```
 
-### 5. "I need clean dependency injection without passing parameters everywhere"
+### 6. "I need clean dependency injection without passing parameters everywhere"
 
 ```rust
 use stillwater::prelude::*;
@@ -155,7 +183,7 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 // Uses timeout=60 without changing the original config
 ```
 
-### 6. "Retry logic is scattered and hard to test"
+### 7. "Retry logic is scattered and hard to test"
 
 ```rust
 use stillwater::{Effect, RetryPolicy};
@@ -203,6 +231,10 @@ Effect::retry_with_hooks(
   - Zero heap allocations by default
   - Explicit `.boxed()` when type erasure is needed
   - Returns `impl Effect` for optimal performance
+- **Zip combinators** - Combine independent effects into tuples
+  - `zip()`, `zip_with()` methods for pairwise combination
+  - `zip3()` through `zip8()` for flat tuple results
+  - Zero-cost: all combinators return concrete types
 - **Parallel effect execution** - Run independent effects concurrently
   - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
   - Boxed: `par_all()`, `par_try_all()`, `race()`, `par_all_limit()` for homogeneous collections

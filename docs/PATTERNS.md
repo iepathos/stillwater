@@ -183,6 +183,49 @@ async fn load_dashboard(user_id: u64, env: &Env) -> Result<Dashboard, Error> {
 }
 ```
 
+### Pattern 6: Combining Independent Effects with Zip
+
+Use `zip` when you need both results from independent effects:
+
+```rust
+use stillwater::prelude::*;
+
+// Basic zip: combine two independent effects into a tuple
+fn load_user_with_settings(id: UserId) -> impl Effect<Output = (User, Settings), Error = AppError, Env = AppEnv> {
+    fetch_user(id).zip(fetch_settings(id))
+}
+
+// zip_with: combine with a function directly (more efficient than zip + map)
+fn calculate_total(order_id: OrderId) -> impl Effect<Output = Money, Error = AppError, Env = AppEnv> {
+    fetch_price(order_id)
+        .zip_with(fetch_quantity(order_id), |price, qty| price * qty)
+}
+
+// zip3 through zip8: flat tuple results for multiple effects
+fn load_profile(id: UserId) -> impl Effect<Output = Profile, Error = AppError, Env = AppEnv> {
+    zip3(
+        fetch_user(id),
+        fetch_settings(id),
+        fetch_preferences(id),
+    )
+    .map(|(user, settings, prefs)| Profile { user, settings, prefs })
+}
+
+// Chained zips create nested tuples
+fn chained_example() -> impl Effect<Output = i32, Error = String, Env = ()> {
+    pure(1)
+        .zip(pure(2))
+        .zip(pure(3))
+        .map(|((a, b), c)| a + b + c)  // Note the nested tuple
+}
+```
+
+**Key points:**
+- `zip` expresses independence - neither effect depends on the other's output
+- Uses fail-fast semantics (first error wins), same as `and_then`
+- For error accumulation with independent operations, use `Validation::all()` instead
+- `zip3` through `zip8` return flat tuples for cleaner pattern matching
+
 ## Testing Patterns
 
 ### Pattern 1: Testing Pure Functions
