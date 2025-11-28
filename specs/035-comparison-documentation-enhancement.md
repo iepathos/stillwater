@@ -36,6 +36,15 @@ The existing `COMPARISON.md`:
 - ✗ Missing real-world scenario comparisons
 - ✗ No boilerplate reduction metrics
 - ✗ Limited examples showing Stillwater + other crates together
+- ✗ Uses outdated API patterns (e.g., `IO::execute` which doesn't exist)
+
+### API Corrections Needed in Existing Docs
+
+The current `COMPARISON.md` has these outdated patterns that must be corrected:
+
+1. **Line 305**: Uses `IO::execute(|env: &Env| env.db.save(&user))` - should use `from_async()`
+2. **General**: Some examples may use associated functions like `Effect::pure()` instead of the preferred free functions `pure()`
+3. **Execution**: Any use of `.execute()` should be replaced with `.run()`
 
 ## Objective
 
@@ -113,7 +122,11 @@ Expand examples showing Stillwater with other crates:
 #### NFR1: Code Example Quality
 
 - All examples MUST compile and be tested
-- Examples MUST use the new zero-cost API (per Spec 025)
+- Examples MUST use the new zero-cost API (per Spec 025):
+  - Free function constructors: `pure()`, `fail()`, `from_fn()`, `from_async()`, `asks()`
+  - Method chaining: `.map()`, `.and_then()`, `.context()`
+  - Execution: `.run(&env).await`
+  - Validation: `(v1, v2, v3).validate_all()` using `ValidateAll` trait
 - Examples MUST be realistic, not contrived
 - Examples SHOULD be copy-paste ready
 
@@ -242,12 +255,15 @@ fn validate_user_registration(input: &RegistrationInput) -> Result<ValidatedUser
 }
 
 // AFTER: Stillwater Validation (8 lines - 64% reduction)
+use stillwater::{Validation, validation::ValidateAll};
+
 fn validate_user_registration(input: &RegistrationInput) -> Validation<ValidatedUser, Vec<String>> {
-    Validation::all((
+    (
         validate_email(&input.email),
         validate_age(input.age),
         validate_username(&input.username),
-    ))
+    )
+    .validate_all()
     .map(|(email, age, username)| ValidatedUser { email, age, username })
 }
 ```
@@ -274,28 +290,46 @@ async fn check_inventory(db: &Database, cache: &Cache, items: &[Item]) -> Result
 async fn create_receipt(db: &Database, user: &User, order: &Order, inv: &Inventory) -> Result<Receipt, Error> { ... }
 async fn send_confirmation(email: &EmailService, user: &User, receipt: &Receipt) -> Result<(), Error> { ... }
 
-// AFTER: Reader pattern (no parameter threading)
+// AFTER: Reader pattern with Effect (no parameter threading)
+use stillwater::effect::prelude::*;
+
 fn process_order(order: Order) -> impl Effect<Output = Receipt, Error = Error, Env = AppEnv> {
-    asks(|env: &AppEnv| env.db.fetch_user(order.user_id))
-        .and_then(move |user| {
-            asks(move |env: &AppEnv| env.check_inventory(&order.items))
-                .and_then(move |inventory| {
-                    asks(move |env: &AppEnv| env.db.create_receipt(&user, &order, &inventory))
-                        .and_then(move |receipt| {
-                            asks(move |env: &AppEnv| env.email.send_confirmation(&user, &receipt))
-                                .map(move |_| receipt)
-                        })
-                })
+    from_async(move |env: &AppEnv| {
+        let db = env.db.clone();
+        async move { db.fetch_user(order.user_id).await }
+    })
+    .and_then(move |user| {
+        from_async(move |env: &AppEnv| {
+            let db = env.db.clone();
+            let cache = env.cache.clone();
+            let items = order.items.clone();
+            async move { check_inventory(&db, &cache, &items).await }
         })
+        .and_then(move |inventory| {
+            from_async(move |env: &AppEnv| {
+                let db = env.db.clone();
+                async move { db.create_receipt(&user, &order, &inventory).await }
+            })
+            .and_then(move |receipt| {
+                from_async(move |env: &AppEnv| {
+                    let email = env.email.clone();
+                    async move {
+                        email.send_confirmation(&user, &receipt).await?;
+                        Ok(receipt)
+                    }
+                })
+            })
+        })
+    })
 }
 
 // Test becomes trivial - no mocking frameworks needed
-#[test]
-fn test_process_order() {
+#[tokio::test]
+async fn test_process_order() {
     let test_env = AppEnv {
-        db: InMemoryDb::with_test_data(),
-        cache: NoOpCache,
-        email: RecordingEmailService::new(),
+        db: Arc::new(InMemoryDb::with_test_data()),
+        cache: Arc::new(NoOpCache),
+        email: Arc::new(RecordingEmailService::new()),
     };
     let result = process_order(test_order).run(&test_env).await;
     assert!(result.is_ok());
@@ -368,6 +402,44 @@ mod comparison_doc_tests {
 - No additional architecture docs needed
 
 ## Implementation Notes
+
+### Current API Patterns
+
+All examples should use the current zero-cost Effect API:
+
+**Validation API:**
+```rust
+use stillwater::{Validation, validation::ValidateAll};
+
+// Combining validations - use tuple.validate_all()
+let result = (
+    validate_email(&input.email),
+    validate_age(input.age),
+).validate_all();
+
+// For Vec of validations
+let result = Validation::all_vec(validations);
+```
+
+**Effect API:**
+```rust
+use stillwater::effect::prelude::*;
+
+// Free function constructors (preferred)
+pure(42)                           // Immediate success
+fail("error")                      // Immediate failure
+from_fn(|env| Ok(env.config.port)) // Sync function with env
+from_async(|env| async { ... })    // Async function with env
+asks(|env| env.config.clone())     // Query environment
+
+// Execution
+effect.run(&env).await             // NOT .execute()
+
+// Combinators
+effect.map(|x| x * 2)
+effect.and_then(|x| pure(x + 1))
+effect.context("operation failed") // Add error context
+```
 
 ### Writing Guidelines
 
