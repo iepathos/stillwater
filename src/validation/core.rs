@@ -288,6 +288,67 @@ impl<T, E> Validation<T, E> {
             Validation::Failure(error) => Either::Left(error),
         }
     }
+
+    /// Ensure the success value satisfies a predicate.
+    ///
+    /// If the validation is already a failure, returns the failure unchanged.
+    /// If successful but the predicate fails, returns a failure with the given error.
+    /// If successful and the predicate passes, returns the success unchanged.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::{Validation, predicate::*};
+    ///
+    /// let result = Validation::success(String::from("hello"))
+    ///     .ensure(len_min(3), "too short");
+    /// assert_eq!(result, Validation::Success(String::from("hello")));
+    ///
+    /// let result = Validation::success(String::from("hi"))
+    ///     .ensure(len_min(3), "too short");
+    /// assert_eq!(result, Validation::Failure("too short"));
+    /// ```
+    pub fn ensure<P>(self, predicate: P, error: E) -> Validation<T, E>
+    where
+        P: crate::predicate::Predicate<T>,
+    {
+        match self {
+            Validation::Success(value) if predicate.check(&value) => Validation::Success(value),
+            Validation::Success(_) => Validation::Failure(error),
+            Validation::Failure(e) => Validation::Failure(e),
+        }
+    }
+
+    /// Ensure the success value satisfies a predicate, with an error factory.
+    ///
+    /// Like `ensure`, but takes a closure to generate the error,
+    /// allowing access to the value when constructing the error message.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::{Validation, predicate::*};
+    ///
+    /// let result = Validation::success(String::from("hi"))
+    ///     .ensure_with(len_min(3), |s| format!("'{}' too short", s));
+    /// assert_eq!(result, Validation::Failure("'hi' too short".to_string()));
+    /// ```
+    pub fn ensure_with<P, F>(self, predicate: P, error_fn: F) -> Validation<T, E>
+    where
+        P: crate::predicate::Predicate<T>,
+        F: FnOnce(&T) -> E,
+    {
+        match self {
+            Validation::Success(value) => {
+                if predicate.check(&value) {
+                    Validation::Success(value)
+                } else {
+                    Validation::Failure(error_fn(&value))
+                }
+            }
+            Validation::Failure(e) => Validation::Failure(e),
+        }
+    }
 }
 
 impl<T, E> Validation<T, NonEmptyVec<E>> {
