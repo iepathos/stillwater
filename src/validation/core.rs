@@ -83,6 +83,7 @@
 //! 2. Enable the feature in `Cargo.toml`: `features = ["try_trait"]`
 //! 3. Add `#![feature(try_trait_v2)]` to your crate root
 
+use crate::either::Either;
 use crate::nonempty::NonEmptyVec;
 use crate::Semigroup;
 
@@ -264,6 +265,27 @@ impl<T, E> Validation<T, E> {
         match self {
             Validation::Success(value) => Validation::Success(value),
             Validation::Failure(error) => Validation::Failure(f(error)),
+        }
+    }
+
+    /// Convert to Either (Success becomes Right, Failure becomes Left).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::{Validation, Either};
+    ///
+    /// let success = Validation::<_, &str>::success(42);
+    /// let failure = Validation::<i32, _>::failure("error");
+    ///
+    /// assert_eq!(success.into_either(), Either::right(42));
+    /// assert_eq!(failure.into_either(), Either::left("error"));
+    /// ```
+    #[inline]
+    pub fn into_either(self) -> Either<E, T> {
+        match self {
+            Validation::Success(value) => Either::Right(value),
+            Validation::Failure(error) => Either::Left(error),
         }
     }
 }
