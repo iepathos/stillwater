@@ -5,7 +5,9 @@
 
 use std::future::Future;
 
-use crate::effect::combinators::{Fail, FromAsync, FromFn, FromResult, Pure};
+use crate::effect::combinators::{
+    Fail, FromAsync, FromFn, FromResult, Pure, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8,
+};
 use crate::effect::reader::{Ask, Asks, Local};
 use crate::effect::trait_def::Effect;
 
@@ -255,4 +257,138 @@ where
         crate::Validation::Failure(error) => Err(error),
     };
     FromResult::new(result)
+}
+
+/// Combine three effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip3` type, no heap allocation.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use stillwater::effect::prelude::*;
+///
+/// let effect = zip3(
+///     fetch_user(id),
+///     fetch_orders(id),
+///     fetch_preferences(id),
+/// );
+/// // Returns Zip3<...> with Output = (User, Vec<Order>, Preferences)
+/// ```
+pub fn zip3<E1, E2, E3>(e1: E1, e2: E2, e3: E3) -> Zip3<E1, E2, E3>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip3::new(e1, e2, e3)
+}
+
+/// Combine four effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip4` type, no heap allocation.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use stillwater::effect::prelude::*;
+///
+/// let effect = zip4(fetch_a(), fetch_b(), fetch_c(), fetch_d());
+/// // Returns Zip4<...> with Output = (A, B, C, D)
+/// ```
+pub fn zip4<E1, E2, E3, E4>(e1: E1, e2: E2, e3: E3, e4: E4) -> Zip4<E1, E2, E3, E4>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip4::new(e1, e2, e3, e4)
+}
+
+/// Combine five effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip5` type, no heap allocation.
+pub fn zip5<E1, E2, E3, E4, E5>(e1: E1, e2: E2, e3: E3, e4: E4, e5: E5) -> Zip5<E1, E2, E3, E4, E5>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+    E5: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip5::new(e1, e2, e3, e4, e5)
+}
+
+/// Combine six effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip6` type, no heap allocation.
+pub fn zip6<E1, E2, E3, E4, E5, E6>(
+    e1: E1,
+    e2: E2,
+    e3: E3,
+    e4: E4,
+    e5: E5,
+    e6: E6,
+) -> Zip6<E1, E2, E3, E4, E5, E6>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+    E5: Effect<Error = E1::Error, Env = E1::Env>,
+    E6: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip6::new(e1, e2, e3, e4, e5, e6)
+}
+
+/// Combine seven effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip7` type, no heap allocation.
+pub fn zip7<E1, E2, E3, E4, E5, E6, E7>(
+    e1: E1,
+    e2: E2,
+    e3: E3,
+    e4: E4,
+    e5: E5,
+    e6: E6,
+    e7: E7,
+) -> Zip7<E1, E2, E3, E4, E5, E6, E7>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+    E5: Effect<Error = E1::Error, Env = E1::Env>,
+    E6: Effect<Error = E1::Error, Env = E1::Env>,
+    E7: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip7::new(e1, e2, e3, e4, e5, e6, e7)
+}
+
+/// Combine eight effects into a flat tuple.
+///
+/// Zero-cost: returns a concrete `Zip8` type, no heap allocation.
+#[allow(clippy::too_many_arguments)]
+pub fn zip8<E1, E2, E3, E4, E5, E6, E7, E8>(
+    e1: E1,
+    e2: E2,
+    e3: E3,
+    e4: E4,
+    e5: E5,
+    e6: E6,
+    e7: E7,
+    e8: E8,
+) -> Zip8<E1, E2, E3, E4, E5, E6, E7, E8>
+where
+    E1: Effect,
+    E2: Effect<Error = E1::Error, Env = E1::Env>,
+    E3: Effect<Error = E1::Error, Env = E1::Env>,
+    E4: Effect<Error = E1::Error, Env = E1::Env>,
+    E5: Effect<Error = E1::Error, Env = E1::Env>,
+    E6: Effect<Error = E1::Error, Env = E1::Env>,
+    E7: Effect<Error = E1::Error, Env = E1::Env>,
+    E8: Effect<Error = E1::Error, Env = E1::Env>,
+{
+    Zip8::new(e1, e2, e3, e4, e5, e6, e7, e8)
 }

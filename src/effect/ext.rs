@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 
 use crate::effect::boxed::BoxedEffect;
 use crate::effect::combinators::{
-    AndThen, AndThenAuto, AndThenRef, Check, Map, MapErr, OrElse, Tap, With,
+    AndThen, AndThenAuto, AndThenRef, Check, Map, MapErr, OrElse, Tap, With, Zip, ZipWith,
 };
 use crate::effect::reader::Local;
 use crate::effect::trait_def::Effect;
@@ -341,6 +341,85 @@ pub trait EffectExt: Effect {
     #[allow(async_fn_in_trait)]
     async fn execute(self, env: &Self::Env) -> Result<Self::Output, Self::Error> {
         self.run(env).await
+    }
+
+    /// Combine this effect with another, returning both results as a tuple.
+    ///
+    /// `zip` is useful when you have two independent effects and need both results.
+    /// Unlike `and_then`, which expresses sequential dependency, `zip` expresses
+    /// that both effects are independent and can potentially run in parallel.
+    ///
+    /// # Execution Order
+    ///
+    /// The current implementation runs effects sequentially for simplicity.
+    /// Use parallel combinators (`par2`, `par3`, etc.) for concurrent execution.
+    ///
+    /// # Error Handling
+    ///
+    /// Uses fail-fast semantics: if either effect fails, the combined effect
+    /// fails with that error. Errors are not accumulated.
+    ///
+    /// For error accumulation, use `Validation::all()` instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    ///
+    /// // Independent effects - order doesn't matter
+    /// let effect = fetch_user(id)
+    ///     .zip(fetch_settings(id))
+    ///     .map(|(user, settings)| UserProfile { user, settings });
+    ///
+    /// // Chain multiple zips
+    /// let effect = fetch_a()
+    ///     .zip(fetch_b())
+    ///     .zip(fetch_c())
+    ///     .map(|((a, b), c)| combine(a, b, c));
+    ///
+    /// // Or use zip3 for cleaner syntax
+    /// let effect = zip3(fetch_a(), fetch_b(), fetch_c())
+    ///     .map(|(a, b, c)| combine(a, b, c));
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - `zip_with` - combine with a function directly
+    /// - `zip3`, `zip4`, etc. - combine multiple effects
+    /// - `and_then` - for dependent/sequential effects
+    /// - `par2`, `par3`, etc. - for parallel execution
+    fn zip<E2>(self, other: E2) -> Zip<Self, E2>
+    where
+        E2: Effect<Error = Self::Error, Env = Self::Env>,
+    {
+        Zip::new(self, other)
+    }
+
+    /// Combine this effect with another using a function.
+    ///
+    /// More efficient than `zip().map()` as it's a single combinator.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    ///
+    /// let effect = pure::<_, String, ()>(2)
+    ///     .zip_with(pure(3), |a, b| a * b);
+    /// assert_eq!(effect.execute(&()).await, Ok(6));
+    ///
+    /// // Equivalent to but more efficient than:
+    /// let effect = pure::<_, String, ()>(2)
+    ///     .zip(pure(3))
+    ///     .map(|(a, b)| a * b);
+    /// ```
+    fn zip_with<E2, R, F>(self, other: E2, f: F) -> ZipWith<Self, E2, F>
+    where
+        E2: Effect<Error = Self::Error, Env = Self::Env>,
+        F: FnOnce(Self::Output, E2::Output) -> R + Send,
+        R: Send,
+    {
+        ZipWith::new(self, other, f)
     }
 }
 

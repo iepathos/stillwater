@@ -22,6 +22,8 @@ mod or_else;
 mod pure;
 mod tap;
 mod with;
+mod zip;
+mod zip_with;
 
 pub use and_then::AndThen;
 pub use and_then_auto::AndThenAuto;
@@ -37,3 +39,5 @@ pub use or_else::OrElse;
 pub use pure::Pure;
 pub use tap::Tap;
 pub use with::With;
+pub use zip::{Zip, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8};
+pub use zip_with::ZipWith;
