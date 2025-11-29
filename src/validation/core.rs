@@ -289,7 +289,7 @@ impl<T, E> Validation<T, E> {
         }
     }
 
-    /// Ensure the success value satisfies a predicate.
+    /// Ensure the success value satisfies a predicate from the predicate module.
     ///
     /// If the validation is already a failure, returns the failure unchanged.
     /// If successful but the predicate fails, returns a failure with the given error.
@@ -314,6 +314,35 @@ impl<T, E> Validation<T, E> {
     {
         match self {
             Validation::Success(value) if predicate.check(&value) => Validation::Success(value),
+            Validation::Success(_) => Validation::Failure(error),
+            Validation::Failure(e) => Validation::Failure(e),
+        }
+    }
+
+    /// Ensure the success value satisfies a closure predicate.
+    ///
+    /// This is the closure-based variant of `ensure`. For predicates from the
+    /// predicate module, use `ensure` instead.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Validation;
+    ///
+    /// let result = Validation::success(String::from("hello"))
+    ///     .ensure_fn(|s| s.contains('e'), "must contain 'e'");
+    /// assert_eq!(result, Validation::Success(String::from("hello")));
+    ///
+    /// let result = Validation::success(5)
+    ///     .ensure_fn(|x| *x > 0, "must be positive");
+    /// assert_eq!(result, Validation::Success(5));
+    /// ```
+    pub fn ensure_fn<F>(self, predicate: F, error: E) -> Validation<T, E>
+    where
+        F: FnOnce(&T) -> bool,
+    {
+        match self {
+            Validation::Success(value) if predicate(&value) => Validation::Success(value),
             Validation::Success(_) => Validation::Failure(error),
             Validation::Failure(e) => Validation::Failure(e),
         }
@@ -346,6 +375,84 @@ impl<T, E> Validation<T, E> {
                     Validation::Failure(error_fn(&value))
                 }
             }
+            Validation::Failure(e) => Validation::Failure(e),
+        }
+    }
+
+    /// Ensure the success value satisfies a closure predicate, with an error factory.
+    ///
+    /// Like `ensure_fn`, but takes a closure to generate the error.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Validation;
+    ///
+    /// let result = Validation::success(-5)
+    ///     .ensure_fn_with(|x| *x > 0, |x| format!("{} is not positive", x));
+    /// assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));
+    /// ```
+    pub fn ensure_fn_with<P, F>(self, predicate: P, error_fn: F) -> Validation<T, E>
+    where
+        P: FnOnce(&T) -> bool,
+        F: FnOnce(&T) -> E,
+    {
+        match self {
+            Validation::Success(value) => {
+                if predicate(&value) {
+                    Validation::Success(value)
+                } else {
+                    Validation::Failure(error_fn(&value))
+                }
+            }
+            Validation::Failure(e) => Validation::Failure(e),
+        }
+    }
+
+    /// Alias for `ensure_fn` - filter with a fallback error using a closure.
+    ///
+    /// Named to match common FP convention.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Validation;
+    ///
+    /// let result = Validation::success(5)
+    ///     .filter_or(|x| *x > 0, "must be positive");
+    /// assert_eq!(result, Validation::Success(5));
+    /// ```
+    pub fn filter_or<F>(self, predicate: F, error: E) -> Validation<T, E>
+    where
+        F: FnOnce(&T) -> bool,
+    {
+        self.ensure_fn(predicate, error)
+    }
+
+    /// Ensure the value does NOT satisfy a closure predicate.
+    ///
+    /// Inverse of `ensure_fn`: fails if predicate is TRUE.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use stillwater::Validation;
+    ///
+    /// let result = Validation::success(5)
+    ///     .unless(|x| *x < 0, "must not be negative");
+    /// assert_eq!(result, Validation::Success(5));
+    ///
+    /// let result = Validation::success(-5)
+    ///     .unless(|x| *x < 0, "must not be negative");
+    /// assert_eq!(result, Validation::Failure("must not be negative"));
+    /// ```
+    pub fn unless<F>(self, predicate: F, error: E) -> Validation<T, E>
+    where
+        F: FnOnce(&T) -> bool,
+    {
+        match self {
+            Validation::Success(value) if !predicate(&value) => Validation::Success(value),
+            Validation::Success(_) => Validation::Failure(error),
             Validation::Failure(e) => Validation::Failure(e),
         }
     }

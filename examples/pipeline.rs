@@ -96,32 +96,20 @@ async fn example_pure_functions() {
 
 // ==================== Filtering Data ====================
 
-/// Example 3: Filtering with check()
+/// Example 3: Filtering with ensure()
 ///
-/// Demonstrates using check() to filter invalid data in pipelines.
+/// Demonstrates using ensure() for declarative validation in pipelines.
 async fn example_filtering() {
-    println!("\n=== Example 3: Filtering with check() ===");
+    println!("\n=== Example 3: Filtering with ensure() ===");
 
     #[derive(Clone)]
     struct Env;
 
-    // Pipeline with validation
+    // Pipeline with validation using ensure() - much cleaner!
     fn process_age(age: i32) -> impl Effect<Output = String, Error = String, Env = Env> {
         pure::<_, String, Env>(age)
-            .and_then(|a| {
-                if a >= 0 {
-                    pure::<_, String, Env>(a).boxed()
-                } else {
-                    fail::<_, _, Env>(format!("Age {} is negative", a)).boxed()
-                }
-            })
-            .and_then(|a| {
-                if a <= 150 {
-                    pure::<_, String, Env>(a).boxed()
-                } else {
-                    fail::<_, _, Env>(format!("Age {} is too high", a)).boxed()
-                }
-            })
+            .ensure(|a| *a >= 0, format!("Age {} is negative", age))
+            .ensure(|a| *a <= 150, format!("Age {} is too high", age))
             .map(|a| format!("Valid age: {}", a))
     }
 

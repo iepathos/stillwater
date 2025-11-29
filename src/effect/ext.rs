@@ -8,7 +8,8 @@ use std::marker::PhantomData;
 
 use crate::effect::boxed::BoxedEffect;
 use crate::effect::combinators::{
-    AndThen, AndThenAuto, AndThenRef, Check, Map, MapErr, OrElse, Tap, With, Zip, ZipWith,
+    AndThen, AndThenAuto, AndThenRef, Check, Ensure, EnsurePred, EnsureWith, Map, MapErr, OrElse,
+    Tap, Unless, With, Zip, ZipWith,
 };
 use crate::effect::reader::Local;
 use crate::effect::trait_def::Effect;
@@ -420,6 +421,110 @@ pub trait EffectExt: Effect {
         R: Send,
     {
         ZipWith::new(self, other, f)
+    }
+
+    /// Ensure the output satisfies a closure predicate, failing with the given error otherwise.
+    ///
+    /// This is useful for adding validation to effect chains without
+    /// verbose `and_then` boilerplate.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let effect = fetch_user(id)
+    ///     .ensure(|u| u.age >= 18, Error::TooYoung)
+    ///     .ensure(|u| u.is_active, Error::InactiveUser);
+    /// ```
+    ///
+    /// # See Also
+    ///
+    /// - `ensure_with` - for errors that need the value
+    /// - `ensure_pred` - for composable predicates from predicate module
+    /// - `unless` - inverse of ensure (fail if TRUE)
+    /// - `filter_or` - alias for ensure
+    fn ensure<P, Err>(self, predicate: P, error: Err) -> Ensure<Self, P, Err>
+    where
+        P: FnOnce(&Self::Output) -> bool + Send,
+        Err: Into<Self::Error> + Send,
+        Self: Sized,
+    {
+        Ensure::new(self, predicate, error)
+    }
+
+    /// Ensure with a lazily-computed error.
+    ///
+    /// The error function is only called if the predicate fails,
+    /// and receives a reference to the value.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let effect = fetch_user(id)
+    ///     .ensure_with(
+    ///         |u| u.age >= 18,
+    ///         |u| Error::TooYoung { actual_age: u.age }
+    ///     );
+    /// ```
+    fn ensure_with<P, F>(self, predicate: P, error_fn: F) -> EnsureWith<Self, P, F>
+    where
+        P: FnOnce(&Self::Output) -> bool + Send,
+        F: FnOnce(&Self::Output) -> Self::Error + Send,
+        Self: Sized,
+    {
+        EnsureWith::new(self, predicate, error_fn)
+    }
+
+    /// Ensure using a Predicate from the predicate module.
+    ///
+    /// This enables composable, reusable predicates.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::predicate::*;
+    ///
+    /// let valid_age = between(18, 120);
+    /// let effect = fetch_age()
+    ///     .ensure_pred(valid_age, Error::InvalidAge);
+    /// ```
+    fn ensure_pred<P, Err>(self, predicate: P, error: Err) -> EnsurePred<Self, P, Err>
+    where
+        P: crate::predicate::Predicate<Self::Output> + Send,
+        Err: Into<Self::Error> + Send,
+        Self: Sized,
+    {
+        EnsurePred::new(self, predicate, error)
+    }
+
+    /// Alias for `ensure` - filter with a fallback error.
+    ///
+    /// Named to match common FP convention.
+    fn filter_or<P, Err>(self, predicate: P, error: Err) -> Ensure<Self, P, Err>
+    where
+        P: FnOnce(&Self::Output) -> bool + Send,
+        Err: Into<Self::Error> + Send,
+        Self: Sized,
+    {
+        self.ensure(predicate, error)
+    }
+
+    /// Ensure the output does NOT satisfy a predicate.
+    ///
+    /// Inverse of `ensure`: fails if predicate is TRUE.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let effect = fetch_user(id)
+    ///     .unless(|u| u.is_banned, Error::UserBanned);
+    /// ```
+    fn unless<P, Err>(self, predicate: P, error: Err) -> Unless<Self, P, Err>
+    where
+        P: FnOnce(&Self::Output) -> bool + Send,
+        Err: Into<Self::Error> + Send,
+        Self: Sized,
+    {
+        Unless::new(self, predicate, error)
     }
 }
 
