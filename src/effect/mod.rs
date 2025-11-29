@@ -110,8 +110,9 @@ pub use boxed::{BoxFuture, BoxedEffect, BoxedLocalEffect};
 
 // Re-export all combinator types
 pub use combinators::{
-    AndThen, AndThenAuto, AndThenRef, Check, Fail, FromAsync, FromFn, FromResult, Map, MapErr,
-    OrElse, Pure, Tap, With, Zip, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8, ZipWith,
+    AndThen, AndThenAuto, AndThenRef, Check, Fail, Fallback, FallbackTo, FromAsync, FromFn,
+    FromResult, Map, MapErr, OrElse, Pure, Recover, RecoverSome, RecoverWith, Tap, With, Zip, Zip3,
+    Zip4, Zip5, Zip6, Zip7, Zip8, ZipWith,
 };
 
 // Re-export reader types
