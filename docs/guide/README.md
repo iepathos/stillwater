@@ -107,6 +107,8 @@ cargo run --example validation
 cargo run --example effects
 cargo run --example monoid
 cargo run --example form_validation
+cargo run --example recover_patterns
+cargo run --example retry_patterns
 ```
 
 ## Quick Reference
@@ -122,6 +124,10 @@ cargo run --example form_validation
 | Database operations | Effect | Separate logic from I/O |
 | File operations | Effect + IO | Testable file processing |
 | Error debugging | ContextError | Add context trails |
+| Error recovery | recover() / recover_with() | Fallback on specific errors |
+| Cache fallback | recover() | Try cache, fallback to DB |
+| Graceful degradation | recover_some() | Provide reduced functionality |
+| Default values | fallback() | Use default on any error |
 | Data aggregation | Monoid | Combine collections with fold_all |
 | Numeric operations | Sum/Product | Aggregate numbers with identity |
 | Retry transient errors | Effect::retry | Retry with backoff strategies |
@@ -150,6 +156,13 @@ validate_email(email)
 // Pattern 3: Effect with validation
 Effect::from_validation(validate_user(input))
     .and_then(|user| save_to_db(user))
+
+// Pattern 4: Error recovery with fallback
+fetch_from_cache(key)
+    .recover(
+        |e| matches!(e, CacheError::Miss),
+        |_| fetch_from_db(key)
+    )
 ```
 
 ## Getting Help

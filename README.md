@@ -290,6 +290,11 @@ Effect::retry_with_hooks(
   - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
   - Boxed: `par_all()`, `par_try_all()`, `race()`, `par_all_limit()` for homogeneous collections
 - **Retry and resilience** - Policy-as-data approach with exponential, linear, constant, and Fibonacci backoff. Includes jitter, conditional retry, retry hooks, and timeout support
+- **Error recovery** - Selective error handling with predicate-based recovery
+  - `recover()`, `recover_with()`, `recover_some()` for conditional error recovery
+  - `fallback()`, `fallback_to()` for default values and alternative effects
+  - Predicate composition for sophisticated recovery strategies
+  - Real-world patterns: multi-tier caching, graceful degradation, API fallback
 - **Resource management** - Comprehensive bracket pattern for safe acquire/use/release
   - `bracket()`, `bracket2()`, `bracket3()` for single and multiple resources with LIFO cleanup
   - `bracket_full()` returns `BracketError` with explicit error handling for all failure modes
@@ -470,6 +475,7 @@ Run any example with `cargo run --example <name>`:
 | [validation](examples/validation.rs) | Validation type and error accumulation patterns |
 | [effects](examples/effects.rs) | Effect type and composition patterns |
 | [parallel_effects](examples/parallel_effects.rs) | Parallel execution with par_all, race, and par_all_limit |
+| [recover_patterns](examples/recover_patterns.rs) | Error recovery with recover, recover_with, recover_some, fallback patterns |
 | [retry_patterns](examples/retry_patterns.rs) | Retry policies, backoff strategies, timeouts, and resilience patterns |
 | [io_patterns](examples/io_patterns.rs) | IO module helpers for reading/writing |
 | [pipeline](examples/pipeline.rs) | Data transformation pipelines |
