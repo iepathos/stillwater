@@ -448,8 +448,8 @@ async fn example_combined_pipeline() {
 
     #[derive(Debug, Clone, PartialEq)]
     enum Error {
-        ParseError,
-        ValidationError,
+        Parse,
+        Validation,
         NotFound,
     }
 
@@ -467,7 +467,7 @@ async fn example_combined_pipeline() {
     fn parse(s: String) -> impl Effect<Output = i32, Error = Error, Env = ()> {
         from_fn(move |_: &()| {
             println!("  Parsing: {}", s);
-            s.parse::<i32>().map_err(|_| Error::ParseError)
+            s.parse::<i32>().map_err(|_| Error::Parse)
         })
     }
 
@@ -477,7 +477,7 @@ async fn example_combined_pipeline() {
             if n > 0 && n < 100 {
                 Ok(n)
             } else {
-                Err(Error::ValidationError)
+                Err(Error::Validation)
             }
         })
     }
