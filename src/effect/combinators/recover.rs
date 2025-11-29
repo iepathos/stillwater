@@ -44,6 +44,12 @@ impl<E, P, H, E2> std::fmt::Debug for Recover<E, P, H, E2> {
 }
 
 impl<E, P, H, E2> Recover<E, P, H, E2> {
+    /// Creates a new `Recover` combinator.
+    ///
+    /// # Parameters
+    /// - `inner`: The effect to execute
+    /// - `predicate`: A predicate to check if an error should be recovered
+    /// - `handler`: A function that handles matching errors and returns a recovery effect
     pub fn new(inner: E, predicate: P, handler: H) -> Self {
         Self {
             inner,

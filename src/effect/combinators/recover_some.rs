@@ -44,6 +44,11 @@ impl<E, F, E2> std::fmt::Debug for RecoverSome<E, F, E2> {
 }
 
 impl<E, F, E2> RecoverSome<E, F, E2> {
+    /// Creates a new `RecoverSome` combinator.
+    ///
+    /// # Parameters
+    /// - `inner`: The effect to execute
+    /// - `partial_fn`: A function that may return a recovery effect for certain errors
     pub fn new(inner: E, partial_fn: F) -> Self {
         Self {
             inner,

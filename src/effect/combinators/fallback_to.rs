@@ -30,6 +30,11 @@ impl<E1, E2> std::fmt::Debug for FallbackTo<E1, E2> {
 }
 
 impl<E1, E2> FallbackTo<E1, E2> {
+    /// Creates a new `FallbackTo` combinator.
+    ///
+    /// # Parameters
+    /// - `primary`: The primary effect to try first
+    /// - `alternative`: The alternative effect to try if the primary fails
     pub fn new(primary: E1, alternative: E2) -> Self {
         Self {
             primary,

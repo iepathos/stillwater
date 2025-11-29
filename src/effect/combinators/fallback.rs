@@ -39,6 +39,11 @@ impl<E> Fallback<E>
 where
     E: Effect,
 {
+    /// Creates a new `Fallback` combinator.
+    ///
+    /// # Parameters
+    /// - `inner`: The effect to execute
+    /// - `default`: The default value to return if the effect fails
     pub fn new(inner: E, default: E::Output) -> Self {
         Self { inner, default }
     }

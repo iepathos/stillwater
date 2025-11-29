@@ -26,7 +26,8 @@ mod tests {
     #[test]
     fn test_recover_with_size_is_zero_cost() {
         type InnerEffect = Pure<i32, String, ()>;
-        type RecoverWithEffect = RecoverWith<InnerEffect, fn(&String) -> bool, fn(String) -> Result<i32, String>>;
+        type RecoverWithEffect =
+            RecoverWith<InnerEffect, fn(&String) -> bool, fn(String) -> Result<i32, String>>;
 
         // RecoverWith should NOT allocate on heap - size is stack-only
         assert!(size_of::<RecoverWithEffect>() < 100); // Reasonable stack size
@@ -36,7 +37,11 @@ mod tests {
     #[test]
     fn test_recover_some_size_is_zero_cost() {
         type InnerEffect = Pure<i32, String, ()>;
-        type RecoverSomeEffect = RecoverSome<InnerEffect, fn(String) -> Option<Pure<i32, String, ()>>, Pure<i32, String, ()>>;
+        type RecoverSomeEffect = RecoverSome<
+            InnerEffect,
+            fn(String) -> Option<Pure<i32, String, ()>>,
+            Pure<i32, String, ()>,
+        >;
 
         // RecoverSome should NOT allocate on heap - size is stack-only
         assert!(size_of::<RecoverSomeEffect>() < 100); // Reasonable stack size
