@@ -8,8 +8,8 @@ use std::marker::PhantomData;
 
 use crate::effect::boxed::BoxedEffect;
 use crate::effect::combinators::{
-    AndThen, AndThenAuto, AndThenRef, Check, Ensure, EnsurePred, EnsureWith, Map, MapErr, OrElse,
-    Tap, Unless, With, Zip, ZipWith,
+    AndThen, AndThenAuto, AndThenRef, Check, Ensure, EnsurePred, EnsureWith, Fallback, FallbackTo,
+    Map, MapErr, OrElse, Recover, RecoverSome, RecoverWith, Tap, Unless, With, Zip, ZipWith,
 };
 use crate::effect::reader::Local;
 use crate::effect::trait_def::Effect;
@@ -116,6 +116,153 @@ pub trait EffectExt: Effect {
         F: FnOnce(Self::Error) -> E2 + Send,
     {
         OrElse { inner: self, f }
+    }
+
+    /// Recover from errors matching a predicate.
+    ///
+    /// If the effect fails and the predicate returns true for the error,
+    /// the handler is called to produce a recovery effect. If the predicate
+    /// returns false, the error propagates unchanged.
+    ///
+    /// Uses the `Predicate<Error>` trait, which supports both closures
+    /// and composable predicate combinators.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    /// use stillwater::predicate::*;
+    ///
+    /// #[derive(Debug, PartialEq, Clone)]
+    /// enum Error {
+    ///     CacheMiss,
+    ///     NetworkError(String),
+    /// }
+    ///
+    /// // Using a closure (works via blanket impl)
+    /// let effect = fetch_from_cache(id)
+    ///     .recover(
+    ///         |e: &Error| matches!(e, Error::CacheMiss),
+    ///         |_| fetch_from_db(id)
+    ///     );
+    ///
+    /// // Or using composable predicates
+    /// let is_cache_miss = |e: &Error| matches!(e, Error::CacheMiss);
+    /// let is_timeout = |e: &Error| matches!(e, Error::NetworkError(s) if s.contains("timeout"));
+    /// let recoverable = is_cache_miss.or(is_timeout);
+    ///
+    /// let effect = fetch_from_cache(id)
+    ///     .recover(recoverable, |_| fetch_from_db(id));
+    /// ```
+    fn recover<P, H, E2>(self, predicate: P, handler: H) -> Recover<Self, P, H, E2>
+    where
+        P: crate::predicate::Predicate<Self::Error>,
+        H: FnOnce(Self::Error) -> E2 + Send,
+        E2: Effect<Output = Self::Output, Error = Self::Error, Env = Self::Env>,
+    {
+        Recover::new(self, predicate, handler)
+    }
+
+    /// Recover from errors with a Result-returning function.
+    ///
+    /// Similar to `recover`, but the handler returns a Result directly
+    /// instead of an Effect. Useful when recovery doesn't need environment.
+    ///
+    /// Uses the `Predicate<Error>` trait for consistency with `recover`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    ///
+    /// let effect = parse_config()
+    ///     .recover_with(
+    ///         |e: &ConfigError| e.is_missing_field(),
+    ///         |_| Ok(Config::default())
+    ///     );
+    /// ```
+    fn recover_with<P, F>(self, predicate: P, f: F) -> RecoverWith<Self, P, F>
+    where
+        P: crate::predicate::Predicate<Self::Error>,
+        F: FnOnce(Self::Error) -> Result<Self::Output, Self::Error> + Send,
+    {
+        RecoverWith::new(self, predicate, f)
+    }
+
+    /// Recover using a partial function.
+    ///
+    /// The function returns `Some(effect)` to recover, or `None` to let
+    /// the error propagate. This is useful for pattern-matching on errors.
+    ///
+    /// Requires `Error: Clone` because the error must be cloned before
+    /// being passed to the partial function, so it can be returned if
+    /// `None` is produced.
+    ///
+    /// For non-Clone errors, use `recover` or `recover_with` instead.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    ///
+    /// #[derive(Debug, Clone)]
+    /// enum Error {
+    ///     Timeout,
+    ///     NotFound,
+    ///     Fatal(String),
+    /// }
+    ///
+    /// let effect = risky_operation()
+    ///     .recover_some(|e| match e {
+    ///         Error::Timeout => Some(pure(default_value())),
+    ///         Error::NotFound => Some(create_new()),
+    ///         _ => None, // Other errors propagate
+    ///     });
+    /// ```
+    fn recover_some<F, E2>(self, f: F) -> RecoverSome<Self, F, E2>
+    where
+        Self::Error: Clone,
+        F: FnOnce(Self::Error) -> Option<E2> + Send,
+        E2: Effect<Output = Self::Output, Error = Self::Error, Env = Self::Env>,
+    {
+        RecoverSome::new(self, f)
+    }
+
+    /// Provide a default value on any error.
+    ///
+    /// Returns the default value directly on any error without wrapping
+    /// in an effect. The default value is moved into the combinator.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// use stillwater::effect::prelude::*;
+    ///
+    /// let count = get_count().fallback(0);
+    /// // Returns 0 on any error
+    /// ```
+    fn fallback(self, default: Self::Output) -> Fallback<Self>
+    where
+        Self::Output: Send,
+    {
+        Fallback::new(self, default)
+    }
+
+    /// Try an alternative effect on any error.
+    ///
+    /// This is a shorthand for `or_else(|_| alternative)`.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let data = fetch_primary()
+    ///     .fallback_to(fetch_secondary());
+    /// ```
+    fn fallback_to<E2>(self, alternative: E2) -> FallbackTo<Self, E2>
+    where
+        E2: Effect<Output = Self::Output, Error = Self::Error, Env = Self::Env>,
+    {
+        FallbackTo::new(self, alternative)
     }
 
     /// Run this effect with a modified environment.
