@@ -42,6 +42,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **New example** - `examples/predicates.rs` demonstrating all predicate features with real-world user registration validation
 
+#### Validation Combinators (Spec 029)
+
+- **`ensure` family** - Declarative validation combinators eliminating verbose `and_then` boilerplate
+  - **For `Effect<T, E, Env>`:**
+    - `.ensure(predicate, error)` - Validate with closure predicate and static error
+    - `.ensure_with(predicate, error_fn)` - Validate with closure predicate and lazy error (receives value)
+    - `.ensure_pred(predicate, error)` - Validate with composable `Predicate` trait from predicate module
+    - `.unless(predicate, error)` - Inverse validation (fail if predicate is TRUE)
+    - `.filter_or(predicate, error)` - Alias for `ensure` (FP naming convention)
+  - **For `Validation<T, E>`:**
+    - `.ensure(predicate, error)` - Validate with `Predicate` trait
+    - `.ensure_fn(predicate, error)` - Validate with closure predicate
+    - `.ensure_with(predicate, error_fn)` - Validate with `Predicate` and lazy error factory
+    - `.ensure_fn_with(predicate, error_fn)` - Validate with closure and lazy error factory
+    - `.unless(predicate, error)` - Inverse validation using closure
+    - `.filter_or(predicate, error)` - Alias for `ensure_fn`
+
+- **Zero-cost abstraction** - All combinators compile to concrete types with no heap allocation
+- **Error type flexibility** - Errors implement `Into<Self::Error>` for automatic conversion
+- **Seamless integration** - Works naturally with existing Effect and Validation chains
+
+- **Code reduction** - Reduces verbose validation patterns:
+  ```rust
+  // Before: 12 lines with and_then
+  .and_then(|data| {
+      if data.value > 0 {
+          pure(data)
+      } else {
+          fail(Error::InvalidValue)
+      }
+  })
+
+  // After: 1 line with ensure
+  .ensure(|data| data.value > 0, Error::InvalidValue)
+  ```
+
+- **Updated examples** - `examples/pipeline.rs` demonstrates new ensure combinator reducing validation code
+
 ## [0.11.0] - 2025-11-27
 
 ### Breaking Changes

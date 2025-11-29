@@ -272,6 +272,11 @@ Effect::retry_with_hooks(
   - Number predicates: `between`, `gt`, `lt`, `positive`, `negative`, etc.
   - Collection predicates: `all`, `any`, `has_len`, `is_empty`, etc.
   - Seamless integration with `Validation` via `ensure()` and `validate()`
+- **Validation combinators** - Declarative validation with `ensure` family (replaces verbose `and_then` boilerplate)
+  - `Effect`: `.ensure()`, `.ensure_with()`, `.ensure_pred()`, `.unless()`, `.filter_or()`
+  - `Validation`: `.ensure()`, `.ensure_fn()`, `.ensure_with()`, `.ensure_fn_with()`, `.unless()`, `.filter_or()`
+  - Zero-cost: compiles to concrete types with no heap allocation
+  - Reduces 12-line validation blocks to single-line predicates
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
   - Zero heap allocations by default

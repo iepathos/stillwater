@@ -154,6 +154,243 @@ let effect = pure::<_, String, ()>(5)
 let result = effect.run(&()).await; // Ok(20)
 ```
 
+### Validation Combinators
+
+Stillwater provides declarative validation combinators that eliminate verbose `and_then` boilerplate when validating effect outputs:
+
+#### Using `ensure()` with Closures
+
+The `ensure()` method validates an effect's success value and fails if the predicate returns false:
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Debug, PartialEq)]
+enum Error {
+    Negative,
+    TooLarge,
+}
+
+// Before: verbose and_then pattern
+let effect = pure::<_, Error, ()>(5)
+    .and_then(|x| {
+        if x > 0 {
+            pure(x)
+        } else {
+            fail(Error::Negative)
+        }
+    });
+
+// After: declarative ensure
+let effect = pure::<_, Error, ()>(5)
+    .ensure(|x| *x > 0, Error::Negative);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Ok(5));
+```
+
+#### Using `ensure_with()` for Lazy Errors
+
+When you need the value to construct the error:
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Debug, PartialEq)]
+struct RangeError {
+    value: i32,
+    min: i32,
+}
+
+let effect = pure::<_, RangeError, ()>(-5)
+    .ensure_with(
+        |x| *x >= 0,
+        |x| RangeError { value: *x, min: 0 }
+    );
+
+let result = effect.run(&()).await;
+assert_eq!(result, Err(RangeError { value: -5, min: 0 }));
+```
+
+#### Using `ensure_pred()` with Composable Predicates
+
+For reusable validation logic, use predicates from the `predicate` module:
+
+```rust
+use stillwater::prelude::*;
+use stillwater::predicate::*;
+
+#[derive(Debug, PartialEq)]
+enum Error {
+    InvalidAge,
+}
+
+let valid_age = between(18, 120);
+
+let effect = pure::<_, Error, ()>(25)
+    .ensure_pred(valid_age, Error::InvalidAge);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Ok(25));
+
+// Fails for invalid ages
+let effect = pure::<_, Error, ()>(15)
+    .ensure_pred(valid_age, Error::InvalidAge);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Err(Error::InvalidAge));
+```
+
+#### Using `unless()` for Inverse Validation
+
+The `unless()` method fails when the predicate is TRUE (inverse of `ensure`):
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Debug, PartialEq)]
+enum Error {
+    UserBanned,
+}
+
+struct User {
+    id: u32,
+    is_banned: bool,
+}
+
+let effect = from_fn(|_: &()| User { id: 1, is_banned: false })
+    .unless(|u| u.is_banned, Error::UserBanned);
+
+let result = effect.run(&()).await;
+assert!(result.is_ok());
+
+// Fails when user is banned
+let effect = from_fn(|_: &()| User { id: 2, is_banned: true })
+    .unless(|u| u.is_banned, Error::UserBanned);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Err(Error::UserBanned));
+```
+
+#### Using `filter_or()` Alias
+
+`filter_or()` is an alias for `ensure()` following functional programming conventions:
+
+```rust
+use stillwater::prelude::*;
+
+let effect = pure::<_, &str, ()>(5)
+    .filter_or(|x| *x > 0, "must be positive");
+
+let result = effect.run(&()).await;
+assert_eq!(result, Ok(5));
+```
+
+#### Chaining Multiple Validations
+
+Combine multiple validation checks for comprehensive validation:
+
+```rust
+use stillwater::prelude::*;
+use stillwater::predicate::*;
+
+#[derive(Debug, PartialEq)]
+enum Error {
+    TooShort,
+    TooLong,
+    NotAlpha,
+}
+
+let effect = pure::<_, Error, ()>(String::from("hello"))
+    .ensure_pred(len_min(3), Error::TooShort)
+    .ensure_pred(len_max(10), Error::TooLong)
+    .ensure_pred(is_alphabetic(), Error::NotAlpha);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Ok(String::from("hello")));
+
+// Fails at first violation (fail-fast)
+let effect = pure::<_, Error, ()>(String::from("hi"))
+    .ensure_pred(len_min(3), Error::TooShort)  // fails here
+    .ensure_pred(len_max(10), Error::TooLong)
+    .ensure_pred(is_alphabetic(), Error::NotAlpha);
+
+let result = effect.run(&()).await;
+assert_eq!(result, Err(Error::TooShort));
+```
+
+#### Real-World Example
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Database;
+
+impl Database {
+    async fn fetch_user(&self, id: u32) -> Result<User, DbError> {
+        // ... database logic
+    }
+}
+
+#[derive(Clone)]
+struct AppEnv {
+    db: Database,
+}
+
+#[derive(Debug)]
+enum AppError {
+    Db(DbError),
+    UserBanned,
+    Underage,
+}
+
+struct User {
+    id: u32,
+    age: u8,
+    is_banned: bool,
+}
+
+fn fetch_valid_user(id: u32) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
+    from_fn(move |env: &AppEnv| env.db.fetch_user(id))
+        .map_err(AppError::Db)
+        .unless(|u| u.is_banned, AppError::UserBanned)
+        .ensure(|u| u.age >= 18, AppError::Underage)
+}
+
+// Usage
+let env = AppEnv { db: Database };
+let user = fetch_valid_user(123).run(&env).await?;
+```
+
+#### Why Use Effect Validation Combinators?
+
+**Before** (12 lines):
+```rust
+from_fn(|env: &AppEnv| fetch_data(env))
+    .and_then(|data| {
+        if data.value > 0 {
+            pure(data)
+        } else {
+            fail(Error::InvalidValue)
+        }
+    })
+    .and_then(|data| {
+        if data.count < 100 {
+            pure(data)
+        } else {
+            fail(Error::TooMany)
+        }
+    })
+```
+
+**After** (3 lines):
+```rust
+from_fn(|env: &AppEnv| fetch_data(env))
+    .ensure(|data| data.value > 0, Error::InvalidValue)
+    .ensure(|data| data.count < 100, Error::TooMany)
+```
+
 ### Running Effects
 
 ```rust

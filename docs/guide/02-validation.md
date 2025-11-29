@@ -117,6 +117,142 @@ let result = validate_email(email)
     .and_then(|email| check_email_available(email));
 ```
 
+### Validation Combinators
+
+Stillwater provides declarative validation combinators that eliminate verbose `and_then` boilerplate:
+
+#### Using `ensure()` with Predicates
+
+The `ensure()` method validates a success value using composable predicates from the `predicate` module:
+
+```rust
+use stillwater::{Validation, predicate::*};
+
+// Single validation
+let result = Validation::success(String::from("hello"))
+    .ensure(len_min(3), "too short");
+assert_eq!(result, Validation::Success(String::from("hello")));
+
+let result = Validation::success(String::from("hi"))
+    .ensure(len_min(3), "too short");
+assert_eq!(result, Validation::Failure("too short"));
+
+// Chain multiple validations
+let result = Validation::success(String::from("hello"))
+    .ensure(len_min(3), "too short")
+    .ensure(len_max(10), "too long")
+    .ensure(is_alphabetic(), "must be alphabetic");
+// Result: Success("hello")
+
+let result = Validation::success(String::from("hello123"))
+    .ensure(len_min(3), "too short")      // passes
+    .ensure(len_max(10), "too long")      // passes
+    .ensure(is_alphabetic(), "not alpha"); // fails
+// Result: Failure("not alpha")
+```
+
+#### Using `ensure_fn()` with Closures
+
+For inline predicates, use `ensure_fn()`:
+
+```rust
+use stillwater::Validation;
+
+let result = Validation::success(5)
+    .ensure_fn(|x| *x > 0, "must be positive");
+assert_eq!(result, Validation::Success(5));
+
+let result = Validation::success(-5)
+    .ensure_fn(|x| *x > 0, "must be positive");
+assert_eq!(result, Validation::Failure("must be positive"));
+```
+
+#### Using `ensure_with()` for Lazy Errors
+
+When you need the value to construct the error message:
+
+```rust
+use stillwater::{Validation, predicate::*};
+
+let result = Validation::success(String::from("hi"))
+    .ensure_with(len_min(3), |s| format!("'{}' is too short", s));
+assert_eq!(result, Validation::Failure("'hi' is too short".to_string()));
+```
+
+#### Using `ensure_fn_with()` with Closures and Lazy Errors
+
+Combine closure predicates with error factories:
+
+```rust
+use stillwater::Validation;
+
+let result = Validation::success(-5)
+    .ensure_fn_with(
+        |x| *x > 0,
+        |x| format!("{} is not positive", x)
+    );
+assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));
+```
+
+#### Using `unless()` for Inverse Validation
+
+The `unless()` method fails when the predicate is TRUE (inverse of `ensure_fn`):
+
+```rust
+use stillwater::Validation;
+
+// Fail if negative
+let result = Validation::success(5)
+    .unless(|x| *x < 0, "must not be negative");
+assert_eq!(result, Validation::Success(5));
+
+let result = Validation::success(-5)
+    .unless(|x| *x < 0, "must not be negative");
+assert_eq!(result, Validation::Failure("must not be negative"));
+```
+
+#### Using `filter_or()` Alias
+
+`filter_or()` is an alias for `ensure_fn()` following functional programming conventions:
+
+```rust
+use stillwater::Validation;
+
+let result = Validation::success(5)
+    .filter_or(|x| *x > 0, "must be positive");
+assert_eq!(result, Validation::Success(5));
+```
+
+#### Why Use Validation Combinators?
+
+**Before** (verbose):
+```rust
+validate_email(email)
+    .and_then(|email| {
+        if email.len() <= 100 {
+            Validation::success(email)
+        } else {
+            Validation::failure(vec!["email too long"])
+        }
+    })
+    .and_then(|email| {
+        if !email.starts_with("admin") {
+            Validation::success(email)
+        } else {
+            Validation::failure(vec!["reserved prefix"])
+        }
+    })
+```
+
+**After** (declarative):
+```rust
+use stillwater::predicate::*;
+
+validate_email(email)
+    .ensure(len_max(100), vec!["email too long"])
+    .ensure_fn(|e| !e.starts_with("admin"), vec!["reserved prefix"])
+```
+
 ### Converting to Result
 
 ```rust
