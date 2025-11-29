@@ -1,7 +1,78 @@
-//! Constructor functions for creating effects.
+//! Free function constructors for creating effects.
 //!
-//! These functions provide ergonomic ways to create effects without
-//! directly constructing the combinator types.
+//! This module provides standalone functions as an ergonomic alternative to
+//! associated function syntax. Instead of writing `Effect::pure(x)`, you can
+//! write simply `pure(x)`.
+//!
+//! # Quick Start
+//!
+//! ```rust
+//! use stillwater::effect::prelude::*;
+//!
+//! # tokio_test::block_on(async {
+//! // Free functions for concise, readable effect creation
+//! let effect = pure::<_, String, ()>(42)
+//!     .map(|x| x * 2)
+//!     .and_then(|x| pure(x + 1));
+//!
+//! let result = effect.execute(&()).await;
+//! assert_eq!(result, Ok(85));
+//! # });
+//! ```
+//!
+//! # Available Free Functions
+//!
+//! ## Value Constructors
+//! - [`pure`] - Create effect that succeeds with a value
+//! - [`fail`] - Create effect that fails with an error
+//!
+//! ## Conversion Constructors
+//! - [`from_fn`] - Create effect from synchronous function
+//! - [`from_async`] - Create effect from async function
+//! - [`from_result`] - Lift a `Result` into an effect
+//! - [`from_option`] - Lift an `Option` into an effect
+//! - [`from_validation`] - Convert `Validation` to effect
+//!
+//! ## Reader Operations
+//! - [`ask`] - Get the entire environment
+//! - [`asks`] - Query a value from environment
+//! - [`local`] - Run effect with modified environment
+//!
+//! ## Combinators
+//! - [`zip3`] through [`zip8`] - Combine multiple effects
+//!
+//! # Why Free Functions?
+//!
+//! Free functions provide several benefits:
+//!
+//! 1. **Conciseness**: Less visual noise in effect chains
+//! 2. **FP Idiom**: Familiar to users of Haskell, Scala ZIO, etc.
+//! 3. **Composability**: Functions compose naturally
+//! 4. **Readability**: Focus on what, not which type
+//!
+//! ## Comparison
+//!
+//! | Associated Function Style | Free Function Style |
+//! |--------------------------|---------------------|
+//! | `Effect::pure(42)` | `pure(42)` |
+//! | `Effect::fail(err)` | `fail(err)` |
+//! | `Effect::asks(\|e\| ...)` | `asks(\|e\| ...)` |
+//! | `Effect::from_fn(f)` | `from_fn(f)` |
+//!
+//! ## Before and After Example
+//!
+//! ```rust,ignore
+//! // Associated function style (verbose)
+//! Effect::asks(|env: &Env| env.db.clone())
+//!     .and_then(|db| Effect::from_async(move |_| db.query()))
+//!
+//! // Free function style (concise)
+//! asks(|env: &Env| env.db.clone())
+//!     .and_then(|db| from_async(move |_| db.query()))
+//! ```
+//!
+//! The free function style reduces boilerplate while maintaining the same
+//! type safety and zero-cost abstractions.
 
 use std::future::Future;
 
@@ -17,11 +88,13 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = pure::<_, String, ()>(42);
 /// assert_eq!(effect.execute(&()).await, Ok(42));
+/// # });
 /// ```
 pub fn pure<T, E, Env>(value: T) -> Pure<T, E, Env>
 where
@@ -38,11 +111,13 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = fail::<i32, _, ()>("error".to_string());
 /// assert_eq!(effect.execute(&()).await, Err("error".to_string()));
+/// # });
 /// ```
 pub fn fail<T, E, Env>(error: E) -> Fail<T, E, Env>
 where
@@ -59,14 +134,16 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }
 ///
+/// # tokio_test::block_on(async {
 /// let effect = from_fn(|env: &Env| Ok::<_, String>(env.value * 2));
 /// assert_eq!(effect.execute(&Env { value: 21 }).await, Ok(42));
+/// # });
 /// ```
 pub fn from_fn<T, E, Env, F>(f: F) -> FromFn<F, Env>
 where
@@ -84,11 +161,13 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = from_async(|_: &()| async { Ok::<_, String>(42) });
 /// assert_eq!(effect.execute(&()).await, Ok(42));
+/// # });
 /// ```
 pub fn from_async<T, E, Env, F, Fut>(f: F) -> FromAsync<F, Env>
 where
@@ -105,14 +184,16 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = from_result::<_, String, ()>(Ok(42));
 /// assert_eq!(effect.execute(&()).await, Ok(42));
 ///
 /// let effect = from_result::<i32, _, ()>(Err("error".to_string()));
 /// assert_eq!(effect.execute(&()).await, Err("error".to_string()));
+/// # });
 /// ```
 pub fn from_result<T, E, Env>(result: Result<T, E>) -> FromResult<T, E, Env>
 where
@@ -127,14 +208,16 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = from_option::<_, _, ()>(Some(42), || "missing".to_string());
 /// assert_eq!(effect.execute(&()).await, Ok(42));
 ///
 /// let effect = from_option::<i32, _, ()>(None, || "missing".to_string());
 /// assert_eq!(effect.execute(&()).await, Err("missing".to_string()));
+/// # });
 /// ```
 pub fn from_option<T, E, Env>(
     option: Option<T>,
@@ -154,14 +237,16 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone, PartialEq, Debug)]
 /// struct Env { value: i32 }
 ///
+/// # tokio_test::block_on(async {
 /// let effect = ask::<String, Env>();
 /// assert_eq!(effect.execute(&Env { value: 42 }).await, Ok(Env { value: 42 }));
+/// # });
 /// ```
 pub fn ask<E, Env>() -> Ask<E, Env>
 where
@@ -173,19 +258,24 @@ where
 
 /// Query a value from the environment.
 ///
-/// This is the `asks` operation from the Reader monad.
+/// This is the `asks` operation from the Reader monad. This is one of the most
+/// commonly used functions for accessing dependencies from the environment.
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
 /// struct Env { value: i32 }
 ///
+/// # tokio_test::block_on(async {
 /// let effect = asks::<_, String, _, _>(|env: &Env| env.value * 2);
 /// assert_eq!(effect.execute(&Env { value: 21 }).await, Ok(42));
+/// # });
 /// ```
+///
+/// See also: [`ask`], [`local`]
 pub fn asks<U, E, Env, F>(f: F) -> Asks<F, E, Env>
 where
     F: FnOnce(&Env) -> U + Send,
@@ -202,7 +292,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
@@ -210,6 +300,7 @@ where
 /// #[derive(Clone)]
 /// struct InnerEnv { value: i32 }
 ///
+/// # tokio_test::block_on(async {
 /// let inner_effect = asks::<_, String, InnerEnv, _>(|env| env.value);
 /// let effect = local(
 ///     |outer: &OuterEnv| InnerEnv { value: 21 * outer.multiplier },
@@ -217,7 +308,10 @@ where
 /// );
 ///
 /// assert_eq!(effect.execute(&OuterEnv { multiplier: 2 }).await, Ok(42));
+/// # });
 /// ```
+///
+/// See also: [`ask`], [`asks`]
 pub fn local<Inner, F, Env2>(f: F, inner: Inner) -> Local<Inner, F, Env2>
 where
     Inner: Effect,
@@ -234,10 +328,11 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 /// use stillwater::Validation;
 ///
+/// # tokio_test::block_on(async {
 /// let validation = Validation::<_, String>::success(42);
 /// let effect = from_validation::<_, _, ()>(validation);
 /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -245,6 +340,7 @@ where
 /// let validation = Validation::<i32, _>::failure("error".to_string());
 /// let effect = from_validation::<_, _, ()>(validation);
 /// assert_eq!(effect.execute(&()).await, Err("error".to_string()));
+/// # });
 /// ```
 pub fn from_validation<T, E, Env>(validation: crate::Validation<T, E>) -> FromResult<T, E, Env>
 where

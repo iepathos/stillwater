@@ -4,17 +4,46 @@
 //! from the effect module, allowing users to quickly get started
 //! with a single `use` statement.
 //!
-//! # Example
+//! # Recommended Usage
 //!
-//! ```rust,ignore
+//! The prelude is the recommended way to import Stillwater's effect system:
+//!
+//! ```rust
 //! use stillwater::effect::prelude::*;
 //!
+//! # tokio_test::block_on(async {
+//! // Free functions available without qualification
 //! let effect = pure::<_, String, ()>(42)
 //!     .map(|x| x * 2)
 //!     .and_then(|x| pure(x + 1));
 //!
 //! let result = effect.execute(&()).await;
 //! assert_eq!(result, Ok(85));
+//! # });
+//! ```
+//!
+//! # What's Included
+//!
+//! The prelude exports:
+//!
+//! - **Core traits**: [`Effect`], [`EffectExt`], [`EffectContext`]
+//! - **Free function constructors**: [`pure`], [`fail`], [`asks`], [`from_fn`], etc.
+//! - **Combinator types**: [`Map`], [`AndThen`], [`Zip`], etc. (for type signatures)
+//! - **Reader operations**: [`ask`], [`asks`], [`local`]
+//! - **Resource management**: [`bracket`], [`bracket2`], etc.
+//! - **Parallel execution**: [`par2`], [`par3`], [`par_all`], etc.
+//! - **Boxing utilities**: [`BoxedEffect`], [`BoxedLocalEffect`]
+//!
+//! # When to Use Direct Imports
+//!
+//! Use direct imports instead of the prelude when:
+//!
+//! - You only need a few specific items
+//! - You want to avoid glob imports in your codebase
+//! - You need to prevent name conflicts
+//!
+//! ```rust,ignore
+//! use stillwater::effect::{Effect, pure, asks};
 //! ```
 
 // Traits

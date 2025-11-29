@@ -84,18 +84,24 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -> Validation<Paym
 
 ## Effect Patterns
 
+All Effect patterns use the free function style with the prelude import:
+
+```rust
+use stillwater::effect::prelude::*;
+```
+
 ### Pattern 1: Read, Transform, Write
 
 Classic pattern for processing data:
 
 ```rust
-use stillwater::{Effect, IO};
+use stillwater::effect::prelude::*;
 
-fn process_user_data(id: u64) -> Effect<(), Error, Env> {
-    IO::read(|env: &Env| env.db.fetch_user(id))
+fn process_user_data(id: u64) -> impl Effect<Output = (), Error = Error, Env = Env> {
+    from_fn(|env: &Env| env.db.fetch_user(id))
         .map(|user| transform_user_data(user))  // Pure transformation
         .and_then(|transformed| {
-            IO::execute(|env: &Env| env.db.save_user(&transformed))
+            from_fn(|env: &Env| env.db.save_user(&transformed))
         })
 }
 ```
@@ -105,12 +111,12 @@ fn process_user_data(id: u64) -> Effect<(), Error, Env> {
 Validate input, then perform I/O if valid:
 
 ```rust
-use stillwater::{Effect, Validation};
+use stillwater::effect::prelude::*;
 
-fn create_user(input: UserInput) -> Effect<User, Error, Env> {
-    Effect::from_validation(validate_user(input))
+fn create_user(input: UserInput) -> impl Effect<Output = User, Error = Error, Env = Env> {
+    from_validation(validate_user(input))
         .and_then(|valid| {
-            IO::execute(|env: &Env| env.db.insert_user(&valid))
+            from_fn(|env: &Env| env.db.insert_user(&valid))
         })
 }
 ```
@@ -120,19 +126,20 @@ fn create_user(input: UserInput) -> Effect<User, Error, Env> {
 Common caching pattern:
 
 ```rust
-use stillwater::{Effect, IO};
+use stillwater::effect::prelude::*;
 
-fn get_user(id: u64) -> Effect<User, Error, Env> {
-    IO::read(|env: &Env| env.cache.get_user(id))
-        .and_then(|cached| {
+fn get_user(id: u64) -> impl Effect<Output = User, Error = Error, Env = Env> {
+    from_fn(|env: &Env| env.cache.get_user(id))
+        .and_then(move |cached| {
             match cached {
-                Some(user) => Effect::pure(user),
+                Some(user) => pure(user).boxed(),
                 None => {
-                    IO::read(|env: &Env| env.db.fetch_user(id))
-                        .and_then(|user| {
-                            IO::write(|env: &Env| env.cache.set_user(id, user.clone()))
+                    from_fn(move |env: &Env| env.db.fetch_user(id))
+                        .and_then(move |user| {
+                            from_fn(move |env: &Env| env.cache.set_user(id, user.clone()))
                                 .map(|_| user)
                         })
+                        .boxed()
                 }
             }
         })
@@ -144,9 +151,9 @@ fn get_user(id: u64) -> Effect<User, Error, Env> {
 Add context at each step:
 
 ```rust
-use stillwater::Effect;
+use stillwater::effect::prelude::*;
 
-fn process_order(id: u64) -> Effect<Receipt, Error, Env> {
+fn process_order(id: u64) -> impl Effect<Output = Receipt, Error = Error, Env = Env> {
     fetch_order(id)
         .context("fetching order")
         .and_then(|order| {
@@ -169,14 +176,14 @@ fn process_order(id: u64) -> Effect<Receipt, Error, Env> {
 When effects are independent:
 
 ```rust
-use stillwater::Effect;
+use stillwater::effect::prelude::*;
 use tokio;
 
 async fn load_dashboard(user_id: u64, env: &Env) -> Result<Dashboard, Error> {
     let (user, projects, notifications) = tokio::try_join!(
-        fetch_user(user_id).run(env),
-        fetch_projects(user_id).run(env),
-        fetch_notifications(user_id).run(env),
+        fetch_user(user_id).execute(env),
+        fetch_projects(user_id).execute(env),
+        fetch_notifications(user_id).execute(env),
     )?;
 
     Ok(Dashboard { user, projects, notifications })
@@ -246,6 +253,8 @@ fn test_pure_validation() {
 ### Pattern 2: Testing Effects with Mock Environment
 
 ```rust
+use stillwater::effect::prelude::*;
+
 struct MockEnv {
     users: HashMap<u64, User>,
 }
@@ -263,8 +272,8 @@ async fn test_user_workflow() {
     };
     env.users.insert(1, User { name: "Alice".into() });
 
-    let effect = IO::read(|env: &MockEnv| env.fetch_user(1));
-    let result = effect.run(&env).await;
+    let effect = from_fn(|env: &MockEnv| env.fetch_user(1));
+    let result = effect.execute(&env).await;
 
     assert!(result.is_ok());
 }
@@ -273,14 +282,16 @@ async fn test_user_workflow() {
 ### Pattern 3: Testing Error Cases
 
 ```rust
+use stillwater::effect::prelude::*;
+
 #[tokio::test]
 async fn test_user_not_found() {
     let env = MockEnv {
         users: HashMap::new(),  // Empty
     };
 
-    let effect = IO::read(|env: &MockEnv| env.fetch_user(999));
-    let result = effect.run(&env).await;
+    let effect = from_fn(|env: &MockEnv| env.fetch_user(999));
+    let result = effect.execute(&env).await;
 
     assert_eq!(result, Err(Error::NotFound));
 }
@@ -314,8 +325,10 @@ impl std::error::Error for UserError {}
 ### Pattern 2: Error Conversion
 
 ```rust
-fn fetch_user(id: u64) -> Effect<User, AppError, Env> {
-    IO::read(|env: &Env| {
+use stillwater::effect::prelude::*;
+
+fn fetch_user(id: u64) -> impl Effect<Output = User, Error = AppError, Env = Env> {
+    from_fn(|env: &Env| {
         env.db.fetch_user(id)
             .map_err(|e| AppError::Database(e.to_string()))
     })
@@ -325,7 +338,9 @@ fn fetch_user(id: u64) -> Effect<User, AppError, Env> {
 ### Pattern 3: Error Context Trails
 
 ```rust
-fn complex_operation() -> Effect<Result, ContextError<Error>, Env> {
+use stillwater::effect::prelude::*;
+
+fn complex_operation() -> impl Effect<Output = Result, Error = ContextError<Error>, Env = Env> {
     step1()
         .context("performing step 1")
         .and_then(|r1| {
@@ -370,7 +385,9 @@ fn validate_contact(contact: &Contact) -> Validation<ValidContact, Vec<Error>> {
 ### Pattern 2: Effect Pipelines
 
 ```rust
-fn user_registration_pipeline(input: UserInput) -> Effect<User, Error, Env> {
+use stillwater::effect::prelude::*;
+
+fn user_registration_pipeline(input: UserInput) -> impl Effect<Output = User, Error = Error, Env = Env> {
     validate_input(input)
         .and_then(|valid| check_uniqueness(valid))
         .and_then(|valid| create_user(valid))
@@ -403,7 +420,7 @@ fn with_database_connection<T>(
 // Usage
 let result = with_database_connection(|conn| {
     from_fn(move |_| conn.query("SELECT * FROM users"))
-}).run(&env).await;
+}).execute(&env).await;
 ```
 
 ### Pattern 2: Multiple Resources with LIFO Cleanup
@@ -464,7 +481,7 @@ fn with_explicit_errors() -> impl Effect<Output = Data, Error = BracketError<App
 }
 
 // Handle all error cases explicitly
-let result = with_explicit_errors().run(&env).await;
+let result = with_explicit_errors().execute(&env).await;
 match result {
     Ok(data) => println!("Success: {:?}", data),
     Err(BracketError::AcquireError(e)) => {
@@ -505,7 +522,7 @@ let effect = acquiring(
 .with(|(conn, file)| use_both(conn, file));
 
 // Connection is properly cleaned up even though file failed
-let result = effect.run(&env).await;  // Returns file acquisition error
+let result = effect.execute(&env).await;  // Returns file acquisition error
 ```
 
 ### Pattern 6: Connection Pool Pattern
@@ -532,7 +549,7 @@ impl ConnectionPool {
 let pool = ConnectionPool::new();
 let result = pool.connection()
     .with(|conn| from_fn(move |_| conn.query("SELECT 1")))
-    .run(&env)
+    .execute(&env)
     .await;
 ```
 
@@ -541,27 +558,31 @@ let result = pool.connection()
 ### Pattern 1: Avoid Excessive Boxing
 
 ```rust
+use stillwater::effect::prelude::*;
+
 // Instead of creating many small effects:
-let effect = Effect::pure(1)
+let effect = pure::<_, String, ()>(1)
     .map(|x| x + 1)
     .map(|x| x * 2)
     .map(|x| x - 3);
 
 // Combine transformations:
-let effect = Effect::pure(1)
+let effect = pure::<_, String, ()>(1)
     .map(|x| (x + 1) * 2 - 3);
 ```
 
 ### Pattern 2: Batch Operations
 
 ```rust
+use stillwater::effect::prelude::*;
+
 // Instead of many individual queries:
 for id in ids {
-    fetch_user(id).run(&env).await?;
+    fetch_user(id).execute(&env).await?;
 }
 
 // Batch fetch:
-let users = fetch_users_batch(ids).run(&env).await?;
+let users = fetch_users_batch(ids).execute(&env).await?;
 ```
 
 ## Summary
