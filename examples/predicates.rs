@@ -318,6 +318,15 @@ fn real_world_example() {
         tags: Vec<String>,
     }
 
+    impl User {
+        fn display(&self) -> String {
+            format!(
+                "User {{ username: {}, email: {}, age: {}, tags: {:?} }}",
+                self.username, self.email, self.age, self.tags
+            )
+        }
+    }
+
     // Validation functions return Validation<(), Vec<String>> for error accumulation
     fn validate_username(username: &str) -> Validation<(), Vec<String>> {
         let mut errors = Vec::new();
@@ -393,7 +402,7 @@ fn real_world_example() {
     println!("Valid input:");
     println!("  {:?}", valid_input);
     match validate_user(valid_input) {
-        Validation::Success(user) => println!("  Result: Success({:?})", user),
+        Validation::Success(user) => println!("  Result: Success({})", user.display()),
         Validation::Failure(errors) => println!("  Result: Failure({:?})", errors),
     }
 
@@ -407,7 +416,7 @@ fn real_world_example() {
     println!("\nInvalid input:");
     println!("  {:?}", invalid_input);
     match validate_user(invalid_input) {
-        Validation::Success(user) => println!("  Result: Success({:?})", user),
+        Validation::Success(user) => println!("  Result: Success({})", user.display()),
         Validation::Failure(errors) => {
             println!("  Result: Failure with {} errors:", errors.len());
             for error in errors {
