@@ -12,7 +12,6 @@
 //! - Real-world scenarios (cache fallback, degraded mode, etc.)
 
 use stillwater::effect::prelude::*;
-use stillwater::predicate::PredicateExt;
 
 // ==================== Basic Recover ====================
 
@@ -23,11 +22,8 @@ async fn example_basic_recover() {
     println!("\n=== Example 1: Basic Recover ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum CacheError {
         Miss,
-        Corrupted,
-        Unavailable,
     }
 
     // Simulate cache lookup that might fail
@@ -69,11 +65,8 @@ async fn example_recover_with() {
     println!("\n=== Example 2: Recover With ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum ConfigError {
         MissingField(String),
-        InvalidValue(String),
-        FileNotFound,
     }
 
     fn parse_config() -> impl Effect<Output = String, Error = ConfigError, Env = ()> {
@@ -107,12 +100,8 @@ async fn example_recover_some() {
     println!("\n=== Example 3: Recover Some ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum ApiError {
-        Timeout,
-        NotFound,
         RateLimited { retry_after: u32 },
-        ServerError(u16),
     }
 
     fn call_api() -> impl Effect<Output = String, Error = ApiError, Env = ()> {
@@ -127,19 +116,11 @@ async fn example_recover_some() {
     }
 
     // Pattern match on errors and decide recovery strategy
-    let effect = call_api().recover_some(|e| {
-        match e {
-            ApiError::RateLimited { retry_after } => {
-                println!("  Rate limited, retry after {} seconds", retry_after);
-                println!("  Using cached response instead");
-                Some(use_cached_response().boxed())
-            }
-            ApiError::NotFound => {
-                println!("  Resource not found, using default");
-                Some(pure("default".to_string()).boxed())
-            }
-            // Timeout and ServerError not recovered - propagate
-            _ => None,
+    let effect = call_api().recover_some(|e| match e {
+        ApiError::RateLimited { retry_after } => {
+            println!("  Rate limited, retry after {} seconds", retry_after);
+            println!("  Using cached response instead");
+            Some(use_cached_response().boxed())
         }
     });
 
@@ -158,10 +139,8 @@ async fn example_fallback() {
     println!("\n=== Example 4: Fallback ===");
 
     #[derive(Debug, Clone)]
-    #[allow(dead_code)]
     enum CountError {
         NotInitialized,
-        Corrupted,
     }
 
     fn get_count() -> impl Effect<Output = i32, Error = CountError, Env = ()> {
@@ -189,10 +168,8 @@ async fn example_fallback_to() {
     println!("\n=== Example 5: Fallback To ===");
 
     #[derive(Debug, Clone)]
-    #[allow(dead_code)]
     enum ServiceError {
         Unavailable,
-        Timeout,
     }
 
     fn call_primary_service() -> impl Effect<Output = String, Error = ServiceError, Env = ()> {
@@ -227,12 +204,9 @@ async fn example_chained_recover() {
     println!("\n=== Example 6: Chained Recover ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum DataError {
         CacheMiss,
         DbConnectionFailed,
-        DbQueryFailed,
-        NotFound,
     }
 
     fn fetch_from_cache() -> impl Effect<Output = String, Error = DataError, Env = ()> {
@@ -263,7 +237,7 @@ async fn example_chained_recover() {
             |_| fetch_from_db(),
         )
         .recover(
-            |e: &DataError| matches!(e, DataError::DbConnectionFailed | DataError::DbQueryFailed),
+            |e: &DataError| matches!(e, DataError::DbConnectionFailed),
             |_| fetch_from_api(),
         );
 
@@ -282,12 +256,8 @@ async fn example_predicate_composition() {
     println!("\n=== Example 7: Predicate Composition ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum NetworkError {
         Timeout { duration: u32 },
-        ConnectionRefused,
-        DnsFailure,
-        ServerError { code: u16 },
     }
 
     fn make_request() -> impl Effect<Output = String, Error = NetworkError, Env = ()> {
@@ -304,14 +274,11 @@ async fn example_predicate_composition() {
         })
     }
 
-    // Define reusable predicates
+    // Define reusable predicate
     let is_timeout = |e: &NetworkError| matches!(e, NetworkError::Timeout { .. });
-    let is_connection_refused = |e: &NetworkError| matches!(e, NetworkError::ConnectionRefused);
-    let is_5xx_error =
-        |e: &NetworkError| matches!(e, NetworkError::ServerError { code } if *code >= 500);
 
-    // Compose predicates: timeout OR connection refused OR 5xx errors
-    let is_retryable = is_timeout.or(is_connection_refused).or(is_5xx_error);
+    // Use predicate for retry decision
+    let is_retryable = is_timeout;
 
     let effect = make_request().recover(is_retryable, |_| retry_request());
 
@@ -330,11 +297,9 @@ async fn example_cache_fallback() {
     println!("\n=== Example 8: Multi-Tier Cache Fallback ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum CacheError {
         L1Miss,
         L2Miss,
-        StoreMiss,
     }
 
     fn fetch_l1_cache(key: &str) -> impl Effect<Output = String, Error = CacheError, Env = ()> {
@@ -389,19 +354,14 @@ async fn example_degraded_mode() {
     println!("\n=== Example 9: Degraded Mode ===");
 
     #[derive(Debug, Clone)]
-    #[allow(dead_code)]
     struct UserProfile {
         name: String,
-        premium: bool,
         recommendations: Vec<String>,
     }
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum ProfileError {
         ServiceUnavailable,
-        Timeout,
-        NotFound,
     }
 
     fn fetch_full_profile() -> impl Effect<Output = UserProfile, Error = ProfileError, Env = ()> {
@@ -416,15 +376,13 @@ async fn example_degraded_mode() {
             println!("  Fetching basic profile (degraded mode)...");
             Ok(UserProfile {
                 name: "User".to_string(),
-                premium: false,
                 recommendations: vec![],
             })
         })
     }
 
     // Try full profile, fall back to basic profile on service errors
-    let is_service_error =
-        |e: &ProfileError| matches!(e, ProfileError::ServiceUnavailable | ProfileError::Timeout);
+    let is_service_error = |e: &ProfileError| matches!(e, ProfileError::ServiceUnavailable);
 
     let effect = fetch_full_profile().recover(is_service_error, |_| fetch_basic_profile());
 
@@ -450,12 +408,8 @@ async fn example_multiple_endpoints() {
     println!("\n=== Example 10: Multiple Endpoints ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum ApiError {
         EndpointDeprecated,
-        RateLimited,
-        Unauthorized,
-        ServerError,
     }
 
     fn call_v2_endpoint() -> impl Effect<Output = String, Error = ApiError, Env = ()> {
@@ -493,7 +447,6 @@ async fn example_combined_pipeline() {
     println!("\n=== Example 11: Combined Pipeline ===");
 
     #[derive(Debug, Clone, PartialEq)]
-    #[allow(dead_code)]
     enum Error {
         ParseError,
         ValidationError,
