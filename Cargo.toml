@@ -34,6 +34,10 @@ jitter = ["dep:rand"]
 tracing = ["dep:tracing"]
 
 [[example]]
+name = "recover_patterns"
+required-features = ["async"]
+
+[[example]]
 name = "retry_patterns"
 required-features = ["async"]
 
