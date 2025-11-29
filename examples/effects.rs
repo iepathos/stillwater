@@ -1,16 +1,18 @@
 //! Effects Example
 //!
-//! Demonstrates the Effect type and composition patterns.
+//! Demonstrates the Effect type and composition patterns using the free function style.
 //! Shows practical patterns including:
-//! - Creating effects (pure, fail, from_fn, from_async)
+//! - Creating effects with free functions (pure, fail, from_fn, from_async)
 //! - Mapping and transforming effects
 //! - Chaining effects with and_then
 //! - Error handling with map_err
 //! - Helper combinators (tap, check, with)
 //! - Combining independent effects with zip
 //! - Environment-based dependency injection
+//!
+//! All examples use the prelude import for concise, ergonomic effect creation.
 
-use stillwater::{fail, from_async, from_fn, pure, zip3, Effect, EffectExt, RunStandalone};
+use stillwater::effect::prelude::*;
 
 // ==================== Basic Effects ====================
 
@@ -22,12 +24,12 @@ async fn example_basic_effects() {
 
     // Pure value - always succeeds
     let success_effect = pure::<_, String, ()>(42);
-    let result = success_effect.run_standalone().await;
+    let result = success_effect.execute(&()).await;
     println!("Pure effect: {:?}", result);
 
     // Failure - always fails
     let fail_effect = fail::<i32, _, ()>("something went wrong".to_string());
-    let result = fail_effect.run_standalone().await;
+    let result = fail_effect.execute(&()).await;
     println!("Fail effect: {:?}", result);
 }
 
@@ -49,7 +51,7 @@ async fn example_from_fn() {
     let effect = from_fn(|env: &Env| Ok::<_, String>(env.multiplier * 2));
 
     let env = Env { multiplier: 21 };
-    let result = effect.run(&env).await;
+    let result = effect.execute(&env).await;
     println!("Result: {:?}", result);
 }
 
@@ -73,7 +75,7 @@ async fn example_mapping() {
         .map(|x| format!("Result: {}", x)); // Convert to string
 
     let env = Env { base_value: 5 };
-    let result = effect.run(&env).await.unwrap();
+    let result = effect.execute(&env).await.unwrap();
     println!("{}", result); // "Result: 20"
 }
 
@@ -120,14 +122,20 @@ async fn example_chaining() {
     let env = Env {
         db: Database { value: 10 },
     };
-    let result = get_value().and_then(validate_and_double).run(&env).await;
+    let result = get_value()
+        .and_then(validate_and_double)
+        .execute(&env)
+        .await;
     println!("Success case: {:?}", result);
 
     // Try with negative value
     let env2 = Env {
         db: Database { value: -5 },
     };
-    let result2 = get_value().and_then(validate_and_double).run(&env2).await;
+    let result2 = get_value()
+        .and_then(validate_and_double)
+        .execute(&env2)
+        .await;
     println!("Failure case: {:?}", result2);
 }
 
@@ -163,7 +171,7 @@ async fn example_error_handling() {
         }
     })
     .map_err(|e| format!("Error: {} is not allowed", e));
-    println!("Valid value: {:?}", effect1.run(&env1).await);
+    println!("Valid value: {:?}", effect1.execute(&env1).await);
 
     let env2 = Env { value: -1 };
     let effect2 = from_fn(|env: &Env| {
@@ -174,7 +182,7 @@ async fn example_error_handling() {
         }
     })
     .map_err(|e| format!("Error: {} is not allowed", e));
-    println!("Invalid value: {:?}", effect2.run(&env2).await);
+    println!("Invalid value: {:?}", effect2.execute(&env2).await);
 }
 
 // ==================== Async Effects ====================
@@ -217,7 +225,7 @@ async fn example_async_effects() {
         }
     });
 
-    let result = fetch_user.run(&env).await.unwrap();
+    let result = fetch_user.execute(&env).await.unwrap();
     println!("Fetched: {}", result);
 }
 
@@ -247,7 +255,7 @@ async fn example_tap() {
         .map(|x| x + 5);
 
     let env = Env { value: 10 };
-    let result = effect.run(&env).await.unwrap();
+    let result = effect.execute(&env).await.unwrap();
     println!("Final result: {}", result);
 }
 
@@ -273,7 +281,7 @@ async fn example_check() {
                 }
             })
         })
-        .run(&env1)
+        .execute(&env1)
         .await;
     println!("Adult: {:?}", result1);
 
@@ -288,7 +296,7 @@ async fn example_check() {
                 }
             })
         })
-        .run(&env2)
+        .execute(&env2)
         .await;
     println!("Minor: {:?}", result2);
 }
@@ -328,7 +336,7 @@ async fn example_with() {
         },
     };
 
-    let area = area_effect.run(&env).await.unwrap();
+    let area = area_effect.execute(&env).await.unwrap();
     println!("Area: {}", area);
 }
 
@@ -381,7 +389,7 @@ async fn example_zip() {
     };
 
     // Basic zip: combine two effects into a tuple
-    let result = fetch_user().zip(fetch_settings()).run(&env).await;
+    let result = fetch_user().zip(fetch_settings()).execute(&env).await;
     println!("Basic zip: {:?}", result);
 
     // zip_with: combine with a function directly (more efficient than zip + map)
@@ -389,7 +397,7 @@ async fn example_zip() {
         .zip_with(fetch_settings(), |user, settings| {
             format!("Hello {}, your theme is {}", user.name, settings.theme)
         })
-        .run(&env)
+        .execute(&env)
         .await;
     println!("zip_with: {:?}", greeting);
 
@@ -398,7 +406,7 @@ async fn example_zip() {
         .zip(pure(2))
         .zip(pure(3))
         .map(|((a, b), c)| a + b + c)
-        .run(&env)
+        .execute(&env)
         .await;
     println!("Chained zips ((a, b), c): {:?}", chained);
 
@@ -409,14 +417,14 @@ async fn example_zip() {
         pure::<_, String, Env>(3),
     )
     .map(|(a, b, c)| a + b + c)
-    .run(&env)
+    .execute(&env)
     .await;
     println!("zip3 (a, b, c): {:?}", flat);
 
     // Error handling: fail-fast semantics
     let with_error = pure::<_, String, Env>(1)
         .zip(fail::<i32, _, Env>("second failed".to_string()))
-        .run(&env)
+        .execute(&env)
         .await;
     println!("With error: {:?}", with_error);
 }
@@ -511,14 +519,14 @@ async fn example_composition() {
     };
 
     // Success case
-    match workflow.run(&env).await {
+    match workflow.execute(&env).await {
         Ok(greeting) => println!("Success: {}", greeting),
         Err(e) => println!("Error: {}", e),
     }
 
     // Try with minor
     let workflow2 = find_user(2).and_then(validate_adult).and_then(greet);
-    match workflow2.run(&env).await {
+    match workflow2.execute(&env).await {
         Ok(greeting) => println!("Success: {}", greeting),
         Err(e) => println!("Error: {}", e),
     }

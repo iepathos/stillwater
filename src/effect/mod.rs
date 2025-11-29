@@ -4,6 +4,41 @@
 //! with **opt-in boxing** when type erasure is needed, following the established
 //! `futures` crate pattern.
 //!
+//! # Getting Started
+//!
+//! Import the prelude to access free function constructors:
+//!
+//! ```rust
+//! use stillwater::effect::prelude::*;
+//!
+//! # tokio_test::block_on(async {
+//! let effect = pure::<_, String, ()>(42)
+//!     .map(|x| x * 2);
+//!
+//! let result = effect.execute(&()).await;
+//! assert_eq!(result, Ok(84));
+//! # });
+//! ```
+//!
+//! # Free Function Pattern (Recommended)
+//!
+//! Stillwater provides free functions as the preferred way to create effects:
+//!
+//! ```rust
+//! use stillwater::effect::prelude::*;
+//!
+//! # tokio_test::block_on(async {
+//! // Concise, readable style
+//! let effect = asks::<_, String, i32, _>(|env: &i32| env * 2)
+//!     .and_then(|x| pure(x + 1));
+//!
+//! let result = effect.execute(&42).await;
+//! assert_eq!(result, Ok(85));
+//! # });
+//! ```
+//!
+//! See [`constructors`] module for the complete list of free functions.
+//!
 //! # Key Differences from Old API
 //!
 //! | Old API | New API |
