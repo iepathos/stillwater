@@ -1,6 +1,6 @@
 ---
 number: 041
-title: Validation bimap and bifold Combinators
+title: Validation bimap and fold Combinators
 category: foundation
 priority: high
 status: draft
@@ -8,7 +8,7 @@ dependencies: []
 created: 2025-11-27
 ---
 
-# Specification 041: Validation bimap and bifold Combinators
+# Specification 041: Validation bimap and fold Combinators
 
 **Category**: foundation
 **Priority**: high
@@ -57,12 +57,12 @@ These are standard in:
 
 1. **Conciseness**: Transform both sides in one operation
 2. **Readability**: Intent is clearer than chained map/map_err
-3. **Consistency**: Matches `Either` which already has `bimap` (Spec 026)
+3. **Consistency**: Follows standard FP conventions from Haskell, Scala, and fp-ts
 4. **Completeness**: Makes `Validation` a proper Bifunctor
 
 ## Objective
 
-Add `bimap`, `bimap_err`, `fold`, and related combinators to `Validation<T, E>` for comprehensive sum type manipulation, completing the Bifunctor interface.
+Add `bimap`, `fold`, and related combinators to `Validation<T, E>` for comprehensive sum type manipulation, completing the Bifunctor interface. Provide both traditional FP-style parameter ordering and success-first variants with clear usage guidance.
 
 ## Requirements
 
@@ -120,13 +120,14 @@ where
     G: FnOnce(E) -> R;
 ```
 
-#### FR5: Validation.bifold Combinator
+#### FR5: Validation.fold_with_seed Combinator
 
-- **MAY** provide `bifold(seed, f_err, f_success)` for accumulating fold
+- **MAY** provide `fold_with_seed(seed, f_err, f_success)` for folding with initial accumulator
 - Useful when combining with a starting value
+- **Note**: Named `fold_with_seed` rather than `bifold` to avoid confusion with category-theoretic bifold
 
 ```rust
-fn bifold<R, F, G>(self, seed: R, f: F, g: G) -> R
+fn fold_with_seed<R, F, G>(self, seed: R, f: F, g: G) -> R
 where
     F: FnOnce(R, E) -> R,
     G: FnOnce(R, T) -> R;
@@ -136,6 +137,7 @@ where
 
 - **MUST** ensure `unwrap_or_else` exists and is consistent
 - **SHOULD** accept function that transforms error to success type
+- **Note**: This is a general utility method, not specific to bimap/bifold, but included for API completeness
 
 ```rust
 fn unwrap_or_else<F>(self, f: F) -> T
@@ -163,8 +165,9 @@ impl<T> Validation<T, T> {
 
 #### NFR2: Consistency
 
-- Naming SHOULD match `Either` type (Spec 026)
-- Parameter order SHOULD match FP conventions
+- Naming SHOULD match standard FP conventions (Haskell, Scala, fp-ts)
+- Parameter order SHOULD follow FP conventions (error/left first)
+- SHOULD provide success-first variants for ergonomics
 
 #### NFR3: Documentation
 
@@ -203,7 +206,7 @@ impl<T> Validation<T, T> {
 
 - [ ] **AC15**: Works in chained operations with `map`, `and_then`
 - [ ] **AC16**: Works with Semigroup error types
-- [ ] **AC17**: Consistent with `Either::bimap` and `Either::fold`
+- [ ] **AC17**: Follows standard FP naming and conventions
 
 ## Technical Details
 
@@ -346,13 +349,16 @@ impl<T, E> Validation<T, E> {
     /// This is a generalized fold that takes a seed value and combines
     /// it with either the error or success value.
     ///
+    /// Named `fold_with_seed` rather than `bifold` to avoid confusion with
+    /// category-theoretic bifold, which folds over containers of bifunctors.
+    ///
     /// # Example
     ///
     /// ```rust
     /// use stillwater::Validation;
     ///
     /// let success = Validation::<i32, _>::success(5);
-    /// let result = success.bifold(
+    /// let result = success.fold_with_seed(
     ///     10,
     ///     |acc, e: &str| acc + e.len() as i32,
     ///     |acc, x| acc + x
@@ -360,7 +366,7 @@ impl<T, E> Validation<T, E> {
     /// assert_eq!(result, 15); // 10 + 5
     /// ```
     #[inline]
-    pub fn bifold<R, F, G>(self, seed: R, f: F, g: G) -> R
+    pub fn fold_with_seed<R, F, G>(self, seed: R, f: F, g: G) -> R
     where
         F: FnOnce(R, E) -> R,
         G: FnOnce(R, T) -> R,
@@ -660,13 +666,13 @@ mod bimap_fold_tests {
     }
 
     #[test]
-    fn test_bifold() {
+    fn test_fold_with_seed() {
         let v = Validation::<_, String>::success(5);
-        let result = v.bifold(10, |acc, e| acc + e.len() as i32, |acc, x| acc + x);
+        let result = v.fold_with_seed(10, |acc, e| acc + e.len() as i32, |acc, x| acc + x);
         assert_eq!(result, 15);
 
         let v = Validation::<i32, _>::failure("err".to_string());
-        let result = v.bifold(10, |acc, e| acc + e.len() as i32, |acc, x| acc + x);
+        let result = v.fold_with_seed(10, |acc, e| acc + e.len() as i32, |acc, x| acc + x);
         assert_eq!(result, 13);
     }
 
@@ -859,6 +865,7 @@ Full rustdoc on all methods with:
 Transform success and error values in a single operation:
 
 ```rust
+// Standard FP ordering: error function first, success function second
 let result = validation.bimap(
     |error| wrap_error(error),     // Transform failure
     |value| transform_value(value) // Transform success
@@ -870,16 +877,27 @@ This is equivalent to but cleaner than:
 let result = validation.map(transform_value).map_err(wrap_error);
 ```
 
+**Usage guidance:**
+- Use `bimap(f_err, f_success)` for consistency with FP conventions (Haskell, Scala, fp-ts)
+- Use `bimap_success_first(f_success, f_err)` if you prefer "happy path first" thinking
+- Both variants have identical behavior, just different parameter order
+
 ### fold - Collapse to Single Value
 
 Extract a value from either variant:
 
 ```rust
+// Standard FP ordering: failure handler first, success handler second
 let message = validation.fold(
     |error| format!("Failed: {}", error),
     |value| format!("Success: {}", value)
 );
 ```
+
+**Usage guidance:**
+- Use `fold(on_failure, on_success)` for FP consistency
+- Use `fold_success_first(on_success, on_failure)` for "happy path first" style
+- Both collapse the Validation to a single value of the same type
 
 ### merge - When Types Are Same
 
@@ -897,22 +915,26 @@ let result: String = v.merge(); // Works regardless of variant
 
 | Decision | Rationale |
 |----------|-----------|
-| Failure handler first in `bimap`/`fold` | Matches Bifunctor convention (Left/Error first) |
-| Provide `*_success_first` variants | Some prefer success-first thinking |
+| Failure handler first in `bimap`/`fold` | Matches Bifunctor convention (Left/Error first) and standard FP libraries |
+| Provide `*_success_first` variants | Ergonomics for developers who prefer "happy path first" thinking |
 | `merge` only when `T == E` | Type safety - can't merge incompatible types |
-| `bimap_ref`/`fold_ref` | Allows non-consuming operations |
+| `bimap_ref`/`fold_ref` | Allows non-consuming operations on borrowed data |
+| Rename `bifold` to `fold_with_seed` | Avoids confusion with category-theoretic bifold |
+| Include unwrap methods | General utilities for API completeness, not bimap-specific |
 
 ### Naming Conventions
 
 Following established FP terminology:
 - `bimap` - Bifunctor's map over both type parameters
 - `fold` - Catamorphism (collapse structure to value)
+- `fold_with_seed` - Generalized fold with initial accumulator (not category-theoretic bifold)
 - `merge` - Extract from sum type when both sides are same
+- `*_success_first` - Ergonomic variants with reversed parameter order
 
 ## Migration and Compatibility
 
 - **Breaking changes**: None (additive)
-- **New methods**: `bimap`, `bimap_success_first`, `fold`, `fold_success_first`, `bifold`, `merge`, `bimap_ref`, `fold_ref`, `unwrap_or`, `unwrap_or_else`, `unwrap_or_default`, `unwrap_err`, `expect_err`
+- **New methods**: `bimap`, `bimap_success_first`, `fold`, `fold_success_first`, `fold_with_seed`, `merge`, `bimap_ref`, `fold_ref`, `unwrap_or`, `unwrap_or_else`, `unwrap_or_default`, `unwrap_err`, `expect_err`
 
 ---
 
