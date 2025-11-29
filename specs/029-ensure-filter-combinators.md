@@ -6,6 +6,7 @@ priority: high
 status: draft
 dependencies: [024, 028]
 created: 2025-11-27
+updated: 2025-11-28
 ---
 
 # Specification 029: ensure/filter_or Declarative Validation Combinators
@@ -19,47 +20,63 @@ created: 2025-11-27
 
 ### The Problem
 
-Validation in Effect chains currently requires verbose pattern matching or awkward `and_then` calls:
+#### Primary: Effect Validation Requires Verbose Boilerplate
+
+Effect chains currently require verbose `and_then` with if/else for every validation:
 
 ```rust
-// Current: Verbose and error-prone
-let effect = fetch_user(id)
-    .and_then(|user| {
-        if user.age >= 18 {
-            Effect::pure(user)
+// Current: 12 lines for 2 validations (from examples/pipeline.rs)
+pure::<_, String, Env>(age)
+    .and_then(|a| {
+        if a >= 0 {
+            pure::<_, String, Env>(a).boxed()
         } else {
-            Effect::fail(Error::TooYoung)
+            fail("Age cannot be negative".to_string()).boxed()
         }
     })
-    .and_then(|user| {
-        if user.is_verified {
-            Effect::pure(user)
+    .and_then(|a| {
+        if a <= 150 {
+            pure::<_, String, Env>(a).boxed()
         } else {
-            Effect::fail(Error::NotVerified)
+            fail("Age cannot exceed 150".to_string()).boxed()
         }
-    });
+    })
 ```
 
 This pattern is:
-1. **Verbose**: Each check requires 5+ lines
-2. **Error-prone**: Easy to swap Ok/Err branches
+1. **Verbose**: Each check requires 7+ lines
+2. **Error-prone**: Must remember `.boxed()` and handle types correctly
 3. **Hard to read**: Business logic buried in boilerplate
 4. **Not composable**: Can't easily reuse validation logic
+
+#### Secondary: Validation Type Lacks Closure Support
+
+Stillwater 0.11.0 already provides `Validation::ensure()` but it only works with the `Predicate` trait:
+
+```rust
+// Current: Works with Predicate trait only
+Validation::success("hello")
+    .ensure(len_min(3), "too short")  // ✓ Works
+
+// Does NOT work with closures
+Validation::success("hello")
+    .ensure(|s| s.contains('@'), "needs @")  // ✗ Error: closure not supported
+```
 
 ### The Solution
 
 Declarative combinators express intent clearly:
 
 ```rust
-// With ensure/filter_or: Clear, concise, declarative
-let effect = fetch_user(id)
-    .ensure(|u| u.age >= 18, Error::TooYoung)
-    .ensure(|u| u.is_verified, Error::NotVerified);
+// Effect validation: 3 lines instead of 12
+pure::<_, String, Env>(age)
+    .ensure(|a| *a >= 0, "Age cannot be negative".to_string())
+    .ensure(|a| *a <= 150, "Age cannot exceed 150".to_string())
 
-// Or with predicates from Spec 028
-let effect = fetch_user(id)
-    .filter_or(predicate::ge(18).on(|u| u.age), Error::TooYoung)
-    .filter_or(|u| u.is_verified, Error::NotVerified);
+// Validation with closures AND predicates
+Validation::success("hello")
+    .ensure(len_min(3), "too short")           // Predicate (existing)
+    .ensure(|s| s.contains('@'), "needs @")    // Closure (NEW)
 ```
 
 ### Prior Art
@@ -71,7 +88,61 @@ let effect = fetch_user(id)
 
 ## Objective
 
-Add `ensure` and `filter_or` combinators to `Effect` and enhance `Validation` with similar declarative validation methods that integrate with the predicate combinator system from Spec 028.
+**Primary**: Add `ensure`, `ensure_with`, and `unless` combinators to `Effect` for declarative validation in effect chains.
+
+**Secondary**: Enhance `Validation::ensure` to accept closures in addition to the existing `Predicate` trait support.
+
+## Comparison with Current Patterns
+
+### Effect Type (Before/After)
+
+**Before (Stillwater 0.11.0):**
+```rust
+// Verbose and_then with if/else boilerplate
+fetch_user(id)
+    .and_then(|user| {
+        if user.age >= 18 {
+            pure(user)
+        } else {
+            fail(Error::TooYoung)
+        }
+    })
+    .and_then(|user| {
+        if user.is_verified {
+            pure(user)
+        } else {
+            fail(Error::NotVerified)
+        }
+    })
+```
+
+**After (Spec 029):**
+```rust
+// Declarative ensure - 2 lines
+fetch_user(id)
+    .ensure(|u| u.age >= 18, Error::TooYoung)
+    .ensure(|u| u.is_verified, Error::NotVerified)
+```
+
+### Validation Type (Before/After)
+
+**Before (Stillwater 0.11.0):**
+```rust
+// Requires Predicate trait - no closure support
+use stillwater::predicate::*;
+
+Validation::success("hello")
+    .ensure(len_min(3), "too short")  // ✓ Works
+    // Cannot use closures for custom validation
+```
+
+**After (Spec 029):**
+```rust
+// Accepts BOTH Predicates AND closures
+Validation::success("hello")
+    .ensure(len_min(3), "too short")           // Predicate (existing)
+    .ensure(|s| s.contains('@'), "needs @")    // Closure (NEW)
+```
 
 ## Requirements
 
@@ -80,16 +151,16 @@ Add `ensure` and `filter_or` combinators to `Effect` and enhance `Validation` wi
 #### FR1: Effect.ensure Combinator
 
 - **MUST** provide `ensure(predicate, error)` method on Effect
+- **MUST** accept closures: `FnOnce(&Self::Output) -> bool`
 - **MUST** pass value through if predicate is true
 - **MUST** fail with provided error if predicate is false
-- **MUST** work with closures and `Predicate` trait
 - **MUST** return concrete type (zero-cost per Spec 024)
 
 ```rust
 fn ensure<P, E2>(self, predicate: P, error: E2) -> Ensure<Self, P, E2>
 where
     P: FnOnce(&Self::Output) -> bool + Send,
-    E2: Into<Self::Error>;
+    E2: Into<Self::Error> + Send;
 ```
 
 #### FR2: Effect.ensure_with Combinator
@@ -105,58 +176,61 @@ where
     F: FnOnce(&Self::Output) -> Self::Error + Send;
 ```
 
-#### FR3: Effect.filter_or Combinator
-
-- **MUST** provide `filter_or(predicate, error)` method
-- **MUST** be an alias/equivalent to `ensure` (different naming convention)
-- **SHOULD** integrate with Spec 028 predicates
-
-#### FR4: Effect.unless Combinator
+#### FR3: Effect.unless Combinator
 
 - **MUST** provide `unless(predicate, error)` method
 - **MUST** be inverse of `ensure` (fail if predicate is TRUE)
-- **MUST** be equivalent to `ensure(|x| !predicate(x), error)`
+- **SHOULD** be implemented by wrapping `Ensure` with negated predicate
 
-#### FR5: Validation.ensure Combinator
+```rust
+fn unless<P, Err>(self, predicate: P, error: Err) -> Ensure<Self, impl FnOnce(&Self::Output) -> bool, Err>
+where
+    P: FnOnce(&Self::Output) -> bool + Send,
+    Err: Into<Self::Error> + Send;
+```
 
-- **MUST** provide `ensure(predicate, error)` on Validation
+#### FR4: Effect.filter_or Combinator
+
+- **MUST** provide `filter_or(predicate, error)` method
+- **MUST** be an alias for `ensure` (different naming convention)
+
+#### FR5: Effect.ensure_pred Combinator
+
+- **MUST** provide `ensure_pred(predicate, error)` method for `Predicate` trait
+- **MUST** work with composed predicates from Spec 028
+- **MUST** enable reusable, composable validation logic
+
+```rust
+fn ensure_pred<P, Err>(self, predicate: P, error: Err) -> EnsurePred<Self, P, Err>
+where
+    P: crate::predicate::Predicate<Self::Output> + Send,
+    Err: Into<Self::Error> + Send;
+```
+
+#### FR6: Validation.ensure Enhancement
+
+**Current State:** `Validation::ensure()` exists in Stillwater 0.11.0 but only accepts `Predicate` trait.
+
+- **MUST** maintain backward compatibility with existing `Predicate` trait usage
+- **SHOULD** add overload or trait bound to accept `FnOnce(&T) -> bool` closures
 - **MUST** transform Success to Failure if predicate fails
 - **MUST** pass Failure through unchanged
-- **SHOULD** integrate with Spec 028 predicates
 
-```rust
-impl<T, E> Validation<T, E> {
-    fn ensure<P>(self, predicate: P, error: E) -> Validation<T, E>
-    where
-        P: FnOnce(&T) -> bool;
-}
-```
+**Note:** This is an enhancement to existing functionality, not new functionality.
 
-#### FR6: Validation.filter Combinator
+#### FR7: Validation.ensure_with Enhancement
 
-- **MUST** provide `filter(predicate)` returning `Option<Validation<T, E>>`
-- **MUST** return `None` if predicate fails on Success
+- **MUST** provide `ensure_with(predicate, error_fn)` on Validation
+- **MUST** work with closures for lazy error construction
+
+#### FR8: Validation.unless Enhancement
+
+- **MUST** provide `unless(predicate, error)` on Validation
+- **MUST** be inverse of `ensure` (fail if predicate is TRUE)
+
+#### FR9: Validation.filter_or Alias
+
 - **SHOULD** provide `filter_or` as alias for `ensure`
-
-#### FR7: Validation Chaining
-
-- **MUST** allow chaining multiple ensures
-- **MUST** short-circuit on first failure (fail-fast)
-- **SHOULD** provide `ensure_all` for accumulating errors
-
-```rust
-// Fail-fast chaining
-Validation::success(value)
-    .ensure(p1, e1)
-    .ensure(p2, e2)  // Not checked if p1 fails
-
-// Error accumulation variant
-Validation::success(value)
-    .ensure_all([
-        (p1, e1),
-        (p2, e2),
-    ])  // Checks all, accumulates errors
-```
 
 ### Non-Functional Requirements
 
@@ -172,50 +246,71 @@ Validation::success(value)
 - Type inference SHOULD work without annotations
 - Closures SHOULD work directly: `.ensure(|x| x > 0, Error::Invalid)`
 
-#### NFR3: Error Messages
+#### NFR3: Error Type Compatibility
 
-- Compiler errors SHOULD be clear when types don't match
-- Runtime panic messages SHOULD be helpful
+- The `error` parameter MUST use `Into<Self::Error>` for flexible error types
+- Documentation MUST explain error type conversion
+
+```rust
+// Can pass owned values
+.ensure(|x| *x > 0, AppError::Invalid)  // AppError implements Into<Error>
+
+// Can pass &str when error is String
+.ensure(|x| *x > 0, "must be positive")  // &str Into String
+
+// For chaining with different error types, use map_err
+fetch_user(id)                                    // Error = DbError
+    .map_err(AppError::from)                      // Error = AppError
+    .ensure(|u| u.age >= 18, AppError::TooYoung)  // Error = AppError
+```
 
 ## Acceptance Criteria
 
-### Effect.ensure
+### Effect.ensure (Primary Focus)
 
 - [ ] **AC1**: `ensure` method exists on EffectExt trait
 - [ ] **AC2**: `pure(5).ensure(|x| *x > 0, "negative")` succeeds with 5
 - [ ] **AC3**: `pure(-5).ensure(|x| *x > 0, "negative")` fails with "negative"
 - [ ] **AC4**: `fail("error").ensure(|_| true, "other")` fails with "error" (short-circuit)
 - [ ] **AC5**: `Ensure<E, P, Err>` implements Effect trait
+- [ ] **AC6**: Works with closures directly (no Predicate trait required)
 
 ### Effect.ensure_with
 
-- [ ] **AC6**: `ensure_with` method exists
-- [ ] **AC7**: Error function only called when predicate fails
-- [ ] **AC8**: Value accessible in error function
+- [ ] **AC7**: `ensure_with` method exists
+- [ ] **AC8**: Error function only called when predicate fails
+- [ ] **AC9**: Value accessible in error function
 
 ### Effect.unless
 
-- [ ] **AC9**: `unless` method exists
-- [ ] **AC10**: `pure(5).unless(|x| *x < 0, "positive")` succeeds
-- [ ] **AC11**: `pure(-5).unless(|x| *x < 0, "negative")` fails
+- [ ] **AC10**: `unless` method exists
+- [ ] **AC11**: `pure(5).unless(|x| *x < 0, "positive")` succeeds
+- [ ] **AC12**: `pure(-5).unless(|x| *x < 0, "negative")` fails
 
-### Validation.ensure
+### Effect.ensure_pred (Predicate Integration)
 
-- [ ] **AC12**: `ensure` method exists on Validation
-- [ ] **AC13**: `Success(5).ensure(|x| *x > 0, "err")` returns Success(5)
-- [ ] **AC14**: `Success(-5).ensure(|x| *x > 0, "err")` returns Failure("err")
-- [ ] **AC15**: `Failure("e").ensure(|_| true, "other")` returns Failure("e")
+- [ ] **AC13**: `ensure_pred` method exists
+- [ ] **AC14**: Works with `between(18, 120)` predicate
+- [ ] **AC15**: Works with composed predicates like `gt(0).and(lt(100))`
+
+### Validation Enhancement
+
+- [ ] **AC16**: Existing Predicate-based `ensure` still works
+- [ ] **AC17**: New closure-based `ensure` works
+- [ ] **AC18**: `Success(5).ensure(|x| *x > 0, "err")` returns Success(5)
+- [ ] **AC19**: `Success(-5).ensure(|x| *x > 0, "err")` returns Failure("err")
+- [ ] **AC20**: `Failure("e").ensure(|_| true, "other")` returns Failure("e")
 
 ### Chaining
 
-- [ ] **AC16**: Multiple `ensure` calls chain correctly
-- [ ] **AC17**: First failing ensure short-circuits
-- [ ] **AC18**: Works with `map` and `and_then` in same chain
+- [ ] **AC21**: Multiple `ensure` calls chain correctly
+- [ ] **AC22**: First failing ensure short-circuits
+- [ ] **AC23**: Works with `map` and `and_then` in same chain
 
 ### Integration
 
-- [ ] **AC19**: Works with Spec 028 predicates
-- [ ] **AC20**: Works with BoxedEffect via `.boxed()`
+- [ ] **AC24**: Works with Spec 028 predicates via `ensure_pred`
+- [ ] **AC25**: Works with BoxedEffect via `.boxed()`
 
 ## Technical Details
 
@@ -227,9 +322,8 @@ Validation::success(value)
 // src/effect/combinators/ensure.rs
 
 use crate::effect::{Effect, EffectExt};
-use std::marker::PhantomData;
 
-/// Validates the effect's output with a predicate.
+/// Validates the effect's output with a closure predicate.
 ///
 /// If the predicate returns true, the value passes through.
 /// If the predicate returns false, the effect fails with the provided error.
@@ -280,6 +374,12 @@ pub struct EnsureWith<E, P, F> {
     error_fn: F,
 }
 
+impl<E, P, F> EnsureWith<E, P, F> {
+    pub fn new(inner: E, predicate: P, error_fn: F) -> Self {
+        EnsureWith { inner, predicate, error_fn }
+    }
+}
+
 impl<E, P, F> Effect for EnsureWith<E, P, F>
 where
     E: Effect,
@@ -303,16 +403,67 @@ where
 }
 ```
 
+#### EnsurePred Combinator for Predicate Trait
+
+```rust
+// src/effect/combinators/ensure_pred.rs
+
+use crate::effect::Effect;
+use crate::predicate::Predicate;
+
+/// Validates using a Predicate from the predicate module.
+///
+/// This enables composable, reusable predicates like:
+/// - `between(18, 120)`
+/// - `gt(0).and(lt(100))`
+/// - `len_min(3).and(len_max(20))`
+pub struct EnsurePred<E, P, Err> {
+    inner: E,
+    predicate: P,
+    error: Err,
+}
+
+impl<E, P, Err> EnsurePred<E, P, Err> {
+    pub fn new(inner: E, predicate: P, error: Err) -> Self {
+        EnsurePred { inner, predicate, error }
+    }
+}
+
+impl<E, P, Err> Effect for EnsurePred<E, P, Err>
+where
+    E: Effect,
+    P: Predicate<E::Output> + Send,
+    Err: Into<E::Error> + Send,
+{
+    type Output = E::Output;
+    type Error = E::Error;
+    type Env = E::Env;
+
+    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
+        async move {
+            let value = self.inner.run(env).await?;
+            if self.predicate.check(&value) {
+                Ok(value)
+            } else {
+                Err(self.error.into())
+            }
+        }
+    }
+}
+```
+
 #### Extension Trait Methods
 
 ```rust
 // In src/effect/ext.rs
 
+use crate::effect::combinators::{Ensure, EnsureWith, EnsurePred};
+
 impl<E: Effect> EffectExt for E {
-    /// Ensure the output satisfies a predicate, failing with the given error otherwise.
+    /// Ensure the output satisfies a closure predicate, failing with the given error otherwise.
     ///
     /// This is useful for adding validation to effect chains without
-    /// verbose pattern matching.
+    /// verbose `and_then` boilerplate.
     ///
     /// # Example
     ///
@@ -325,6 +476,7 @@ impl<E: Effect> EffectExt for E {
     where
         P: FnOnce(&Self::Output) -> bool + Send,
         Err: Into<Self::Error> + Send,
+        Self: Sized,
     {
         Ensure::new(self, predicate, error)
     }
@@ -347,8 +499,31 @@ impl<E: Effect> EffectExt for E {
     where
         P: FnOnce(&Self::Output) -> bool + Send,
         F: FnOnce(&Self::Output) -> Self::Error + Send,
+        Self: Sized,
     {
         EnsureWith::new(self, predicate, error_fn)
+    }
+
+    /// Ensure using a Predicate from the predicate module.
+    ///
+    /// This enables composable, reusable predicates.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use stillwater::predicate::*;
+    ///
+    /// let valid_age = between(18, 120);
+    /// let effect = fetch_age()
+    ///     .ensure_pred(valid_age, Error::InvalidAge);
+    /// ```
+    fn ensure_pred<P, Err>(self, predicate: P, error: Err) -> EnsurePred<Self, P, Err>
+    where
+        P: crate::predicate::Predicate<Self::Output> + Send,
+        Err: Into<Self::Error> + Send,
+        Self: Sized,
+    {
+        EnsurePred::new(self, predicate, error)
     }
 
     /// Alias for `ensure` - filter with a fallback error.
@@ -358,6 +533,7 @@ impl<E: Effect> EffectExt for E {
     where
         P: FnOnce(&Self::Output) -> bool + Send,
         Err: Into<Self::Error> + Send,
+        Self: Sized,
     {
         self.ensure(predicate, error)
     }
@@ -366,58 +542,28 @@ impl<E: Effect> EffectExt for E {
     ///
     /// Inverse of `ensure`: fails if predicate is TRUE.
     ///
+    /// Implementation: Wraps `Ensure` with negated predicate to avoid separate type.
+    ///
     /// # Example
     ///
     /// ```rust
     /// let effect = fetch_user(id)
     ///     .unless(|u| u.is_banned, Error::UserBanned);
     /// ```
-    fn unless<P, Err>(self, predicate: P, error: Err) -> Unless<Self, P, Err>
+    fn unless<P, Err>(self, predicate: P, error: Err) -> Ensure<Self, impl FnOnce(&Self::Output) -> bool + Send, Err>
     where
         P: FnOnce(&Self::Output) -> bool + Send,
         Err: Into<Self::Error> + Send,
+        Self: Sized,
     {
-        Unless::new(self, predicate, error)
+        Ensure::new(self, move |x| !predicate(x), error)
     }
 }
 ```
 
-#### Unless Combinator Type
+#### Validation Enhancements
 
-```rust
-// src/effect/combinators/unless.rs
-
-/// Fails if the predicate returns TRUE.
-pub struct Unless<E, P, Err> {
-    inner: E,
-    predicate: P,
-    error: Err,
-}
-
-impl<E, P, Err> Effect for Unless<E, P, Err>
-where
-    E: Effect,
-    P: FnOnce(&E::Output) -> bool + Send,
-    Err: Into<E::Error> + Send,
-{
-    type Output = E::Output;
-    type Error = E::Error;
-    type Env = E::Env;
-
-    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
-        async move {
-            let value = self.inner.run(env).await?;
-            if !(self.predicate)(&value) {
-                Ok(value)
-            } else {
-                Err(self.error.into())
-            }
-        }
-    }
-}
-```
-
-#### Validation Methods
+**Note:** These enhancements extend existing `Validation::ensure()` functionality from Stillwater 0.11.0.
 
 ```rust
 // In src/validation/core.rs
@@ -425,22 +571,31 @@ where
 impl<T, E> Validation<T, E> {
     /// Ensure the success value satisfies a predicate.
     ///
+    /// **Enhancement**: This method exists in 0.11.0 but only accepts `Predicate` trait.
+    /// This spec proposes accepting BOTH `Predicate` AND closures.
+    ///
     /// Returns Failure with the provided error if the predicate fails.
     /// Passes Failure through unchanged.
     ///
     /// # Example
     ///
     /// ```rust
-    /// let result = Validation::success(5)
-    ///     .ensure(|x| *x > 0, "must be positive")
-    ///     .ensure(|x| *x < 100, "must be less than 100");
+    /// use stillwater::predicate::*;
+    ///
+    /// // With Predicate (existing)
+    /// let result = Validation::success("hello")
+    ///     .ensure(len_min(3), "too short");
+    ///
+    /// // With closure (NEW)
+    /// let result = Validation::success("hello")
+    ///     .ensure(|s| s.contains('@'), "needs @");
     /// ```
     pub fn ensure<P>(self, predicate: P, error: E) -> Validation<T, E>
     where
-        P: FnOnce(&T) -> bool,
+        P: /* Accept both Predicate<T> AND FnOnce(&T) -> bool */,
     {
         match self {
-            Validation::Success(ref value) if predicate(value) => self,
+            Validation::Success(ref value) if predicate_check(&predicate, value) => self,
             Validation::Success(_) => Validation::Failure(error),
             Validation::Failure(e) => Validation::Failure(e),
         }
@@ -478,76 +633,6 @@ impl<T, E> Validation<T, E> {
             Validation::Failure(e) => Validation::Failure(e),
         }
     }
-
-    /// Filter, returning None if predicate fails.
-    ///
-    /// Unlike `ensure`, this doesn't require an error - it just
-    /// converts the Validation to Option<Validation>.
-    pub fn filter<P>(self, predicate: P) -> Option<Validation<T, E>>
-    where
-        P: FnOnce(&T) -> bool,
-    {
-        match self {
-            Validation::Success(ref value) if predicate(value) => Some(self),
-            Validation::Success(_) => None,
-            Validation::Failure(_) => Some(self),
-        }
-    }
-}
-```
-
-#### Integration with Predicate Combinators (Spec 028)
-
-```rust
-// In src/effect/ext.rs - additional methods
-
-impl<E: Effect> EffectExt for E {
-    /// Ensure using a Predicate from the predicate module.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use stillwater::predicate::*;
-    ///
-    /// let effect = fetch_age()
-    ///     .ensure_pred(between(18, 120), Error::InvalidAge);
-    /// ```
-    fn ensure_pred<P, Err>(self, predicate: P, error: Err) -> EnsurePred<Self, P, Err>
-    where
-        P: crate::predicate::Predicate<Self::Output> + Send,
-        Err: Into<Self::Error> + Send,
-    {
-        EnsurePred::new(self, predicate, error)
-    }
-}
-
-// Combinator that uses Predicate trait
-pub struct EnsurePred<E, P, Err> {
-    inner: E,
-    predicate: P,
-    error: Err,
-}
-
-impl<E, P, Err> Effect for EnsurePred<E, P, Err>
-where
-    E: Effect,
-    P: crate::predicate::Predicate<E::Output> + Send,
-    Err: Into<E::Error> + Send,
-{
-    type Output = E::Output;
-    type Error = E::Error;
-    type Env = E::Env;
-
-    fn run(self, env: &Self::Env) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send {
-        async move {
-            let value = self.inner.run(env).await?;
-            if self.predicate.check(&value) {
-                Ok(value)
-            } else {
-                Err(self.error.into())
-            }
-        }
-    }
 }
 ```
 
@@ -557,11 +642,10 @@ where
 src/effect/
 ├── combinators/
 │   ├── mod.rs
-│   ├── ensure.rs        # Ensure<E, P, Err>
-│   ├── ensure_with.rs   # EnsureWith<E, P, F>
-│   ├── ensure_pred.rs   # EnsurePred<E, P, Err>
-│   └── unless.rs        # Unless<E, P, Err>
-├── ext.rs               # Add ensure, ensure_with, unless methods
+│   ├── ensure.rs        # Ensure<E, P, Err> - closure-based
+│   ├── ensure_with.rs   # EnsureWith<E, P, F> - lazy error
+│   └── ensure_pred.rs   # EnsurePred<E, P, Err> - Predicate trait
+├── ext.rs               # Add ensure, ensure_with, ensure_pred, unless methods
 ```
 
 ## Dependencies
@@ -572,11 +656,11 @@ src/effect/
 
 ### Affected Components
 - `EffectExt` trait - new methods
-- `Validation` type - new methods
+- `Validation` type - enhanced methods
 
 ## Testing Strategy
 
-### Unit Tests
+### Unit Tests for Effect
 
 ```rust
 #[cfg(test)]
@@ -584,7 +668,7 @@ mod effect_tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_ensure_passes_on_true() {
+    async fn test_ensure_with_closure() {
         let effect = pure::<_, String, ()>(5)
             .ensure(|x| *x > 0, "must be positive".to_string());
         assert_eq!(effect.execute(&()).await, Ok(5));
@@ -662,16 +746,64 @@ mod effect_tests {
         assert_eq!(effect.execute(&()).await, Ok(10));
     }
 }
+```
 
+### Integration Tests with Predicates
+
+```rust
+#[cfg(test)]
+mod predicate_integration {
+    use super::*;
+    use crate::predicate::*;
+
+    #[tokio::test]
+    async fn test_ensure_pred_with_predicate() {
+        let effect = pure::<_, String, ()>(25)
+            .ensure_pred(between(18, 120), "invalid age".to_string());
+        assert_eq!(effect.execute(&()).await, Ok(25));
+    }
+
+    #[tokio::test]
+    async fn test_ensure_pred_with_composed_predicate() {
+        let valid_age = gt(0).and(lt(150));
+
+        let effect = pure::<_, String, ()>(25)
+            .ensure_pred(valid_age, "invalid age".to_string());
+        assert_eq!(effect.execute(&()).await, Ok(25));
+    }
+
+    #[tokio::test]
+    async fn test_mixing_closure_and_predicate() {
+        let effect = pure::<_, String, ()>(25)
+            .ensure(|x| *x > 0, "must be positive".to_string())  // Closure
+            .ensure_pred(between(0, 150), "out of range".to_string());  // Predicate
+        assert_eq!(effect.execute(&()).await, Ok(25));
+    }
+}
+```
+
+### Validation Enhancement Tests
+
+```rust
 #[cfg(test)]
 mod validation_tests {
     use super::*;
+    use crate::predicate::*;
 
     #[test]
-    fn test_validation_ensure_passes() {
-        let result = Validation::<_, String>::success(5)
-            .ensure(|x| *x > 0, "must be positive".to_string());
-        assert_eq!(result, Validation::Success(5));
+    fn test_validation_ensure_with_predicate() {
+        // Existing functionality - must still work
+        let result = Validation::success(String::from("hello"))
+            .ensure(len_min(3), "too short");
+        assert_eq!(result, Validation::Success(String::from("hello")));
+    }
+
+    #[test]
+    fn test_validation_ensure_with_closure() {
+        // NEW functionality
+        let result = Validation::success(String::from("hello"))
+            .ensure(|s| s.contains('e'), "must contain 'e'");
+        assert_eq!(result, Validation::Success(String::from("hello")));
     }
 
     #[test]
@@ -697,17 +829,6 @@ mod validation_tests {
     }
 
     #[test]
-    fn test_validation_filter() {
-        let result = Validation::<_, String>::success(5)
-            .filter(|x| *x > 0);
-        assert!(result.is_some());
-
-        let result = Validation::<_, String>::success(-5)
-            .filter(|x| *x > 0);
-        assert!(result.is_none());
-    }
-
-    #[test]
     fn test_validation_unless() {
         let result = Validation::<_, String>::success(5)
             .unless(|x| *x < 0, "must not be negative".to_string());
@@ -716,39 +837,6 @@ mod validation_tests {
         let result = Validation::<_, String>::success(-5)
             .unless(|x| *x < 0, "must not be negative".to_string());
         assert_eq!(result, Validation::Failure("must not be negative".to_string()));
-    }
-}
-```
-
-### Integration Tests with Predicates
-
-```rust
-#[cfg(test)]
-mod predicate_integration {
-    use super::*;
-    use crate::predicate::*;
-
-    #[tokio::test]
-    async fn test_ensure_with_predicate() {
-        let effect = pure::<_, String, ()>(25)
-            .ensure_pred(between(18, 120), "invalid age".to_string());
-        assert_eq!(effect.execute(&()).await, Ok(25));
-    }
-
-    #[tokio::test]
-    async fn test_ensure_with_combined_predicate() {
-        let valid_age = between(0, 150).and(|age: &i32| *age != 69);
-
-        let effect = pure::<_, String, ()>(25)
-            .ensure_pred(valid_age, "invalid age".to_string());
-        assert_eq!(effect.execute(&()).await, Ok(25));
-    }
-
-    #[test]
-    fn test_validation_with_predicate() {
-        let result = Validation::<_, String>::success("hello")
-            .ensure(|s| len_between(3, 10).check(*s), "invalid length".to_string());
-        assert_eq!(result, Validation::Success("hello"));
     }
 }
 ```
@@ -762,7 +850,7 @@ mod predicate_integration {
 ///
 /// `ensure` is a declarative way to add validation to effect chains.
 /// Instead of verbose `and_then` with pattern matching, express your
-/// validation as a simple predicate.
+/// validation as a simple closure predicate.
 ///
 /// # When to Use
 ///
@@ -774,6 +862,10 @@ mod predicate_integration {
 /// Use `ensure_with` when:
 /// - You need to include the value in the error message
 /// - The error construction is expensive and should be lazy
+///
+/// Use `ensure_pred` when:
+/// - You want to use composable predicates from the predicate module
+/// - You need reusable validation logic
 ///
 /// Use `unless` when:
 /// - You want to fail if the predicate is TRUE (inverse logic)
@@ -802,6 +894,7 @@ mod predicate_integration {
 /// # See Also
 ///
 /// - `ensure_with` - for errors that need the value
+/// - `ensure_pred` - for composable predicates from predicate module
 /// - `unless` - inverse of ensure (fail if TRUE)
 /// - `filter_or` - alias for ensure
 /// - `Validation::ensure` - same pattern for Validation type
@@ -812,26 +905,36 @@ mod predicate_integration {
 ```markdown
 ## Declarative Validation with ensure
 
-Instead of verbose pattern matching in effect chains:
+### Problem: Verbose Effect Validation
+
+Effect chains currently require verbose `and_then` boilerplate:
 
 ```rust
-// Verbose
-let effect = fetch_user(id)
-    .and_then(|user| {
-        if user.age >= 18 {
-            pure(user)
+// Verbose: 12 lines for 2 validations
+pure::<_, String, Env>(age)
+    .and_then(|a| {
+        if a >= 0 {
+            pure::<_, String, Env>(a).boxed()
         } else {
-            fail(Error::TooYoung)
+            fail("Age cannot be negative".to_string()).boxed()
         }
-    });
+    })
+    .and_then(|a| {
+        if a <= 150 {
+            pure::<_, String, Env>(a).boxed()
+        } else {
+            fail("Age cannot exceed 150".to_string()).boxed()
+        }
+    })
 ```
 
-Use `ensure` for clean, declarative validation:
+### Solution: Use `ensure`
 
 ```rust
-// Clean
-let effect = fetch_user(id)
-    .ensure(|u| u.age >= 18, Error::TooYoung);
+// Clean: 3 lines
+pure::<_, String, Env>(age)
+    .ensure(|a| *a >= 0, "Age cannot be negative".to_string())
+    .ensure(|a| *a <= 150, "Age cannot exceed 150".to_string())
 ```
 
 ### Chaining Multiple Validations
@@ -852,6 +955,36 @@ let effect = fetch_user(id)
         |u| Error::TooYoung { actual: u.age, required: 18 }
     );
 ```
+
+### With Composable Predicates
+
+```rust
+use stillwater::predicate::*;
+
+let valid_age = between(18, 120);
+let has_name = is_not_empty().on(|u: &User| &u.name);
+
+let effect = fetch_user(id)
+    .ensure_pred(valid_age, Error::InvalidAge)
+    .ensure_pred(has_name, Error::MissingName);
+```
+
+### Error Type Compatibility
+
+The `error` parameter uses `Into<Self::Error>` for flexible error types:
+
+```rust
+// Can pass &str when error is String
+.ensure(|x| *x > 0, "must be positive")  // &str -> String
+
+// Can pass owned error types
+.ensure(|x| *x > 0, AppError::Invalid)
+
+// For different error types, use map_err first
+fetch_user(id)                                    // Error = DbError
+    .map_err(AppError::from)                      // Error = AppError
+    .ensure(|u| u.age >= 18, AppError::TooYoung)  // Error = AppError
+```
 ```
 
 ## Implementation Notes
@@ -860,10 +993,18 @@ let effect = fetch_user(id)
 
 | Decision | Rationale |
 |----------|-----------|
+| Separate `ensure` and `ensure_pred` | Clear distinction: closures for inline, Predicate trait for composable |
 | `ensure` vs `filter_or` | Both provided - `ensure` for Scala users, `filter_or` for Rust idiom |
-| `unless` as separate | More readable than `ensure(|x| !pred(x), ...)` |
+| `unless` wraps `Ensure` | Simpler implementation, no separate type, same performance |
 | Lazy error_fn | Avoid unnecessary allocations when predicate passes |
 | Short-circuit on Failure | Consistent with `and_then` behavior |
+| Effect validation primary | Biggest pain point in 0.11.0, Validation already has basic support |
+
+### Implementation Strategy
+
+1. **Phase 1**: Implement Effect combinators (`ensure`, `ensure_with`, `ensure_pred`, `unless`)
+2. **Phase 2**: Enhance Validation to accept closures in addition to Predicates
+3. **Phase 3**: Documentation and examples
 
 ### Future Enhancements
 
@@ -874,7 +1015,9 @@ let effect = fetch_user(id)
 ## Migration and Compatibility
 
 - **Breaking changes**: None (additive)
-- **New methods**: `ensure`, `ensure_with`, `filter_or`, `unless` on Effect and Validation
+- **New methods on Effect**: `ensure`, `ensure_with`, `ensure_pred`, `filter_or`, `unless`
+- **Enhanced methods on Validation**: Existing `ensure` accepts closures in addition to Predicates
+- **Backward compatibility**: All existing Validation code continues to work
 
 ---
 
