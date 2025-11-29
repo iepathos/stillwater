@@ -7,8 +7,7 @@
 ```
        Still Waters
       ╱            ╲
-    Pure          Water
-   (Logic)       (Effects)
+ Pure Logic      Effects
      ↓              ↓
   Unchanging     Flowing
  Predictable    Performing I/O
@@ -16,8 +15,8 @@
 ```
 
 Like a still pond with water flowing through it, your application should have:
-- **Still core**: Pure business logic that doesn't change
-- **Flowing water**: Effects that move data in and out
+- Pure business logic that doesn't change
+- Effects that move data in and out
 
 ## Core Beliefs
 
