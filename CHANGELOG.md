@@ -7,6 +7,117 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2025-11-28
+
+### Added
+
+#### Error Recovery Combinators for Effect (Spec 040)
+
+- **Selective error recovery** - Fine-grained control between total recovery (`or_else`) and no recovery
+  - `.recover(predicate, handler)` - Recover from specific errors using predicate-based matching with effect handler
+  - `.recover_with(predicate, handler)` - Recover using Result-returning handler for simpler cases
+  - `.recover_some(handler)` - Pattern-matching recovery with Option (returns `Some` to recover, `None` to propagate)
+  - `.fallback(value)` - Provide default value on any error
+  - `.fallback_to(effect)` - Try alternative effect on any error
+
+- **Predicate-based error matching** - Uses stillwater's `Predicate` trait for composable error conditions
+  - Integrate with existing predicate combinators (`.and()`, `.or()`, `.not()`)
+  - Build sophisticated error handling logic declaratively
+  - Type-safe error inspection without exposing implementation details
+
+- **Common use cases** enabled:
+  - Cache fallback strategies (recover from cache miss only)
+  - Retry on transient errors (network timeouts, rate limits)
+  - Graceful degradation for non-critical failures
+  - Multi-tier fallback chains (cache → database → default)
+  - Conditional recovery based on error severity or type
+
+- **Zero-cost abstraction** - All recovery combinators compile to concrete types
+  - No heap allocations required
+  - Stack-allocated combinator types
+  - Property tests verify zero-cost semantics
+
+- **New example** - `examples/recover_patterns.rs` (450+ lines)
+  - 11 comprehensive examples covering all recovery patterns
+  - Real-world scenarios: multi-tier caching, degraded mode, API fallback
+  - Predicate composition patterns
+  - Chaining multiple recovery strategies
+
+#### Bifunctor Interface for Validation (Spec 041)
+
+- **Bimap combinators** - Transform both success and error channels simultaneously
+  - `.bimap(f_err, f_success)` - Standard bifunctor operation (error first convention)
+  - `.bimap_success_first(f_success, f_err)` - Ergonomic variant (success first for readability)
+  - `.bimap_ref(&f_err, &f_success)` - Non-consuming reference version for inspection
+
+- **Fold combinators** - Catamorphisms to collapse Validation into single values
+  - `.fold(on_failure, on_success)` - Standard fold (error first)
+  - `.fold_success_first(on_success, on_failure)` - Alternative ordering
+  - `.fold_ref(&on_failure, &on_success)` - Non-consuming version
+  - `.fold_with_seed(seed, f_err, f_success)` - Generalized fold with accumulator for complex reductions
+
+- **Unwrap utilities** - Safe value extraction with error handling
+  - `.unwrap_or_else(f)` - Compute default from error lazily
+  - `.unwrap_or(default)` - Provide static default value
+  - `.unwrap_or_default()` - Use `Default` trait implementation
+  - `.unwrap_err()` - Extract error, panic on Success
+  - `.expect_err(msg)` - Extract error with custom panic message
+
+- **Merge operation** - Extract value when success and error types are identical
+  - `.merge()` - Available when `T == E`, eliminates the Validation wrapper
+
+- **Bifunctor laws** - Mathematical correctness guaranteed
+  - Identity law: `bimap(id, id) == id`
+  - Composition law: `bimap(f, g).bimap(h, k) == bimap(f.then(h), g.then(k))`
+  - Property tests verify law compliance
+  - Full rustdoc documentation of laws and examples
+
+- **Zero-cost abstraction** - All methods are `#[inline]` for compiler optimization
+  - No runtime overhead for functional composition
+  - Works seamlessly with existing Validation combinators
+
+#### Documentation Improvements (Spec 042)
+
+- **Free function constructor pattern** - Prominently featured throughout documentation
+  - Enhanced module documentation in `src/effect/constructors.rs`
+  - API comparison table showing recommended patterns
+  - Updated `src/effect/prelude.rs` with usage guidelines
+  - New section in `src/effect/mod.rs` explaining free function approach
+
+- **Updated examples** - All Effect examples now use modern free function style
+  - `examples/effects.rs` - Updated to use prelude import and free functions
+  - `docs/PATTERNS.md` - Comprehensive update of all Effect examples
+  - Working examples compile and pass `cargo test --doc`
+
+- **Updated guides** - Error recovery documentation integrated into core docs
+  - README: Added error recovery to Core Features section
+  - README: Added `recover_patterns` to examples table
+  - Guide README: Error recovery added to Quick Reference table
+  - Guide README: Error recovery pattern examples with runnable code
+
+### Changed
+
+- **Preferred API style** - Free functions now recommended over associated functions
+  - Use `pure(x)` instead of `Effect::pure(x)`
+  - Use `fail(e)` instead of `Effect::fail(e)`
+  - Use `asks(f)` instead of `Effect::asks(f)`
+  - Use `from_fn(f)` instead of `Effect::from_fn(f)`
+  - Note: Both styles still work; this is a documentation/style recommendation
+
+### Technical Details
+
+- **Recovery combinator implementation**:
+  - Each combinator is a distinct concrete type in `src/effect/combinators/`
+  - Zero-cost verified through property-based tests
+  - Seamless integration with existing Effect chains
+  - Works with all environment types
+
+- **Bifunctor implementation**:
+  - Comprehensive test coverage including property tests
+  - Follows functional programming conventions
+  - All methods fully documented with examples
+  - Non-consuming variants for flexible usage patterns
+
 ## [0.12.0] - 2025-11-28
 
 ### Added
@@ -778,7 +889,9 @@ Zero-cost effect chains eliminate heap allocations:
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/iepathos/stillwater/compare/v0.12.0...v0.13.0
+[0.12.0]: https://github.com/iepathos/stillwater/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/iepathos/stillwater/compare/v0.10.0...v0.11.0
 [0.10.0]: https://github.com/iepathos/stillwater/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/iepathos/stillwater/compare/v0.8.0...v0.9.0
