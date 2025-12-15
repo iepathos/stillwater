@@ -1,9 +1,8 @@
 # Stillwater
 
-[![CI](https://github.com/iepathos/stillwater/actions/workflows/ci.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/ci.yml)
-[![Coverage](https://github.com/iepathos/stillwater/actions/workflows/coverage.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/coverage.yml)
-[![Security](https://github.com/iepathos/stillwater/actions/workflows/security.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/security.yml)
 [![Crates.io](https://img.shields.io/crates/v/stillwater)](https://crates.io/crates/stillwater)
+[![Downloads](https://img.shields.io/crates/d/stillwater)](https://crates.io/crates/stillwater)
+[![CI](https://github.com/iepathos/stillwater/actions/workflows/ci.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT)](LICENSE)
 
 A Rust library for pragmatic effect composition and validation, emphasizing the **pure core, imperative shell** pattern.
