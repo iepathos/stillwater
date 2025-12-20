@@ -134,6 +134,7 @@ pub mod retry;
 #[cfg(feature = "tracing")]
 pub mod tracing;
 mod trait_def;
+pub mod writer;
 
 // Re-export core trait
 pub use trait_def::Effect;
