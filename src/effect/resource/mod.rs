@@ -39,7 +39,7 @@
 //! - [`sets`] - Type-level resource sets (`Empty`, `Has<R>`)
 //! - [`tracked`] - `Tracked` wrapper and `ResourceEffect` trait
 //! - [`ext`] - Extension methods (`.acquires()`, `.releases()`)
-//! - [`bracket`] - Resource-safe bracket pattern (`resource_bracket` function)
+//! - [`mod@bracket`] - Resource-safe bracket pattern (`resource_bracket` function)
 //! - [`builder`] - Ergonomic builder API (`bracket::<R>()`, `Bracket::<R>::new()`)
 //! - [`combinators`] - ResourceEffect implementations for core combinators
 //!

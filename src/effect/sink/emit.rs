@@ -129,7 +129,9 @@ where
 #[derive(Debug)]
 pub struct EmitMany<I, T, E, Env> {
     items: I,
-    _phantom: PhantomData<fn() -> (T, E, Env)>,
+    _phantom_t: PhantomData<fn() -> T>,
+    _phantom_e: PhantomData<fn() -> E>,
+    _phantom_env: PhantomData<fn() -> Env>,
 }
 
 impl<I, T, E, Env> Clone for EmitMany<I, T, E, Env>
@@ -139,7 +141,9 @@ where
     fn clone(&self) -> Self {
         Self {
             items: self.items.clone(),
-            _phantom: PhantomData,
+            _phantom_t: PhantomData,
+            _phantom_e: PhantomData,
+            _phantom_env: PhantomData,
         }
     }
 }
@@ -207,6 +211,8 @@ where
 {
     EmitMany {
         items,
-        _phantom: PhantomData,
+        _phantom_t: PhantomData,
+        _phantom_e: PhantomData,
+        _phantom_env: PhantomData,
     }
 }

@@ -116,7 +116,11 @@ async fn error_handling_example() {
 
     let effect = emit::<String, String, ()>("step 1: starting".into())
         .and_then(|_| emit("step 2: processing".into()))
-        .and_then(|_| into_sink(fail::<i32, String, ()>("error: something went wrong".into())))
+        .and_then(|_| {
+            into_sink(fail::<i32, String, ()>(
+                "error: something went wrong".into(),
+            ))
+        })
         .and_then(|n| emit("step 3: never reached".into()).map(move |_| n));
 
     let (result, collected) = effect.run_collecting(&()).await;
