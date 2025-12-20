@@ -263,6 +263,44 @@ Effect::retry_with_hooks(
 );
 ```
 
+### 9. "I want the type system to prevent resource leaks"
+
+```rust
+use stillwater::effect::resource::*;
+
+// Mark effects with resource acquisition at the TYPE level
+fn open_file(path: &str) -> impl ResourceEffect<Acquires = Has<FileRes>> {
+    pure(FileHandle::new(path)).acquires::<FileRes>()
+}
+
+fn close_file(handle: FileHandle) -> impl ResourceEffect<Releases = Has<FileRes>> {
+    pure(()).releases::<FileRes>()
+}
+
+// The bracket pattern guarantees resource neutrality
+fn read_file_safe(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
+    resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
+        open_file(path),
+        |h| async move { close_file(h).run(&()).await },
+        |h| read_contents(h),
+    )
+}
+
+// Transaction protocols enforced at compile time
+fn begin_tx() -> impl ResourceEffect<Acquires = Has<TxRes>> { /* ... */ }
+fn commit(tx: Tx) -> impl ResourceEffect<Releases = Has<TxRes>> { /* ... */ }
+
+// This function MUST be resource-neutral or it won't compile
+fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
+    resource_bracket::<TxRes, _, _, _, _, _, _, _, _, _>(
+        begin_tx(),
+        |tx| async move { commit(tx).run(&()).await },
+        |tx| execute_queries(tx),
+    )
+}
+// Zero runtime overhead - all tracking is compile-time only!
+```
+
 ## Core Features
 
 - **`Validation<T, E>`** - Accumulate all errors instead of short-circuiting
@@ -299,6 +337,12 @@ Effect::retry_with_hooks(
   - `bracket_full()` returns `BracketError` with explicit error handling for all failure modes
   - `acquiring()` builder for fluent multi-resource management with `with_flat2/3/4`
   - Guaranteed cleanup even on errors, partial acquisition rollback
+- **Compile-time resource tracking** - Type-level resource safety with zero runtime overhead
+  - Resource markers: `FileRes`, `DbRes`, `LockRes`, `TxRes`, `SocketRes` (or define custom)
+  - `ResourceEffect` trait with `Acquires`/`Releases` associated types
+  - Extension methods: `.acquires::<R>()`, `.releases::<R>()`, `.neutral()`
+  - `resource_bracket` for guaranteed resource-neutral operations
+  - `assert_resource_neutral` for compile-time leak detection
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **`Semigroup` trait** - Associative combination of values
@@ -484,6 +528,7 @@ Run any example with `cargo run --example <name>`:
 | [tracing_demo](examples/tracing_demo.rs) | Tracing integration with semantic spans and context |
 | [boxing_decisions](examples/boxing_decisions.rs) | When to use `.boxed()` vs zero-cost effects |
 | [resource_scopes](examples/resource_scopes.rs) | Bracket pattern for safe resource management with guaranteed cleanup |
+| [resource_tracking](examples/resource_tracking.rs) | Compile-time resource tracking with type-level safety |
 
 See [examples/](examples/) directory for full code.
 

@@ -358,4 +358,35 @@ mod tests {
         assert_eq!(result, Ok(84));
         assert!(released.load(Ordering::SeqCst));
     }
+
+    #[tokio::test]
+    async fn resource_bracket_logs_cleanup_error_on_success() {
+        // Test that cleanup errors are logged but use result is returned
+        // This covers the error logging path (lines 103/105)
+        let result = resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
+            pure::<_, String, ()>(42),
+            |_: i32| async { Err::<(), String>("cleanup failed".to_string()) },
+            |val: &i32| pure::<_, String, ()>(*val * 2),
+        )
+        .run(&())
+        .await;
+
+        // Use succeeded, so we get Ok even though cleanup failed
+        assert_eq!(result, Ok(84));
+    }
+
+    #[tokio::test]
+    async fn resource_bracket_logs_cleanup_error_on_use_failure() {
+        // Both use and cleanup fail - use error is returned, cleanup error is logged
+        let result = resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
+            pure::<_, String, ()>(42),
+            |_: i32| async { Err::<(), String>("cleanup failed".to_string()) },
+            |_: &i32| fail::<i32, String, ()>("use failed".to_string()),
+        )
+        .run(&())
+        .await;
+
+        // Use error is returned (cleanup error is logged)
+        assert_eq!(result, Err("use failed".to_string()));
+    }
 }

@@ -131,6 +131,7 @@ impl<Eff: Effect, Acq: ResourceSet, Rel: ResourceSet> ResourceEffect for Tracked
 mod tests {
     use super::*;
     use crate::effect::constructors::pure;
+    use crate::effect::resource::ext::ResourceEffectExt;
     use crate::effect::resource::markers::FileRes;
     use crate::effect::resource::sets::Has;
 
@@ -203,5 +204,30 @@ mod tests {
         type TrackedWithRel =
             Tracked<crate::effect::combinators::Pure<i32, String, ()>, Empty, Has<FileRes>>;
         _assert_releases::<TrackedWithRel, Has<FileRes>>();
+    }
+
+    #[tokio::test]
+    async fn tracked_clone_works() {
+        // Test that Clone implementation works correctly
+        let original: Tracked<_, Has<FileRes>, Empty> = Tracked::new(pure::<_, String, ()>(42));
+        let cloned = original.clone();
+
+        // Both should produce the same result independently
+        let result1 = original.run(&()).await;
+        let result2 = cloned.run(&()).await;
+
+        assert_eq!(result1, Ok(42));
+        assert_eq!(result2, Ok(42));
+    }
+
+    #[test]
+    fn tracked_clone_preserves_type() {
+        // Verify clone preserves the resource tracking type parameters
+        let original = pure::<_, String, ()>(42).acquires::<FileRes>();
+        let cloned = original.clone();
+
+        // Both should have the same type
+        fn check<T: ResourceEffect<Acquires = Has<FileRes>, Releases = Empty>>(_: T) {}
+        check(cloned);
     }
 }

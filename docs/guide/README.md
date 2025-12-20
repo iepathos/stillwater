@@ -63,6 +63,14 @@ This guide is organized into progressive chapters, each building on the previous
 
 ### Advanced Patterns
 
+16. **Compile-Time Resource Tracking** - Type-level resource safety
+   - Resource markers (FileRes, DbRes, TxRes, etc.)
+   - ResourceEffect trait with Acquires/Releases tracking
+   - Extension methods: `.acquires()`, `.releases()`, `.neutral()`
+   - resource_bracket for guaranteed cleanup
+   - Zero runtime overhead - purely type-level
+   - See `src/effect/resource/mod.rs` for full documentation
+
 12. **[Traverse Patterns](12-traverse-patterns.md)** - Working with collections
    - Collection validation with error accumulation
    - Effect processing over collections
@@ -137,6 +145,10 @@ cargo run --example retry_patterns
 | Testing effects | TestEffect | Deterministic effect testing |
 | Mock environments | MockEnv | Build test dependencies |
 | Property-based tests | proptest feature | Generate test cases |
+| Resource acquisition | .acquires::<R>() | Mark effect as acquiring resource |
+| Resource release | .releases::<R>() | Mark effect as releasing resource |
+| Safe resource ops | resource_bracket | Guaranteed acquire/use/release |
+| Resource neutrality | assert_resource_neutral | Compile-time leak detection |
 
 ### Common Patterns
 
