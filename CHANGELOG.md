@@ -7,6 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2025-12-20
+
+### Added
+
+#### Compile-Time Resource Tracking (Spec 036)
+
+- **Type-level resource safety** - Track resource acquisition and release at compile time with zero runtime overhead
+  - `ResourceEffect` trait extends `Effect` with `Acquires` and `Releases` associated types
+  - Type system prevents resource leaks by enforcing balanced acquire/release patterns
+  - All tracking is purely compile-time - no runtime checks or allocations
+
+- **Resource markers** - Zero-sized type markers for different resource kinds
+  - `FileRes` - File handle resources
+  - `DbRes` - Database connection resources
+  - `LockRes` - Lock/mutex resources
+  - `TxRes` - Transaction resources
+  - `SocketRes` - Network socket resources
+  - Custom markers via `ResourceKind` trait implementation
+
+- **Type-level resource sets** - Track multiple resources simultaneously
+  - `Empty` - No resources acquired/released
+  - `Has<R>` - Single resource R
+  - `Has<R, Has<S>>` - Multiple resources
+  - `Union` trait for combining resource sets
+  - `Contains` and `Subset` traits for type-level resource checking
+
+- **Extension methods** - Ergonomic resource annotation
+  - `.acquires::<R>()` - Mark effect as acquiring resource R
+  - `.releases::<R>()` - Mark effect as releasing resource R
+  - `.neutral()` - Mark effect as resource-neutral
+  - `.also_acquires::<R>()` - Add additional acquired resource
+  - `.also_releases::<R>()` - Add additional released resource
+
+- **Resource bracket pattern** - Guaranteed resource-neutral operations
+  - `resource_bracket` - Ensures acquire/use/release with type-level neutrality guarantee
+  - `tracked_resource_bracket` - Stricter version requiring `ResourceEffect` acquire
+  - Cleanup always runs even on errors (logged but doesn't override use result)
+
+- **Compile-time assertions** - Verify resource safety at compile time
+  - `assert_resource_neutral()` - Only accepts effects with `Acquires = Empty, Releases = Empty`
+  - `IsResourceNeutral` trait for type-level neutrality checking
+
+- **New example** - `examples/resource_tracking.rs` (330+ lines)
+  - Basic resource annotation patterns
+  - Resource bracket for guaranteed cleanup
+  - Transaction protocol enforcement
+  - Multiple resource types tracking
+  - Compile-time neutrality assertions
+  - Custom resource kind definitions
+
+- **Documentation updates**
+  - README.md: New section "I want the type system to prevent resource leaks"
+  - README.md: Added to Core Features list with bullet points
+  - README.md: Added example to Examples table
+  - docs/guide/README.md: Added to Advanced Patterns section
+  - docs/guide/README.md: Added to Quick Reference table
+
+### Technical Details
+
+- **Zero-cost abstraction** - All resource tracking is compile-time only
+  - `Tracked` wrapper has same runtime behavior as inner effect
+  - Resource markers are zero-sized types
+  - Type-level set operations computed at compile time
+  - No runtime checks, allocations, or indirection
+
+- **ResourceEffect implementations** for core combinators
+  - `Pure`, `Fail` - Resource-neutral
+  - `Map`, `MapErr` - Preserves inner effect's resources
+  - `AndThen` - Unions resources from both effects
+  - `ResourceBracket` - Always resource-neutral
+
+- **Backward compatible** - All existing Effect code works unchanged
+  - Resource tracking is purely additive and opt-in
+  - Effects without resource annotations continue to work
+
 ## [0.13.0] - 2025-11-28
 
 ### Added
@@ -889,7 +964,8 @@ Zero-cost effect chains eliminate heap allocations:
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/iepathos/stillwater/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/iepathos/stillwater/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/iepathos/stillwater/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/iepathos/stillwater/compare/v0.10.0...v0.11.0
