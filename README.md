@@ -612,6 +612,22 @@ Contributions welcome! This is a young library with room to grow:
 
 Before submitting PRs, please open an issue to discuss the change.
 
+## Ecosystem
+
+Stillwater is part of a family of libraries that share the same functional programming philosophy:
+
+| Library | Description |
+|---------|-------------|
+| [premortem](https://github.com/iepathos/premortem) | Configuration validation that finds all errors before your app runs. Multi-source loading with error accumulation and value origin tracing. |
+| [postmortem](https://github.com/iepathos/postmortem) | Validation library that accumulates all errors with precise JSON path tracking. Composable schemas, cross-field validation, and effect integration. |
+| [mindset](https://github.com/iepathos/mindset) | Zero-cost, effect-based state machines. Pure guards for validation, explicit actions for side effects, environment pattern for testability. |
+
+All libraries emphasize:
+- Error accumulation over short-circuiting
+- Pure core, effects at the boundaries
+- Zero-cost abstractions
+- Testability through dependency injection
+
 ## License
 
 MIT © Glen Baker <iepathos@gmail.com>
