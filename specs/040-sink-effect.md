@@ -751,7 +751,53 @@ use stillwater::effect::sink::prelude::*;
 use stillwater::effect::prelude::*;
 
 // ============================================================================
-// Example 1: Basic streaming
+// Example 1: Common Sink Destinations
+// ============================================================================
+
+// Write to stdout (simplest case)
+effect.run_with_sink(&env, |log| async move {
+    println!("[INFO] {}", log);
+}).await;
+
+// Append to log file
+effect.run_with_sink(&env, |log| async move {
+    use tokio::io::AsyncWriteExt;
+    let mut file = tokio::fs::OpenOptions::new()
+        .append(true)
+        .open("app.log")
+        .await
+        .unwrap();
+    file.write_all(format!("{}\n", log).as_bytes()).await.unwrap();
+}).await;
+
+// Send to tracing
+effect.run_with_sink(&env, |log| async move {
+    tracing::info!("{}", log);
+}).await;
+
+// Push to channel for async processing
+let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+effect.run_with_sink(&env, move |log| {
+    let tx = tx.clone();
+    async move { tx.send(log).await.ok(); }
+}).await;
+
+// Write to stderr for errors
+effect.run_with_sink(&env, |log| async move {
+    eprintln!("[ERROR] {}", log);
+}).await;
+
+// Insert into database audit table
+effect.run_with_sink(&env, |event| async move {
+    sqlx::query("INSERT INTO audit_log (event, timestamp) VALUES (?, NOW())")
+        .bind(&event)
+        .execute(&pool)
+        .await
+        .ok();
+}).await;
+
+// ============================================================================
+// Example 2: Basic Streaming with File Output
 // ============================================================================
 
 async fn basic_streaming() {
@@ -760,16 +806,25 @@ async fn basic_streaming() {
         .tap_emit(|n| format!("Got value: {}", n))
         .and_then(|n| emit(format!("Final: {}", n)).map(move |_| n));
 
-    // Production: stream to logging service
-    let result = effect.run_with_sink(&(), |log| async move {
-        send_to_datadog(&log).await;
+    // Stream to log file
+    let log_file = std::sync::Arc::new(tokio::sync::Mutex::new(
+        tokio::fs::File::create("process.log").await.unwrap()
+    ));
+
+    let result = effect.run_with_sink(&(), move |log| {
+        let file = log_file.clone();
+        async move {
+            use tokio::io::AsyncWriteExt;
+            let mut f = file.lock().await;
+            f.write_all(format!("{}\n", log).as_bytes()).await.ok();
+        }
     }).await;
 
     assert_eq!(result, Ok(42));
 }
 
 // ============================================================================
-// Example 2: Testing with collection
+// Example 3: Testing with run_collecting
 // ============================================================================
 
 #[tokio::test]
@@ -787,7 +842,7 @@ async fn test_logs_emitted() {
 }
 
 // ============================================================================
-// Example 3: High-volume processing
+// Example 4: High-volume processing (constant memory)
 // ============================================================================
 
 async fn process_million_items() {
@@ -809,7 +864,7 @@ async fn process_million_items() {
 }
 
 // ============================================================================
-// Example 4: Dual execution patterns
+// Example 5: Dual execution patterns (production vs testing)
 // ============================================================================
 
 /// Create a logging effect that works with both patterns
@@ -845,7 +900,7 @@ async fn run_test() {
 }
 
 // ============================================================================
-// Example 5: Error handling preserves emissions
+// Example 6: Error handling preserves prior emissions
 // ============================================================================
 
 async fn error_handling() {
@@ -911,12 +966,168 @@ async fn error_handling() {
 - Examples in doc comments showing production and testing patterns
 - Explanation of when to use SinkEffect vs WriterEffect
 
+### Example File
+
+Create `examples/sink_streaming.rs` demonstrating:
+
+```rust
+//! Sink Effect example demonstrating streaming output patterns.
+//!
+//! Run with: cargo run --example sink_streaming
+
+use stillwater::effect::prelude::*;
+use stillwater::effect::sink::prelude::*;
+use tokio::io::AsyncWriteExt;
+
+// Example 1: Stream to stdout
+async fn stream_to_stdout() {
+    println!("=== Streaming to stdout ===");
+
+    let effect = emit::<_, String, ()>("Step 1: Initialize".into())
+        .and_then(|_| emit("Step 2: Process".into()))
+        .and_then(|_| emit("Step 3: Complete".into()))
+        .map(|_| 42);
+
+    let result = effect.run_with_sink(&(), |log| async move {
+        println!("  {}", log);
+    }).await;
+
+    println!("Result: {:?}\n", result);
+}
+
+// Example 2: Stream to file
+async fn stream_to_file() {
+    println!("=== Streaming to file ===");
+
+    let file = std::sync::Arc::new(tokio::sync::Mutex::new(
+        tokio::fs::File::create("/tmp/sink_demo.log").await.unwrap()
+    ));
+
+    let items = vec![1, 2, 3, 4, 5];
+    let effect = traverse_sink(items, |n| {
+        emit::<_, String, ()>(format!("Processing item: {}", n))
+            .map(move |_| n * 10)
+    });
+
+    let result = effect.run_with_sink(&(), move |log| {
+        let file = file.clone();
+        async move {
+            let mut f = file.lock().await;
+            f.write_all(format!("{}\n", log).as_bytes()).await.ok();
+        }
+    }).await;
+
+    println!("Results: {:?}", result);
+    println!("Logs written to /tmp/sink_demo.log\n");
+}
+
+// Example 3: Testing pattern with run_collecting
+async fn testing_example() {
+    println!("=== Testing with run_collecting ===");
+
+    let effect = emit::<_, String, ()>("audit: user login".into())
+        .and_then(|_| emit("audit: access granted".into()))
+        .and_then(|_| emit("audit: resource fetched".into()))
+        .map(|_| "success");
+
+    let (result, collected) = effect.run_collecting(&()).await;
+
+    println!("Result: {:?}", result);
+    println!("Collected {} audit events:", collected.len());
+    for event in &collected {
+        println!("  - {}", event);
+    }
+}
+
+// Example 4: High-volume processing (constant memory)
+async fn high_volume_example() {
+    println!("\n=== High-volume streaming (1000 items) ===");
+
+    let items: Vec<i32> = (1..=1000).collect();
+    let count = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let count_clone = count.clone();
+
+    let effect = traverse_sink(items, |n| {
+        emit::<_, String, ()>(format!("Item {}", n))
+            .map(move |_| n)
+    });
+
+    let _result = effect.run_with_sink(&(), move |_log| {
+        let c = count_clone.clone();
+        async move {
+            c.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        }
+    }).await;
+
+    println!("Streamed {} log entries with constant memory",
+             count.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[tokio::main]
+async fn main() {
+    stream_to_stdout().await;
+    stream_to_file().await;
+    testing_example().await;
+    high_volume_example().await;
+
+    println!("\n=== Benefits of Sink Effect ===");
+    println!("- O(1) memory: items streamed immediately, not accumulated");
+    println!("- Real-time output: logs appear as they happen");
+    println!("- Flexible sinks: stdout, files, channels, databases");
+    println!("- Testable: run_collecting bridges to Writer semantics");
+    println!("- Async-ready: sinks can perform I/O without blocking");
+}
+```
+
+### README Updates
+
+Add a new section to README.md after the Writer Effect section:
+
+```markdown
+### Sink Effect - Streaming Output
+
+For high-volume or long-running processes where accumulating logs in memory
+isn't practical, use `SinkEffect` to stream output in real-time:
+
+\`\`\`rust
+use stillwater::effect::sink::prelude::*;
+
+// Process items, streaming logs immediately
+let effect = traverse_sink(items, |item| {
+    emit(format!("Processing: {}", item))
+        .map(|_| process(item))
+});
+
+// Production: stream to file/service
+effect.run_with_sink(&env, |log| async move {
+    writeln!(log_file, "{}", log).await;
+}).await;
+
+// Testing: collect for assertions
+let (result, logs) = effect.run_collecting(&env).await;
+assert_eq!(logs.len(), items.len());
+\`\`\`
+
+| Use Case | Effect Type | Memory |
+|----------|-------------|--------|
+| Testing, audit trails | `WriterEffect` | O(n) |
+| Production streaming | `SinkEffect` | O(1) |
+
+See [examples/sink_streaming.rs](examples/sink_streaming.rs) for more patterns.
+```
+
+### docs/COMPARISON.md Updates
+
+Add SinkEffect to the comparison table showing how Stillwater handles streaming vs accumulation compared to other libraries.
+
 ### User Documentation
 
-- Add "Sink Effect" section to README
+- Add "Sink Effect" section to main documentation
 - Tutorial comparing Writer (pure/testing) vs Sink (streaming/production)
 - Migration guide for moving from Writer to Sink
-- Best practices for choosing between the two
+- Best practices for choosing between the two:
+  - Use Writer when: testing, need `censor`/`listen`, audit trails, short chains
+  - Use Sink when: production logging, high volume, real-time visibility, memory constraints
 
 ## Implementation Notes
 
