@@ -212,7 +212,7 @@ where
 /// # Type Parameters
 ///
 /// * `R` - The resource kind being managed
-/// * `Acq` - The acquire effect (must implement ResourceEffect with Acquires = Has<R>)
+/// * `Acq` - The acquire effect (must implement ResourceEffect with Acquires = `Has<R>`)
 /// * `Use` - The function that uses the resource
 /// * `Rel` - The release function
 ///

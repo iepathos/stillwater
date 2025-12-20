@@ -131,6 +131,7 @@ pub mod reader;
 pub mod resource;
 #[cfg(feature = "async")]
 pub mod retry;
+pub mod sink;
 #[cfg(feature = "tracing")]
 pub mod tracing;
 mod trait_def;
