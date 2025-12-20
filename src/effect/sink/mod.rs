@@ -55,8 +55,8 @@
 //!
 //! - [`SinkEffect`] - Core trait extending Effect with streaming
 //! - [`SinkEffectExt`] - Extension trait providing combinator methods
-//! - [`emit`], [`emit_many`] - Functions to emit items
-//! - [`into_sink`] - Lift regular Effects into SinkEffect
+//! - [`emit()`], [`emit_many`] - Functions to emit items
+//! - [`into_sink()`] - Lift regular Effects into SinkEffect
 //!
 //! # Example: Testing vs Production
 //!

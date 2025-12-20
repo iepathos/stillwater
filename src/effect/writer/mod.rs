@@ -44,8 +44,8 @@
 //!
 //! - [`WriterEffect`] - Core trait extending Effect with accumulation
 //! - [`WriterEffectExt`] - Extension trait providing combinator methods
-//! - [`tell`], [`tell_one`] - Functions to emit values
-//! - [`into_writer`] - Lift regular Effects into WriterEffect
+//! - [`tell()`], [`tell_one`] - Functions to emit values
+//! - [`into_writer()`] - Lift regular Effects into WriterEffect
 //!
 //! # Example: Audit Logging
 //!
