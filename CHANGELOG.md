@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0] - 2025-12-20
+
+### Added
+
+#### Writer Effect for Logging/Accumulation (Spec 037)
+
+- **`writer` module** - Accumulate values alongside computation without threading state
+  - `WriterEffect` trait - Core trait extending Effect with accumulation
+  - `WriterEffectExt` - Extension trait providing combinator methods
+  - Works with any `W: Monoid` for type-safe accumulation
+  - Zero-cost abstractions with concrete types
+
+- **Writer constructors and operations**
+  - `tell(writes)` - Emit values to the accumulated output
+  - `tell_one(item)` - Emit single item (wraps in collection)
+  - `into_writer(effect)` - Lift regular Effects into WriterEffect
+  - `.tap_tell(f)` - Emit based on current value
+  - `.listen()` - Capture writes alongside result
+  - `.censor(f)` - Transform accumulated writes
+  - `.pass()` - Advanced write manipulation
+
+- **Execution methods**
+  - `.run_writer(&env)` - Returns `(Result<T, E>, W)` tuple
+
+- **New example** - `examples/writer_logging.rs`
+  - Basic logging with Vec<String>
+  - Audit trail with custom events
+  - Metrics collection with Sum monoid
+
+#### Sink Effect for Streaming Output (Spec 040)
+
+- **`sink` module** - Streaming output with constant memory
+  - `SinkEffect` trait - Core trait for streaming logs/metrics/events
+  - `SinkEffectExt` - Extension trait providing combinator methods
+  - O(1) memory regardless of output volume
+  - Real-time output during computation
+
+- **Sink constructors and operations**
+  - `emit(item)` - Emit single item to the sink
+  - `emit_many(items)` - Emit multiple items
+  - `into_sink(effect)` - Lift regular Effects into SinkEffect
+  - `.tap_emit(f)` - Emit based on current value
+  - `traverse_sink(items, f)` - Process collection with streaming
+
+- **Execution methods**
+  - `.run_with_sink(&env, sink_fn)` - Stream to custom async sink
+  - `.run_collecting(&env)` - Collect for testing (bridges to Writer semantics)
+
+- **New example** - `examples/sink_streaming.rs`
+  - Real-time streaming to stdout
+  - Writing to files
+  - Testing with run_collecting
+  - High-volume processing
+
+#### Builder Pattern for Resource Brackets
+
+- **`Bracket<R>` builder** - Fluent API for resource brackets
+  - Avoids turbofish with 9 type parameters
+  - `Bracket::<FileRes>::new().acquire(...).release(...).use_fn(...)`
+  - Single resource type parameter, everything else inferred
+
+### Changed
+
+- Updated documentation with Writer vs Sink comparison tables
+- Enhanced README with resource bracket builder examples
+
+### Technical Details
+
+- **Writer Effect** follows standard Writer monad semantics from functional programming
+  - Monoid-based accumulation enables flexible log types
+  - Composable with all existing Effect combinators
+  - Full test coverage including property tests
+
+- **Sink Effect** differs from Writer by streaming immediately rather than accumulating
+  - Constant memory for high-volume logging scenarios
+  - Async sink functions enable real-time I/O
+  - `run_collecting` bridges to Writer semantics for testing
+
+- **Builder pattern** uses type state to ensure correct method ordering
+  - Compile-time enforcement of acquire → release → use_fn sequence
+  - All type inference after initial resource type specification
+
 ## [0.14.0] - 2025-12-20
 
 ### Added
@@ -964,7 +1046,8 @@ Zero-cost effect chains eliminate heap allocations:
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/iepathos/stillwater/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/iepathos/stillwater/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/iepathos/stillwater/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/iepathos/stillwater/compare/v0.11.0...v0.12.0
