@@ -11,7 +11,9 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
-use stillwater::effect::prelude::*;
+// Import only specific items from the effect prelude to avoid method name ambiguity
+// with SinkEffectExt (both define and_then, map, etc.)
+use stillwater::effect::prelude::{asks, fail, pure};
 use stillwater::effect::sink::prelude::*;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
@@ -20,13 +22,13 @@ use tokio::sync::Mutex;
 async fn stream_to_stdout() {
     println!("=== Streaming to stdout ===");
 
-    let effect = emit::<_, String, ()>("Step 1: Initialize".into())
+    let effect = emit::<String, String, ()>("Step 1: Initialize".into())
         .and_then(|_| emit("Step 2: Process".into()))
         .and_then(|_| emit("Step 3: Complete".into()))
         .map(|_| 42);
 
     let result = effect
-        .run_with_sink(&(), |log| async move {
+        .run_with_sink(&(), |log: String| async move {
             println!("  {}", log);
         })
         .await;
@@ -65,7 +67,7 @@ async fn stream_to_file() {
 async fn testing_example() {
     println!("=== Testing with run_collecting ===");
 
-    let effect = emit::<_, String, ()>("audit: user login".into())
+    let effect = emit::<String, String, ()>("audit: user login".into())
         .and_then(|_| emit("audit: access granted".into()))
         .and_then(|_| emit("audit: resource fetched".into()))
         .map(|_| "success");
@@ -112,9 +114,9 @@ async fn high_volume_example() {
 async fn error_handling_example() {
     println!("=== Error handling ===");
 
-    let effect = emit::<_, String, String>("step 1: starting".into())
+    let effect = emit::<String, String, ()>("step 1: starting".into())
         .and_then(|_| emit("step 2: processing".into()))
-        .and_then(|_| into_sink(fail::<i32, _, ()>("error: something went wrong".into())))
+        .and_then(|_| into_sink(fail::<i32, String, ()>("error: something went wrong".into())))
         .and_then(|n| emit("step 3: never reached".into()).map(move |_| n));
 
     let (result, collected) = effect.run_collecting(&()).await;
