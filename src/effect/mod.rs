@@ -128,6 +128,7 @@ pub mod ext;
 pub mod parallel;
 pub mod prelude;
 pub mod reader;
+pub mod resource;
 #[cfg(feature = "async")]
 pub mod retry;
 #[cfg(feature = "tracing")]
