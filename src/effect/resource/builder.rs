@@ -219,7 +219,10 @@ mod tests {
             .await;
 
         assert_eq!(result, Err("use failed".to_string()));
-        assert!(released.load(Ordering::SeqCst), "cleanup must run on failure");
+        assert!(
+            released.load(Ordering::SeqCst),
+            "cleanup must run on failure"
+        );
     }
 
     #[tokio::test]

@@ -1057,9 +1057,11 @@ fn process_order(order: Order) -> impl Effect<Output = Receipt, Error = OrderErr
 - ✓ Validation with error accumulation
 - ✓ Async support
 - ✓ Zero dependencies
+- ✓ Writer Effect for logging/accumulation
+- ✓ Reader pattern with `ask()`/`asks()`/`local()`
 
 **monadic**:
-- ✓ More monad types (Writer, State)
+- ✓ State monad
 - ✓ Do-notation via macros
 - ✗ Macro-heavy syntax (`rdrdo!`)
 - ✗ No validation
@@ -1067,13 +1069,14 @@ fn process_order(order: Order) -> impl Effect<Output = Receipt, Error = OrderErr
 
 ### When to use monadic
 - You want Haskell-style do-notation
-- You need Writer or State monads
+- You need State monad
 - You're porting Haskell code
 
 ### When to use Stillwater
 - You prefer Rust idioms over Haskell syntax
 - You need validation and effects together
 - You want async support
+- You need Writer Effect for logging/metrics
 
 ---
 
