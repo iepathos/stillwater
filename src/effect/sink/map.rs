@@ -13,7 +13,6 @@ use crate::effect::Effect;
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
 /// let effect = emit::<_, String, ()>("logged".to_string())

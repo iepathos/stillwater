@@ -19,7 +19,6 @@
 //!
 //! ```rust
 //! use stillwater::effect::sink::prelude::*;
-//! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
 //! let items = vec![1, 2, 3];
@@ -63,7 +62,6 @@
 //!
 //! ```rust
 //! use stillwater::effect::sink::prelude::*;
-//! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
 //! let effect = emit::<_, String, ()>("step 1".to_string())

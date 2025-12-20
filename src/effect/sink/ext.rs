@@ -20,7 +20,6 @@ use crate::effect::sink::SinkEffect;
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
 /// let effect = emit::<_, String, ()>("step 1".to_string())
@@ -120,11 +119,11 @@ pub trait SinkEffectExt: SinkEffect {
     ///
     /// ```rust
     /// use stillwater::effect::sink::prelude::*;
-    /// use stillwater::effect::prelude::*;
+    /// use stillwater::effect::prelude::fail;
     ///
     /// # tokio_test::block_on(async {
     /// let effect = into_sink::<_, _, String>(fail::<i32, String, ()>("error".to_string()))
-    ///     .or_else(|_| emit("recovered".to_string()).map(|_| 42));
+    ///     .or_else(|_| emit::<String, String, ()>("recovered".to_string()).map(|_| 42));
     ///
     /// let (result, logs) = effect.run_collecting(&()).await;
     /// assert_eq!(result, Ok(42));
@@ -179,7 +178,7 @@ pub trait SinkEffectExt: SinkEffect {
     ///
     /// ```rust
     /// use stillwater::effect::sink::prelude::*;
-    /// use stillwater::effect::prelude::*;
+    /// use stillwater::effect::prelude::pure;
     ///
     /// # tokio_test::block_on(async {
     /// let effect = into_sink::<_, _, String>(pure::<_, String, ()>(42))
@@ -287,7 +286,6 @@ pub trait SinkEffectExt: SinkEffect {
     ///
     /// ```rust
     /// use stillwater::effect::sink::prelude::*;
-    /// use stillwater::effect::prelude::*;
     ///
     /// # tokio_test::block_on(async {
     /// let effects: Vec<BoxedSinkEffect<i32, std::convert::Infallible, (), String>> = vec![

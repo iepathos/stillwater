@@ -15,13 +15,13 @@ use crate::effect::Effect;
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::prelude::fail;
 ///
 /// # tokio_test::block_on(async {
-/// let effect = emit::<_, String, String>("before error".to_string())
+/// let effect = emit::<String, String, ()>("before error".to_string())
 ///     .and_then(|_| into_sink::<_, _, String>(fail::<i32, _, ()>("oops".to_string())))
 ///     .or_else(|_err| {
-///         emit("recovered".to_string())
+///         emit::<String, String, ()>("recovered".to_string())
 ///             .map(|_| 42)
 ///     });
 ///

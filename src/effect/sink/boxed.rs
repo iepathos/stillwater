@@ -34,7 +34,6 @@ type BoxedSinkFn<T, E, Env, Item> = Box<
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
 /// // Store heterogeneous sink effects
@@ -61,7 +60,7 @@ type BoxedSinkFn<T, E, Env, Item> = Box<
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::prelude::pure;
 ///
 /// fn conditional_log(flag: bool) -> BoxedSinkEffect<i32, String, (), String> {
 ///     if flag {

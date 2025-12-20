@@ -8,7 +8,6 @@
 //!
 //! ```rust
 //! use stillwater::effect::sink::prelude::*;
-//! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
 //! let effect = emit::<_, String, ()>("Starting".to_string())

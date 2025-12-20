@@ -15,7 +15,7 @@ use crate::effect::Effect;
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::prelude::pure;
 ///
 /// # tokio_test::block_on(async {
 /// let regular_effect = pure::<_, String, ()>(42);
@@ -89,7 +89,7 @@ where
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::prelude::pure;
 ///
 /// # tokio_test::block_on(async {
 /// // Pure computation lifted into Sink context
@@ -110,7 +110,7 @@ where
 ///
 /// ```rust
 /// use stillwater::effect::sink::prelude::*;
-/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::prelude::asks;
 ///
 /// # #[derive(Clone)]
 /// # struct Env { multiplier: i32 }
