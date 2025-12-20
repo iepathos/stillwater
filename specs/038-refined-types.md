@@ -1,5 +1,5 @@
 ---
-number: 37
+number: 38
 title: Refined Types
 category: foundation
 priority: high
@@ -8,7 +8,7 @@ dependencies: []
 created: 2025-12-20
 ---
 
-# Specification 037: Refined Types
+# Specification 038: Refined Types
 
 **Category**: foundation
 **Priority**: high
@@ -106,6 +106,7 @@ Provide a composable refined types system that:
 - `NonNegative` - value >= 0
 - `Negative` - value < 0
 - `NonZero` - value != 0
+- `InRange<const MIN: i64, const MAX: i64>` - MIN <= value <= MAX (inclusive)
 
 #### 4. Common String Predicates
 
@@ -154,11 +155,12 @@ Provide common refined types as type aliases:
 
 - [ ] `Predicate<T>` trait defined with `check`, `Error`, and `description`
 - [ ] `Refined<T, P>` wrapper type with `new`, `get`, `into_inner`, `new_unchecked`
-- [ ] `Refined` implements `AsRef`, `Deref`, `Debug`, `Clone`, `PartialEq`, `Eq`, `Hash`
+- [ ] `Refined` implements `AsRef`, `Deref`, `Debug`, `Clone`, `PartialEq`, `Eq`, `PartialOrd`, `Ord`, `Hash`
 - [ ] `Positive` predicate implemented for `i32`, `i64`, `i128`, `f32`, `f64`
 - [ ] `NonNegative` predicate implemented for `i32`, `i64`, `i128`, `f32`, `f64`
 - [ ] `Negative` predicate implemented for `i32`, `i64`, `i128`, `f32`, `f64`
 - [ ] `NonZero` predicate implemented for `i32`, `i64`, `i128`
+- [ ] `InRange<MIN, MAX>` predicate implemented for `i32`, `i64`, `u16`, `u32`
 - [ ] `NonEmpty` predicate implemented for `String`, `&str`, `Vec<T>`
 - [ ] `Trimmed` predicate implemented for `String`
 - [ ] `MaxLength<N>` predicate implemented for `String`
@@ -170,6 +172,10 @@ Provide common refined types as type aliases:
 - [ ] `Not<A>` combinator correctly inverts predicate
 - [ ] `Refined::validate` returns `Validation::Success` or `Validation::Failure`
 - [ ] `Refined::validate_collecting` returns errors in `Vec` for accumulation
+- [ ] `Validation::with_field` adds field context to errors
+- [ ] `Refined::validate_effect` lifts validation into Effect
+- [ ] `refine` helper function for effect-based validation
+- [ ] Serde `Serialize` and `Deserialize` implemented (behind feature flag)
 - [ ] Type aliases provided for common combinations
 - [ ] Comprehensive unit tests for all predicates
 - [ ] Documentation with examples for defining custom predicates
@@ -184,11 +190,13 @@ src/refined/
 ├── mod.rs           # Module exports, Refined type, Predicate trait
 ├── predicates/
 │   ├── mod.rs       # Re-exports
-│   ├── numeric.rs   # Positive, NonNegative, Negative, NonZero
+│   ├── numeric.rs   # Positive, NonNegative, Negative, NonZero, InRange
 │   ├── string.rs    # NonEmpty, Trimmed, MaxLength, MinLength
 │   └── collection.rs # NonEmpty, MaxSize, MinSize (for Vec)
 ├── combinators.rs   # And, Or, Not
-├── validation.rs    # Validation integration methods
+├── validation.rs    # Validation integration (with_field, validate_field)
+├── effect.rs        # Effect integration (validate_effect, refine)
+├── serde.rs         # Serde support (feature-gated)
 └── aliases.rs       # Type aliases (NonEmptyString, PositiveI32, etc.)
 ```
 
@@ -333,6 +341,20 @@ impl<T: PartialEq, P: Predicate<T>> PartialEq for Refined<T, P> {
 }
 
 impl<T: Eq, P: Predicate<T>> Eq for Refined<T, P> {}
+
+// PartialOrd delegates to inner
+impl<T: PartialOrd, P: Predicate<T>> PartialOrd for Refined<T, P> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.value.partial_cmp(&other.value)
+    }
+}
+
+// Ord delegates to inner
+impl<T: Ord, P: Predicate<T>> Ord for Refined<T, P> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.value.cmp(&other.value)
+    }
+}
 
 // Hash delegates to inner
 impl<T: std::hash::Hash, P: Predicate<T>> std::hash::Hash for Refined<T, P> {
@@ -486,6 +508,50 @@ impl_numeric_predicate!(
     "non-zero number (!= 0)",
     [i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize]
 );
+
+/// Value must be in range [MIN, MAX] (inclusive)
+pub struct InRange<const MIN: i64, const MAX: i64>;
+
+macro_rules! impl_in_range {
+    ($($ty:ty),+) => {
+        $(
+            impl<const MIN: i64, const MAX: i64> Predicate<$ty> for InRange<MIN, MAX> {
+                type Error = String;
+
+                fn check(value: &$ty) -> Result<(), Self::Error> {
+                    let v = *value as i64;
+                    if v >= MIN && v <= MAX {
+                        Ok(())
+                    } else {
+                        Err(format!("value {} must be in range [{}, {}]", value, MIN, MAX))
+                    }
+                }
+
+                fn description() -> &'static str {
+                    "value in range [MIN, MAX]"
+                }
+            }
+        )+
+    };
+}
+
+impl_in_range!(i8, i16, i32, i64, isize, u8, u16, u32);
+// Note: u64, u128, i128 may overflow i64, use with care or define separate predicates
+```
+
+Usage:
+```rust
+// Percentage must be 0-100
+type Percentage = Refined<i32, InRange<0, 100>>;
+
+// Port number (1-65535)
+type Port = Refined<u16, InRange<1, 65535>>;
+
+// Age validation (0-150)
+type Age = Refined<i32, InRange<0, 150>>;
+
+let pct = Percentage::new(75)?;  // Ok
+let bad = Percentage::new(150);   // Err: value 150 must be in range [0, 100]
 ```
 
 ### String Predicates
@@ -833,6 +899,112 @@ impl<T, P: Predicate<T>> RefinedValidationExt<T, P> for Refined<T, P> {
         }
     }
 }
+
+// Ergonomic extension for adding field context
+impl<T, E> Validation<T, E> {
+    /// Add field context to a validation error.
+    pub fn with_field(self, field: &'static str) -> Validation<T, FieldError<E>> {
+        match self {
+            Validation::Success(v) => Validation::Success(v),
+            Validation::Failure(e) => Validation::Failure(FieldError { field, error: e }),
+        }
+    }
+}
+```
+
+Usage with ergonomic `with_field`:
+```rust
+// More readable validation with field context
+fn validate_user(input: UserInput) -> Validation<ValidUser, Vec<FieldError<&'static str>>> {
+    Validation::all((
+        NonEmptyString::validate(input.name).with_field("name"),
+        PositiveI32::validate(input.age).with_field("age"),
+        Email::validate(input.email).with_field("email"),
+    ))
+    .map(|(name, age, email)| ValidUser { name, age, email })
+}
+
+// Error messages include context: "name: string cannot be empty"
+```
+
+### Effect Integration
+
+Refined types integrate with stillwater's Effect system for validation at effect boundaries:
+
+```rust
+// src/refined/effect.rs
+
+use crate::effect::prelude::*;
+use super::{Predicate, Refined};
+
+impl<T, P> Refined<T, P>
+where
+    T: Send + 'static,
+    P: Predicate<T>,
+    P::Error: Send + 'static,
+{
+    /// Create an effect that validates a value.
+    ///
+    /// Useful for integrating validation into effect chains.
+    pub fn validate_effect<Env>(value: T) -> impl Effect<Output = Self, Error = P::Error, Env = Env>
+    where
+        Env: Send,
+    {
+        from_fn(move |_env: &Env| Self::new(value))
+    }
+}
+
+/// Lift a refined type constructor into an effect.
+///
+/// This enables validating values fetched from effects.
+pub fn refine<T, P, Env>(value: T) -> impl Effect<Output = Refined<T, P>, Error = P::Error, Env = Env>
+where
+    T: Send + 'static,
+    P: Predicate<T>,
+    P::Error: Send + 'static,
+    Env: Send,
+{
+    Refined::validate_effect(value)
+}
+```
+
+Usage with Effect chains:
+```rust
+use stillwater::effect::prelude::*;
+use stillwater::refined::{refine, NonEmptyString, PositiveI32};
+
+// Validate data fetched from environment
+fn fetch_and_validate_user<Env>(id: i32) -> impl Effect<Output = ValidUser, Error = AppError, Env = Env>
+where
+    Env: HasDatabase + Clone + Send + Sync + 'static,
+{
+    asks(|env: &Env| env.db().fetch_user_raw(id))
+        .and_then(|raw| {
+            // Validate each field, combining into single effect
+            refine::<_, NonEmpty, _>(raw.name)
+                .map_err(|e| AppError::Validation("name", e))
+                .and_then(move |name| {
+                    refine::<_, Positive, _>(raw.age)
+                        .map_err(|e| AppError::Validation("age", e))
+                        .map(move |age| ValidUser { name, age })
+                })
+        })
+}
+
+// Or use Validation for error accumulation, then lift to Effect
+fn validate_user_effect<Env>(input: UserInput) -> impl Effect<Output = ValidUser, Error = Vec<FieldError<&'static str>>, Env = Env>
+where
+    Env: Send,
+{
+    from_fn(move |_env: &Env| {
+        Validation::all((
+            NonEmptyString::validate(input.name).with_field("name"),
+            PositiveI32::validate(input.age).with_field("age"),
+        ))
+        .map(|(name, age)| ValidUser { name, age })
+        .into_result()  // Convert Validation to Result
+    })
+}
 ```
 
 ### Type Aliases
@@ -884,8 +1056,12 @@ pub type PositiveF64 = Refined<f64, Positive>;
 pub type NonNegativeF32 = Refined<f32, NonNegative>;
 pub type NonNegativeF64 = Refined<f64, NonNegative>;
 
-// Collection aliases
-pub type NonEmptyVec<T> = Refined<Vec<T>, NonEmpty>;
+// Collection aliases (use NonEmptyList to avoid conflict with existing NonEmptyVec)
+pub type NonEmptyList<T> = Refined<Vec<T>, NonEmpty>;
+
+// Range aliases for common patterns
+pub type Percentage = Refined<i32, InRange<0, 100>>;
+pub type Port = Refined<u16, InRange<1, 65535>>;
 ```
 
 ### Usage Examples
@@ -956,11 +1132,22 @@ let result = validate_user(UserInput {
 
 ## Dependencies
 
-- **Prerequisites**: None
+- **Prerequisites**: None (integrates with existing Validation type)
 - **Affected Components**:
   - `src/lib.rs` - add `refined` module export
   - `src/prelude.rs` - optionally add common refined types
-- **External Dependencies**: None (uses only std library)
+  - `Cargo.toml` - add optional `serde` feature
+- **External Dependencies**:
+  - `serde` (optional, feature-gated) - for serialization/deserialization support
+
+```toml
+# Cargo.toml additions
+[features]
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { version = "1.0", optional = true }
+```
 
 ## Testing Strategy
 
@@ -1026,12 +1213,39 @@ Predicate errors should be informative:
 - Use `String` when dynamic info needed (e.g., length limits)
 - Consider structured error types for complex validation
 
-### Relationship to NonEmptyVec
+### Relationship to Existing NonEmptyVec
 
-The existing `NonEmptyVec<T>` in stillwater is conceptually a refined type. Consider:
-- Keeping both for backwards compatibility
-- Making `NonEmptyVec` an alias for `Refined<Vec<T>, NonEmpty>`
-- Or keeping separate for different construction APIs
+The existing `NonEmptyVec<T>` in stillwater is conceptually a refined type.
+
+**Decision**: Keep both, with clear differentiation:
+
+1. **Existing `NonEmptyVec<T>`** (`src/non_empty_vec.rs`):
+   - Specialized API with `first()`, `last()`, `push()`, `split_first()`
+   - Implements `IntoIterator`, `FromIterator`
+   - Used for Validation error accumulation
+   - **Keep unchanged** for backwards compatibility
+
+2. **New `Refined<Vec<T>, NonEmpty>`** (this spec):
+   - Generic refined type pattern
+   - Works with any predicate composition
+   - Use when you need predicate combinators
+
+```rust
+// Use existing NonEmptyVec for specialized collections with rich API
+use stillwater::NonEmptyVec;
+let errors = NonEmptyVec::new(first_error, vec![more_errors]);
+errors.first();  // Specialized method
+
+// Use Refined<Vec<T>, NonEmpty> for predicate composition
+use stillwater::refined::{Refined, NonEmpty, And, MaxSize};
+type SmallNonEmptyList<T> = Refined<Vec<T>, And<NonEmpty, MaxSize<10>>>;
+```
+
+The type alias in `aliases.rs` should use a distinct name:
+```rust
+// Avoid conflict with existing NonEmptyVec
+pub type NonEmptyList<T> = Refined<Vec<T>, NonEmpty>;
+```
 
 ## Migration and Compatibility
 
@@ -1045,13 +1259,63 @@ This is purely additive - no breaking changes.
 2. **Gradual adoption**: Replace raw types with refined types at boundaries
 3. **Full adoption**: Use refined types in function signatures throughout
 
-### Future: Serde Integration
+### Serde Integration (Feature-Gated)
 
-A future spec could add serde support:
+Serde support is included behind a `serde` feature flag:
+
 ```rust
-#[derive(Serialize, Deserialize)]
-#[serde(try_from = "String")]
-struct Email(Refined<String, ValidEmail>);
+// Cargo.toml
+[dependencies]
+stillwater = { version = "0.14", features = ["serde"] }
 ```
 
-This would enable parsing and validation during deserialization.
+Implementation:
+
+```rust
+// src/refined/serde.rs
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+#[cfg(feature = "serde")]
+impl<T, P> Serialize for Refined<T, P>
+where
+    T: Serialize,
+    P: Predicate<T>,
+{
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.value.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de, T, P> Deserialize<'de> for Refined<T, P>
+where
+    T: Deserialize<'de>,
+    P: Predicate<T>,
+    P::Error: std::fmt::Display,
+{
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = T::deserialize(deserializer)?;
+        Refined::new(value).map_err(serde::de::Error::custom)
+    }
+}
+```
+
+Usage:
+
+```rust
+use serde::{Deserialize, Serialize};
+use stillwater::refined::aliases::*;
+
+#[derive(Serialize, Deserialize)]
+struct User {
+    name: NonEmptyString,  // Validated on deserialize
+    age: PositiveI32,      // Validated on deserialize
+}
+
+// Deserialization fails with clear error if validation fails
+let json = r#"{"name": "", "age": 25}"#;
+let result: Result<User, _> = serde_json::from_str(json);
+// Error: string cannot be empty
+```
