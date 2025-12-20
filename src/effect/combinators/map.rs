@@ -44,3 +44,21 @@ where
         Ok((self.f)(value))
     }
 }
+
+// WriterEffect implementation for Map - passes writes through unchanged
+impl<Inner, F, U> crate::effect::writer::WriterEffect for Map<Inner, F>
+where
+    Inner: crate::effect::writer::WriterEffect,
+    F: FnOnce(Inner::Output) -> U + Send,
+    U: Send,
+{
+    type Writes = Inner::Writes;
+
+    async fn run_writer(
+        self,
+        env: &Self::Env,
+    ) -> (Result<Self::Output, Self::Error>, Self::Writes) {
+        let (result, writes) = self.inner.run_writer(env).await;
+        (result.map(self.f), writes)
+    }
+}

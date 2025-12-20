@@ -50,6 +50,38 @@ where
     }
 }
 
+// WriterEffect implementation for Zip - combines writes in left-to-right order
+impl<E1, E2> crate::effect::writer::WriterEffect for Zip<E1, E2>
+where
+    E1: crate::effect::writer::WriterEffect,
+    E1::Writes: crate::Semigroup,
+    E2: crate::effect::writer::WriterEffect<Error = E1::Error, Env = E1::Env, Writes = E1::Writes>,
+{
+    type Writes = E1::Writes;
+
+    async fn run_writer(
+        self,
+        env: &Self::Env,
+    ) -> (Result<Self::Output, Self::Error>, Self::Writes) {
+        use crate::Semigroup;
+
+        let (result1, writes1) = self.first.run_writer(env).await;
+
+        match result1 {
+            Ok(value1) => {
+                let (result2, writes2) = self.second.run_writer(env).await;
+                let combined_writes = writes1.combine(writes2);
+
+                match result2 {
+                    Ok(value2) => (Ok((value1, value2)), combined_writes),
+                    Err(e) => (Err(e), combined_writes),
+                }
+            }
+            Err(e) => (Err(e), writes1),
+        }
+    }
+}
+
 /// Combines three effects into a flat tuple.
 ///
 /// This is zero-cost: no heap allocation occurs. Returns a flat tuple

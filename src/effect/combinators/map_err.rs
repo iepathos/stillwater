@@ -44,3 +44,21 @@ where
         self.inner.run(env).await.map_err(self.f)
     }
 }
+
+// WriterEffect implementation for MapErr - passes writes through unchanged
+impl<Inner, F, E2> crate::effect::writer::WriterEffect for MapErr<Inner, F>
+where
+    Inner: crate::effect::writer::WriterEffect,
+    F: FnOnce(Inner::Error) -> E2 + Send,
+    E2: Send,
+{
+    type Writes = Inner::Writes;
+
+    async fn run_writer(
+        self,
+        env: &Self::Env,
+    ) -> (Result<Self::Output, Self::Error>, Self::Writes) {
+        let (result, writes) = self.inner.run_writer(env).await;
+        (result.map_err(self.f), writes)
+    }
+}

@@ -51,3 +51,35 @@ where
         }
     }
 }
+
+// WriterEffect implementation for OrElse - combines writes from original and recovery
+impl<Inner, F, E2> crate::effect::writer::WriterEffect for OrElse<Inner, F>
+where
+    Inner: crate::effect::writer::WriterEffect,
+    Inner::Writes: crate::Semigroup,
+    E2: crate::effect::writer::WriterEffect<
+        Output = Inner::Output,
+        Env = Inner::Env,
+        Writes = Inner::Writes,
+    >,
+    F: FnOnce(Inner::Error) -> E2 + Send,
+{
+    type Writes = Inner::Writes;
+
+    async fn run_writer(
+        self,
+        env: &Self::Env,
+    ) -> (Result<Self::Output, Self::Error>, Self::Writes) {
+        use crate::Semigroup;
+
+        let (result, writes1) = self.inner.run_writer(env).await;
+
+        match result {
+            Ok(value) => (Ok(value), writes1),
+            Err(e) => {
+                let (result2, writes2) = (self.f)(e).run_writer(env).await;
+                (result2, writes1.combine(writes2))
+            }
+        }
+    }
+}
