@@ -56,6 +56,24 @@ where
     _phantom: PhantomData<R>,
 }
 
+impl<R, Acq, Use, Rel> ResourceBracket<R, Acq, Use, Rel>
+where
+    R: ResourceKind,
+{
+    /// Create a new ResourceBracket.
+    ///
+    /// Prefer using the builder API (`Bracket::<R>::new()`) or the
+    /// `resource_bracket` function for a more ergonomic interface.
+    pub fn new(acquire: Acq, use_fn: Use, release: Rel) -> Self {
+        ResourceBracket {
+            acquire,
+            use_fn,
+            release,
+            _phantom: PhantomData,
+        }
+    }
+}
+
 impl<R, Acq, Use, Rel> std::fmt::Debug for ResourceBracket<R, Acq, Use, Rel>
 where
     R: ResourceKind,

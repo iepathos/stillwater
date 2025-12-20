@@ -8,12 +8,12 @@
 //! - Resource markers (FileRes, DbRes, TxRes, etc.) for type-level tracking
 //! - ResourceEffect trait with Acquires/Releases associated types
 //! - Extension methods: `.acquires()`, `.releases()`, `.neutral()`
-//! - resource_bracket for guaranteed resource-neutral operations
+//! - Builder pattern: `Bracket::<R>::new()` for ergonomic resource brackets
 //! - Zero runtime overhead - all tracking is compile-time only
 
 use stillwater::effect::resource::{
-    assert_resource_neutral, resource_bracket, DbRes, Empty, FileRes, Has, ResourceEffect,
-    ResourceEffectExt, ResourceKind, TrackedExt, TxRes,
+    assert_resource_neutral, bracket, resource_bracket, Bracket, DbRes, Empty, FileRes, Has,
+    ResourceEffect, ResourceEffectExt, ResourceKind, TrackedExt, TxRes,
 };
 use stillwater::{pure, Effect};
 
@@ -94,25 +94,54 @@ async fn example_basic_annotation() {
 async fn example_resource_bracket() {
     println!("\n=== Example 2: Resource Bracket Pattern ===");
 
-    // resource_bracket guarantees the operation is resource-neutral
+    // Option A: Turbofish syntax (explicit but verbose)
+    println!("\n  Using turbofish syntax:");
     let result = resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
-        // Acquire
         pure::<_, String, ()>("file_handle".to_string()),
-        // Release (always runs)
         |handle: String| {
-            println!("  Releasing: {}", handle);
+            println!("    Releasing: {}", handle);
             async { Ok(()) }
         },
-        // Use (borrows the resource)
         |handle: &String| {
-            println!("  Using handle: {}", handle);
+            println!("    Using handle: {}", handle);
             pure::<_, String, ()>(format!("Processed: {}", handle))
         },
     )
     .run(&())
     .await;
+    println!("    Result: {:?}", result);
 
-    println!("  Result: {:?}", result);
+    // Option B: Builder pattern (ergonomic, single type parameter)
+    println!("\n  Using builder pattern:");
+    let result = Bracket::<FileRes>::new()
+        .acquire(pure::<_, String, ()>("file_handle".to_string()))
+        .release(|handle: String| {
+            println!("    Releasing: {}", handle);
+            async { Ok(()) }
+        })
+        .use_fn(|handle: &String| {
+            println!("    Using handle: {}", handle);
+            pure::<_, String, ()>(format!("Processed: {}", handle))
+        })
+        .run(&())
+        .await;
+    println!("    Result: {:?}", result);
+
+    // Option C: bracket() convenience function
+    println!("\n  Using bracket() function:");
+    let result = bracket::<FileRes>()
+        .acquire(pure::<_, String, ()>("file_handle".to_string()))
+        .release(|handle: String| {
+            println!("    Releasing: {}", handle);
+            async { Ok(()) }
+        })
+        .use_fn(|handle: &String| {
+            println!("    Using handle: {}", handle);
+            pure::<_, String, ()>(format!("Processed: {}", handle))
+        })
+        .run(&())
+        .await;
+    println!("    Result: {:?}", result);
 }
 
 // =============================================================================

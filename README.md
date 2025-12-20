@@ -263,7 +263,47 @@ Effect::retry_with_hooks(
 );
 ```
 
-### 9. "I want the type system to prevent resource leaks"
+### 9. "I need to accumulate logs/metrics without threading state everywhere"
+
+```rust
+use stillwater::effect::writer::prelude::*;
+use stillwater::effect::prelude::*;
+
+// Without Writer: manually threading state
+fn process(x: i32, logs: &mut Vec<String>) -> Result<i32, Error> {
+    logs.push("Starting".into());
+    let y = step1(x, logs)?;
+    logs.push(format!("Step 1: {}", y));
+    Ok(y)
+}
+
+// With Writer Effect: automatic accumulation
+fn process_with_writer(x: i32) -> impl WriterEffect<
+    Output = i32, Error = String, Env = (), Writes = Vec<String>
+> {
+    tell_one::<_, String, ()>("Starting".to_string())
+        .and_then(move |_| into_writer::<_, _, Vec<String>>(pure::<_, String, ()>(x * 2)))
+        .tap_tell(|y| vec![format!("Step 1: {}", y)])
+}
+
+// Run and get both result and accumulated logs
+let (result, logs) = process_with_writer(21).run_writer(&()).await;
+assert_eq!(result, Ok(42));
+assert_eq!(logs, vec!["Starting", "Step 1: 42"]);
+
+// Use any Monoid for accumulation - not just Vec!
+use stillwater::monoid::Sum;
+
+// Count operations
+let effect = tell::<Sum<u32>, String, ()>(Sum(1))
+    .and_then(|_| tell(Sum(1)))
+    .and_then(|_| tell(Sum(1)));
+
+let (_, Sum(count)) = effect.run_writer(&()).await;
+assert_eq!(count, 3);
+```
+
+### 10. "I want the type system to prevent resource leaks"
 
 ```rust
 use stillwater::effect::resource::*;
@@ -278,12 +318,12 @@ fn close_file(handle: FileHandle) -> impl ResourceEffect<Releases = Has<FileRes>
 }
 
 // The bracket pattern guarantees resource neutrality
+// Use the builder for ergonomic syntax (single type parameter)
 fn read_file_safe(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
-    resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
-        open_file(path),
-        |h| async move { close_file(h).run(&()).await },
-        |h| read_contents(h),
-    )
+    bracket::<FileRes>()
+        .acquire(open_file(path))
+        .release(|h| async move { close_file(h).run(&()).await })
+        .use_fn(|h| read_contents(h))
 }
 
 // Transaction protocols enforced at compile time
@@ -292,11 +332,10 @@ fn commit(tx: Tx) -> impl ResourceEffect<Releases = Has<TxRes>> { /* ... */ }
 
 // This function MUST be resource-neutral or it won't compile
 fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
-    resource_bracket::<TxRes, _, _, _, _, _, _, _, _, _>(
-        begin_tx(),
-        |tx| async move { commit(tx).run(&()).await },
-        |tx| execute_queries(tx),
-    )
+    bracket::<TxRes>()
+        .acquire(begin_tx())
+        .release(|tx| async move { commit(tx).run(&()).await })
+        .use_fn(|tx| execute_queries(tx))
 }
 // Zero runtime overhead - all tracking is compile-time only!
 ```
@@ -341,10 +380,18 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - Resource markers: `FileRes`, `DbRes`, `LockRes`, `TxRes`, `SocketRes` (or define custom)
   - `ResourceEffect` trait with `Acquires`/`Releases` associated types
   - Extension methods: `.acquires::<R>()`, `.releases::<R>()`, `.neutral()`
-  - `resource_bracket` for guaranteed resource-neutral operations
+  - `bracket::<R>()` builder for ergonomic resource brackets (single type parameter)
+  - `resource_bracket` function for guaranteed resource-neutral operations
   - `assert_resource_neutral` for compile-time leak detection
 - **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
+- **Writer Effect** - Accumulate logs, metrics, or audit trails alongside computation
+  - `tell()`, `tell_one()` for emitting values to accumulator
+  - `tap_tell()` for logging derived values after success
+  - `censor()` for filtering/transforming accumulated writes
+  - `listen()`, `pass()` for introspecting and controlling writes
+  - `traverse_writer()`, `fold_writer()` for collection operations
+  - Works with any `Monoid`: `Vec`, `Sum`, `Product`, custom types
 - **`Semigroup` trait** - Associative combination of values
   - Extended implementations for `HashMap`, `HashSet`, `BTreeMap`, `BTreeSet`, `Option`
   - Wrapper types: `First`, `Last`, `Intersection` for alternative semantics
@@ -515,6 +562,7 @@ Run any example with `cargo run --example <name>`:
 | [data_pipeline](examples/data_pipeline.rs) | Real-world ETL pipeline |
 | [testing_patterns](examples/testing_patterns.rs) | Testing pure vs effectful code |
 | [reader_pattern](examples/reader_pattern.rs) | Reader pattern with ask(), asks(), and local() |
+| [writer_logging](examples/writer_logging.rs) | Writer Effect for accumulating logs, metrics, and audit trails |
 | [validation](examples/validation.rs) | Validation type and error accumulation patterns |
 | [effects](examples/effects.rs) | Effect type and composition patterns |
 | [parallel_effects](examples/parallel_effects.rs) | Parallel execution with par_all, race, and par_all_limit |

@@ -24,13 +24,12 @@
 //!     pure(()).releases::<FileRes>()
 //! }
 //!
-//! // Use resource_bracket for guaranteed resource safety
+//! // Use the bracket builder for guaranteed resource safety (ergonomic syntax)
 //! fn read_file_safe(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
-//!     resource_bracket::<FileRes, _, _, _, _, _, _, _, _>(
-//!         open_file(path),
-//!         |h| async move { close_file(h).run(&()).await },
-//!         |h| read_contents(h),
-//!     )
+//!     bracket::<FileRes>()
+//!         .acquire(open_file(path))
+//!         .release(|h| async move { close_file(h).run(&()).await })
+//!         .use_fn(|h| read_contents(h))
 //! }
 //! ```
 //!
@@ -40,7 +39,8 @@
 //! - [`sets`] - Type-level resource sets (`Empty`, `Has<R>`)
 //! - [`tracked`] - `Tracked` wrapper and `ResourceEffect` trait
 //! - [`ext`] - Extension methods (`.acquires()`, `.releases()`)
-//! - [`bracket`] - Resource-safe bracket pattern
+//! - [`bracket`] - Resource-safe bracket pattern (`resource_bracket` function)
+//! - [`builder`] - Ergonomic builder API (`bracket::<R>()`, `Bracket::<R>::new()`)
 //! - [`combinators`] - ResourceEffect implementations for core combinators
 //!
 //! # Resource Kinds
@@ -87,15 +87,22 @@
 //!
 //! ## Resource Bracket
 //!
-//! For guaranteed resource safety:
+//! For guaranteed resource safety, use the builder pattern:
 //!
 //! ```rust,ignore
-//! let safe = resource_bracket::<FileRes, _, _, _, _, _, _, _, _>(
+//! // Ergonomic builder (recommended)
+//! let safe = bracket::<FileRes>()
+//!     .acquire(acquire_effect)
+//!     .release(|resource| async move { release(resource).await })
+//!     .use_fn(|resource| use_resource(resource));
+//!
+//! // Or with the function (10 type parameters, 9 inferred)
+//! let safe = resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
 //!     acquire_effect,
 //!     |resource| async move { release(resource).await },
 //!     |resource| use_resource(resource),
 //! );
-//! // `safe` is guaranteed to have Acquires = Empty, Releases = Empty
+//! // Both are guaranteed to have Acquires = Empty, Releases = Empty
 //! ```
 //!
 //! ## Neutrality Assertion
@@ -122,13 +129,10 @@
 //!
 //! // Correct: transaction is opened and closed
 //! fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
-//!     resource_bracket::<TxRes, _, _, _, _, _, _, _, _>(
-//!         begin_tx(),
-//!         |tx| async move { commit(tx).run(&()).await },
-//!         |tx| {
-//!             query(tx).and_then(|_| query(tx))
-//!         },
-//!     )
+//!     bracket::<TxRes>()
+//!         .acquire(begin_tx())
+//!         .release(|tx| async move { commit(tx).run(&()).await })
+//!         .use_fn(|tx| query(tx).and_then(|_| query(tx)))
 //! }
 //!
 //! // Compile error: transaction never closed
@@ -153,6 +157,7 @@
 //! - No runtime checks, allocations, or indirection
 
 pub mod bracket;
+pub mod builder;
 pub mod combinators;
 pub mod ext;
 pub mod markers;
@@ -161,6 +166,7 @@ pub mod tracked;
 
 // Re-export main types
 pub use bracket::{resource_bracket, tracked_resource_bracket, ResourceBracket};
+pub use builder::{bracket, Bracket, BracketWithAcquire, BracketWithRelease};
 pub use ext::{assert_resource_neutral, IsResourceNeutral, ResourceEffectExt, TrackedExt};
 pub use markers::{DbRes, FileRes, LockRes, ResourceKind, SocketRes, TxRes};
 pub use sets::{Contains, Empty, Has, ResourceSet, Subset, Union};
