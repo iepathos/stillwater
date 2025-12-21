@@ -62,6 +62,7 @@ book/book/
 *.profraw
 *.profdata
 test_workspaces_*/
+*.proptest-regressions
 
 # Benchmarking
 criterion/

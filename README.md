@@ -538,7 +538,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "0.11"
+stillwater = "1.0"
 
 # Optional: async support
 stillwater = { version = "0.11", features = ["async"] }

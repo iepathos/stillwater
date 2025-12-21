@@ -331,7 +331,8 @@ mod proptest_tests {
         #[test]
         fn test_validation_map_preserves_success(value: i32) {
             let val = Validation::<_, Vec<String>>::success(value);
-            let mapped = val.map(|x| x * 2);
+            // Use wrapping_mul to avoid overflow - test is about map preservation, not arithmetic
+            let mapped = val.map(|x| x.wrapping_mul(2));
             assert_success!(mapped);
         }
 
@@ -339,7 +340,8 @@ mod proptest_tests {
         fn test_validation_map_preserves_failure(errors: Vec<String>) {
             prop_assume!(!errors.is_empty());
             let val = Validation::<i32, _>::failure(errors.clone());
-            let mapped = val.map(|x| x * 2);
+            // Use wrapping_mul to avoid overflow - test is about map preservation, not arithmetic
+            let mapped = val.map(|x| x.wrapping_mul(2));
             assert_failure!(mapped);
         }
 
