@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2025-12-20
+
+### 🎉 Stable Release
+
+Stillwater 1.0 marks the first stable release of the library. The API is now considered stable and will follow semantic versioning guarantees going forward.
+
+#### What This Means
+
+- **API Stability**: Breaking changes will only occur in major version bumps (2.0, 3.0, etc.)
+- **Production Ready**: All core abstractions have been battle-tested and refined through 15 pre-release versions
+- **Comprehensive**: Effect composition, validation, refined types, resource management, and more
+
+#### Core Features (Stable)
+
+| Module | Purpose |
+|--------|---------|
+| `effect` | Zero-cost effect composition with async support |
+| `validation` | Error accumulation (not short-circuiting) |
+| `refined` | Type-level invariants ("parse, don't validate") |
+| `predicate` | Composable validation predicates |
+| `retry` | Backoff strategies and resilience patterns |
+| `bracket` | Resource acquire/release with guaranteed cleanup |
+| `writer` | Logging/accumulation alongside computation |
+| `sink` | Streaming output with constant memory |
+| `reader` | Dependency injection via Reader pattern |
+| `traverse` | Collection transformation utilities |
+| `semigroup` / `monoid` | Algebraic composition |
+| `nonempty` | Type-safe non-empty collections |
+| `testing` | MockEnv, assertions, TestEffect |
+
+#### By The Numbers
+
+- **1,089+ tests** all passing
+- **27 runnable examples**
+- **324 documentation tests**
+- **Zero compiler warnings**
+- **Zero clippy warnings**
+
+#### Journey to 1.0
+
+From 0.1.0's initial Validation and Effect types through 15 releases:
+- 0.2.0: Monoid trait and numeric wrappers
+- 0.3.0: Reader pattern (ask, asks, local)
+- 0.4.0: NonEmptyVec for type-safe collections
+- 0.5.0: Parallel effects and extended Semigroup
+- 0.6.0: Traverse and sequence utilities
+- 0.8.0: Homogeneous validation and testing utilities
+- 0.9.0: Retry and resilience patterns
+- 0.11.0: Zero-cost Effect trait (breaking change, migration guide provided)
+- 0.12.0: Predicate combinators
+- 0.13.0: Error recovery and bifunctor interface
+- 0.14.0: Compile-time resource tracking
+- 0.15.0: Writer and Sink effects
+
+Thank you to everyone who provided feedback during the pre-release period.
+
 ## [0.15.0] - 2025-12-20
 
 ### Added
@@ -1046,7 +1102,8 @@ Zero-cost effect chains eliminate heap allocations:
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/iepathos/stillwater/compare/v0.15.0...v1.0.0
 [0.15.0]: https://github.com/iepathos/stillwater/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/iepathos/stillwater/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/iepathos/stillwater/compare/v0.12.0...v0.13.0
