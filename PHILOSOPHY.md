@@ -224,6 +224,163 @@ We're not trying to be Haskell. We're trying to be **better Rust**.
 - ✓ Integrate with async/await
 - ✓ Help you write better Rust
 
+### 7. Parse, Don't Validate
+
+**The Problem:**
+Validation at runtime means you keep re-checking the same invariants:
+
+```rust
+// ❌ Runtime validation - checked everywhere, forgotten somewhere
+fn process_user(age: i32) -> Result<(), Error> {
+    if age < 0 { return Err(Error::InvalidAge); }  // Check here...
+    // ...later in another function
+    if age < 0 { return Err(Error::InvalidAge); }  // ...and again here
+}
+```
+
+**The Stillwater Way:**
+Use refined types to encode invariants at the type level:
+
+```rust
+use stillwater::refined::{Refined, Positive};
+
+// ✓ Compile-time guarantee - impossible to have invalid data
+type Age = Refined<i32, Positive>;
+
+fn process_user(age: Age) -> Result<(), Error> {
+    // No validation needed - Age is ALWAYS positive by construction
+    let years = age.value();  // Safe access
+}
+
+// Validation happens once at the boundary
+let age: Age = Refined::new(25)?;  // Fails if not positive
+```
+
+**Benefits:**
+- Invariants encoded in the type system
+- Illegal states become unrepresentable
+- No defensive checks scattered throughout code
+- Self-documenting APIs
+
+### 8. Type-Level Resource Safety
+
+**The Problem:**
+Resource leaks are subtle and hard to catch:
+
+```rust
+// ❌ Easy to forget cleanup
+let file = open_file(path)?;
+do_work(&file)?;  // If this fails, file leaks
+file.close()?;
+```
+
+**The Stillwater Way:**
+Track resource acquisition and release at the type level:
+
+```rust
+use stillwater::effect::resource::*;
+
+// ✓ Compiler ensures resources are released
+fn safe_file_op(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
+    bracket::<FileRes>()
+        .acquire(open_file(path))
+        .release(|f| async move { f.close().await })
+        .use_fn(|f| do_work(f))
+}
+// Type signature PROVES no resource leaks - guaranteed cleanup even on error
+```
+
+**Benefits:**
+- Compiler catches resource leaks
+- Zero runtime overhead (compile-time only)
+- LIFO cleanup ordering for multiple resources
+- Guaranteed cleanup even when errors occur
+
+### 9. Resilience as Data
+
+**The Problem:**
+Retry logic is usually tangled with business code:
+
+```rust
+// ❌ Retry logic scattered and untestable
+async fn fetch_data() -> Result<Data, Error> {
+    let mut attempts = 0;
+    loop {
+        match api_call().await {
+            Ok(data) => return Ok(data),
+            Err(e) if attempts < 3 => {
+                attempts += 1;
+                sleep(Duration::from_secs(1 << attempts)).await;
+            }
+            Err(e) => return Err(e),
+        }
+    }
+}
+```
+
+**The Stillwater Way:**
+Define retry policies as pure, testable data:
+
+```rust
+use stillwater::RetryPolicy;
+
+// ✓ Policy as data - testable without I/O
+let policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(5)
+    .with_jitter(0.25);
+
+// Test the policy in isolation
+assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
+assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
+
+// Apply to any effect
+Effect::retry(|| fetch_data(), policy);
+```
+
+**Benefits:**
+- Retry policies are testable pure values
+- Reusable across different operations
+- Clear separation from business logic
+- Conditional retry, hooks, and timeouts
+
+### 10. Accumulation Without Threading
+
+**The Problem:**
+Logging and metrics require threading state through your code:
+
+```rust
+// ❌ Manual state threading
+fn process(x: i32, logs: &mut Vec<String>) -> Result<i32, Error> {
+    logs.push("Starting");
+    let y = step1(x, logs)?;
+    logs.push(format!("After step 1: {}", y));
+    step2(y, logs)
+}
+```
+
+**The Stillwater Way:**
+Use Writer effect to automatically accumulate logs alongside computation:
+
+```rust
+use stillwater::effect::writer::prelude::*;
+
+// ✓ Automatic accumulation - no threading
+fn process(x: i32) -> impl WriterEffect<Output = i32, Writes = Vec<String>> {
+    tell_one("Starting".to_string())
+        .and_then(move |_| pure(x * 2))
+        .tap_tell(|y| vec![format!("After step 1: {}", y)])
+}
+
+// Get both result and accumulated logs
+let (result, logs) = process(21).run_writer(&()).await;
+```
+
+**Benefits:**
+- Logs, metrics, audit trails accumulate automatically
+- Works with any Monoid (Vec, Sum, custom types)
+- No state threading cluttering your code
+- Pure business logic remains pure
+
 ## Design Decisions
 
 ### Why not full Monad abstraction?
@@ -369,7 +526,7 @@ Also, `ContextError<E>` preserves the underlying error type, allowing pattern ma
    - Consistency > theoretical purity
 
 4. **The problem is a better fit for other tools**
-   - Need state machines? Use `typestate` pattern
+   - Need state machines? Use [`mindset`](https://github.com/iepathos/mindset) - our zero-cost, effect-based state machine library
    - Need async streams? Use `futures::Stream`
    - Need actors? Use `actix` or `tokio::mpsc`
 
@@ -442,10 +599,32 @@ Error Track:            ✗ ─────────────────�
 
 Once you hit an error, you're on the error track. Context accumulates along the way.
 
+## The Stillwater Ecosystem
+
+Stillwater is part of a family of libraries that share the same functional programming philosophy:
+
+| Library | Purpose |
+|---------|---------|
+| [**stillwater**](https://github.com/iepathos/stillwater) | Effect composition, validation, and the core philosophy |
+| [**mindset**](https://github.com/iepathos/mindset) | Zero-cost, effect-based state machines with pure guards |
+| [**premortem**](https://github.com/iepathos/premortem) | Configuration validation - find all config errors before your app runs |
+| [**postmortem**](https://github.com/iepathos/postmortem) | JSON validation with precise path tracking and error accumulation |
+
+All libraries share these principles:
+- **Error accumulation** over short-circuiting
+- **Pure core, effects at boundaries**
+- **Zero-cost abstractions**
+- **Testability through dependency injection**
+
+When you need state machines, reach for `mindset` instead of hand-rolling typestate patterns. It builds on Stillwater's effect system to give you:
+- Pure guard functions for state validation
+- Explicit effectful actions at transitions
+- Environment pattern for clean dependency injection
+- The same zero-cost philosophy
+
 ## Further Reading
 
 - [DESIGN.md](./DESIGN.md) - Detailed API design and examples
-- [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) - Development roadmap
 - **Railway Oriented Programming** - Scott Wlaschin
 - **Functional Core, Imperative Shell** - Gary Bernhardt
 - **Parse, don't validate** - Alexis King
