@@ -170,7 +170,7 @@ pub type NegativeF64 = Refined<f64, Negative>;
 // Note: Using NonEmptyList to avoid conflict with existing NonEmptyVec
 // ============================================================================
 
-/// A Vec<T> that is guaranteed to be non-empty
+/// A `Vec<T>` that is guaranteed to be non-empty
 ///
 /// Note: This is different from `stillwater::NonEmptyVec<T>` which has
 /// a specialized API. Use `NonEmptyList` for the generic refined type pattern.

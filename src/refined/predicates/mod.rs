@@ -1,9 +1,9 @@
 //! Predefined predicates for common refinement patterns
 //!
 //! This module provides ready-to-use predicates for:
-//! - **Numeric constraints**: [`Positive`], [`NonNegative`], [`Negative`], [`NonZero`], [`InRange`]
-//! - **String constraints**: [`NonEmpty`], [`Trimmed`], [`MaxLength`], [`MinLength`]
-//! - **Collection constraints**: [`MaxSize`], [`MinSize`] (for `Vec<T>`)
+//! - **Numeric constraints**: [`numeric::Positive`], [`numeric::NonNegative`], [`numeric::Negative`], [`numeric::NonZero`], [`numeric::InRange`]
+//! - **String constraints**: [`string::NonEmpty`], [`string::Trimmed`], [`string::MaxLength`], [`string::MinLength`]
+//! - **Collection constraints**: [`collection::MaxSize`], [`collection::MinSize`] (for `Vec<T>`)
 //!
 //! # Example
 //!

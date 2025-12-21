@@ -16,6 +16,14 @@
 
 use super::{Predicate, Refined};
 
+/// Type alias for the validation effect returned by refined type operations.
+///
+/// This simplifies the complex return type of validation effects.
+pub type ValidationEffect<T, P, Env> = crate::effect::combinators::FromFn<
+    Box<dyn FnOnce(&Env) -> Result<Refined<T, P>, <P as Predicate<T>>::Error> + Send>,
+    Env,
+>;
+
 impl<T, P> Refined<T, P>
 where
     T: Send + 'static,
@@ -36,13 +44,14 @@ where
     ///
     /// let effect = PositiveI32::validate_effect::<()>(42);
     /// ```
-    pub fn validate_effect<Env>(
-        value: T,
-    ) -> crate::effect::combinators::FromFn<impl FnOnce(&Env) -> Result<Self, P::Error> + Send, Env>
+    pub fn validate_effect<Env>(value: T) -> ValidationEffect<T, P, Env>
     where
         Env: Clone + Send + Sync,
     {
-        crate::from_fn(move |_env: &Env| Self::new(value))
+        crate::from_fn(
+            Box::new(move |_env: &Env| Self::new(value))
+                as Box<dyn FnOnce(&Env) -> Result<Self, P::Error> + Send>,
+        )
     }
 }
 
@@ -61,19 +70,15 @@ where
 /// let effect = pure::<_, String, ()>("hello".to_string())
 ///     .and_then(|s| refine::<_, NonEmpty, ()>(s));
 /// ```
-pub fn refine<T, P, Env>(
-    value: T,
-) -> crate::effect::combinators::FromFn<
-    impl FnOnce(&Env) -> Result<Refined<T, P>, P::Error> + Send,
-    Env,
->
+pub fn refine<T, P, Env>(value: T) -> ValidationEffect<T, P, Env>
 where
     T: Send + 'static,
     P: Predicate<T>,
     P::Error: Send + 'static,
     Env: Clone + Send + Sync,
 {
-    Refined::validate_effect(value)
+    crate::from_fn(Box::new(move |_env: &Env| Refined::new(value))
+        as Box<dyn FnOnce(&Env) -> Result<Refined<T, P>, P::Error> + Send>)
 }
 
 /// Create a pure effect containing a refined value.
