@@ -48,10 +48,8 @@ where
     where
         Env: Clone + Send + Sync,
     {
-        crate::from_fn(
-            Box::new(move |_env: &Env| Self::new(value))
-                as Box<dyn FnOnce(&Env) -> Result<Self, P::Error> + Send>,
-        )
+        crate::from_fn(Box::new(move |_env: &Env| Self::new(value))
+            as Box<dyn FnOnce(&Env) -> Result<Self, P::Error> + Send>)
     }
 }
 
