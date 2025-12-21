@@ -114,7 +114,6 @@ mod tests {
     use crate::refined::predicates::numeric::Positive;
     use crate::refined::predicates::string::NonEmpty;
 
-    type NonEmptyString = Refined<String, NonEmpty>;
     type PositiveI32 = Refined<i32, Positive>;
 
     #[tokio::test]

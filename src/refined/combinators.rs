@@ -272,10 +272,7 @@ mod tests {
 
     #[test]
     fn test_and_both_fail() {
-        // Empty AND has whitespace is tricky - empty string is trimmed
-        // Let's use numeric predicates instead
-        type PositiveAndNonZero = Refined<i32, And<Positive, NonZero>>;
-        // Actually both pass for positive numbers, let's try different combo
+        // Use Positive AND Negative - 0 fails both predicates
         type BothFail = Refined<i32, And<Positive, Negative>>;
         let result = BothFail::new(0);
         assert!(result.is_err());
