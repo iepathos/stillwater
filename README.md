@@ -353,6 +353,15 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - `Validation`: `.ensure()`, `.ensure_fn()`, `.ensure_with()`, `.ensure_fn_with()`, `.unless()`, `.filter_or()`
   - Zero-cost: compiles to concrete types with no heap allocation
   - Reduces 12-line validation blocks to single-line predicates
+- **Refined types** - "Parse, don't validate" pattern for type-level invariants
+  - `Refined<T, P>` wrapper guarantees value satisfies predicate P at compile time
+  - Numeric predicates: `Positive`, `NonNegative`, `Negative`, `NonZero`, `InRange<MIN, MAX>`
+  - String predicates: `NonEmpty`, `Trimmed`, `MaxLength<N>`, `MinLength<N>`
+  - Collection predicates: `NonEmpty`, `MaxSize<N>`, `MinSize<N>` for `Vec<T>`
+  - Combinators: `And`, `Or`, `Not` for composing complex predicates
+  - Type aliases: `NonEmptyString`, `PositiveI32`, `Port`, `Percentage`, etc.
+  - Validation integration: `validate()`, `validate_vec()`, `with_field()` for error accumulation
+  - Zero-cost: same memory layout as inner type, predicate is compile-time only
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
   - Zero heap allocations by default
@@ -577,6 +586,7 @@ Run any example with `cargo run --example <name>`:
 | [boxing_decisions](examples/boxing_decisions.rs) | When to use `.boxed()` vs zero-cost effects |
 | [resource_scopes](examples/resource_scopes.rs) | Bracket pattern for safe resource management with guaranteed cleanup |
 | [resource_tracking](examples/resource_tracking.rs) | Compile-time resource tracking with type-level safety |
+| [refined](examples/refined.rs) | Refined types for "parse, don't validate" pattern with type-level invariants |
 
 See [examples/](examples/) directory for full code.
 

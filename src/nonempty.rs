@@ -360,7 +360,7 @@ mod tests {
     fn test_singleton() {
         let nev = NonEmptyVec::singleton(42);
         assert_eq!(nev.head(), &42);
-        assert_eq!(nev.tail(), &[]);
+        assert_eq!(nev.tail(), &[] as &[i32]);
         assert_eq!(nev.len(), 1);
     }
 
@@ -432,7 +432,7 @@ mod tests {
 
         let nev2 = NonEmptyVec::singleton(1);
         let empty = nev2.filter(|x| x % 2 == 0);
-        assert_eq!(empty, vec![]);
+        assert_eq!(empty, Vec::<i32>::new());
     }
 
     #[test]

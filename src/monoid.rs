@@ -520,7 +520,7 @@ mod tests {
     fn test_fold_all_empty() {
         let vecs: Vec<Vec<i32>> = vec![];
         let result = fold_all(vecs);
-        assert_eq!(result, vec![]);
+        assert_eq!(result, Vec::<i32>::new());
     }
 
     #[test]

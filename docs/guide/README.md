@@ -63,7 +63,15 @@ This guide is organized into progressive chapters, each building on the previous
 
 ### Advanced Patterns
 
-16. **Compile-Time Resource Tracking** - Type-level resource safety
+16. **[Refined Types](16-refined-types.md)** - Parse, don't validate
+   - `Refined<T, P>` for type-level invariants
+   - Numeric predicates: Positive, NonNegative, NonZero, InRange
+   - String predicates: NonEmpty, Trimmed, MaxLength, MinLength
+   - Predicate combinators: And, Or, Not
+   - Validation integration for error accumulation
+   - Zero-cost: same memory layout as inner type
+
+17. **Compile-Time Resource Tracking** - Type-level resource safety
    - Resource markers (FileRes, DbRes, TxRes, etc.)
    - ResourceEffect trait with Acquires/Releases tracking
    - Extension methods: `.acquires()`, `.releases()`, `.neutral()`
@@ -149,6 +157,8 @@ cargo run --example retry_patterns
 | Resource release | .releases::<R>() | Mark effect as releasing resource |
 | Safe resource ops | resource_bracket | Guaranteed acquire/use/release |
 | Resource neutrality | assert_resource_neutral | Compile-time leak detection |
+| Type-level invariants | Refined<T, P> | Guarantee constraints at compile time |
+| Parse, don't validate | NonEmptyString, Port | Validate once, use safely everywhere |
 
 ### Common Patterns
 

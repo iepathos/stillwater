@@ -419,12 +419,12 @@ impl JitterStrategy {
             #[cfg(feature = "jitter")]
             JitterStrategy::Proportional(factor) => {
                 use rand::Rng;
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let base_millis = base_delay.as_millis() as f64;
                 let jitter_range = base_millis * factor;
                 let min = (base_millis - jitter_range).max(0.0);
                 let max = base_millis + jitter_range;
-                let jittered_millis = rng.gen_range(min..=max);
+                let jittered_millis = rng.random_range(min..=max);
                 Duration::from_millis(jittered_millis as u64)
             }
             #[cfg(not(feature = "jitter"))]
@@ -432,12 +432,12 @@ impl JitterStrategy {
             #[cfg(feature = "jitter")]
             JitterStrategy::Full => {
                 use rand::Rng;
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let max_millis = base_delay.as_millis() as u64;
                 if max_millis == 0 {
                     Duration::ZERO
                 } else {
-                    Duration::from_millis(rng.gen_range(0..=max_millis))
+                    Duration::from_millis(rng.random_range(0..=max_millis))
                 }
             }
             #[cfg(not(feature = "jitter"))]
@@ -445,14 +445,14 @@ impl JitterStrategy {
             #[cfg(feature = "jitter")]
             JitterStrategy::Decorrelated => {
                 use rand::Rng;
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let prev = prev_delay.unwrap_or(base_delay);
                 let base_millis = base_delay.as_millis() as u64;
                 let max_millis = prev.as_millis().saturating_mul(3) as u64;
                 if max_millis <= base_millis {
                     base_delay
                 } else {
-                    Duration::from_millis(rng.gen_range(base_millis..=max_millis))
+                    Duration::from_millis(rng.random_range(base_millis..=max_millis))
                 }
             }
             #[cfg(not(feature = "jitter"))]
