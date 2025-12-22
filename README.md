@@ -679,6 +679,7 @@ Stillwater is part of a family of libraries that share the same functional progr
 | [premortem](https://github.com/iepathos/premortem) | Configuration validation that finds all errors before your app runs. Multi-source loading with error accumulation and value origin tracing. |
 | [postmortem](https://github.com/iepathos/postmortem) | Validation library that accumulates all errors with precise JSON path tracking. Composable schemas, cross-field validation, and effect integration. |
 | [mindset](https://github.com/iepathos/mindset) | Zero-cost, effect-based state machines. Pure guards for validation, explicit actions for side effects, environment pattern for testability. |
+| [stilltypes](https://github.com/iepathos/stilltypes) | Domain-specific refined types built on stillwater. Pre-built predicates for emails, URLs, usernames, currencies, and more. |
 
 All libraries emphasize:
 - Error accumulation over short-circuiting
