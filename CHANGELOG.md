@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-05
+
+### Changed
+
+- Refreshed direct and transitive dependencies after the 1.0.0 release line, including updates to `futures`, `tokio`, `proptest`, `tracing-subscriber`, `tracing-test`, and `serde_json`.
+- Updated CI lockfile validation so release builds accept a valid committed `Cargo.lock` instead of requiring the latest resolver output.
+- Regenerated `Cargo.lock` for the 1.0.1 release.
+
 ## [1.0.0] - 2025-12-20
 
 ### 🎉 Stable Release
