@@ -15,7 +15,7 @@ readme = "README.md"
 # Optional async support
 tokio = { version = "1", features = ["full"], optional = true }
 futures = "0.3"
-proptest = { version = "1.0", optional = true }
+proptest = { version = "1.11", optional = true }
 rand = { version = "0.9", optional = true }
 tracing = { version = "0.1", optional = true }
 serde = { version = "1.0", optional = true }
@@ -23,7 +23,7 @@ serde = { version = "1.0", optional = true }
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
 tokio-test = "0.4"
-proptest = "1.0"
+proptest = "1.11"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 tracing-test = "0.2"
 serde_json = "1.0"
