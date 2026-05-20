@@ -162,6 +162,18 @@ doc-all:
 doc-check:
     cargo doc --no-deps
 
+# Build the mdBook documentation site
+book:
+    mdbook build book
+
+# Serve the mdBook documentation site locally
+book-serve:
+    mdbook serve book --open
+
+# Remove generated mdBook output
+book-clean:
+    mdbook clean book
+
 # === DEPENDENCIES ===
 
 # Update dependencies
@@ -264,7 +276,7 @@ full-check: clean build test lint doc audit
 # Install development tools
 install-tools:
     rustup component add rustfmt clippy llvm-tools-preview
-    cargo install cargo-watch cargo-llvm-cov cargo-audit cargo-outdated
+    cargo install cargo-watch cargo-llvm-cov cargo-audit cargo-outdated mdbook
 
 # Install additional development tools
 install-extras:
@@ -310,5 +322,6 @@ help:
     @echo "  cargo clippy   - Run linter"
     @echo "  cargo check    - Quick syntax check"
     @echo "  cargo doc      - Generate documentation"
+    @echo "  mdbook build   - Generate the documentation site"
     @echo ""
     @echo "Use 'just <command>' for convenience aliases!"

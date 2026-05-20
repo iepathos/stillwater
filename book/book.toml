@@ -1,0 +1,35 @@
+[book]
+authors = ["Glen Baker"]
+language = "en"
+src = "../docs"
+title = "Stillwater Documentation"
+description = "Guide and reference documentation for Stillwater, a pragmatic Rust library for effect composition and validation"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[rust]
+edition = "2021"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+git-repository-url = "https://github.com/iepathos/stillwater"
+edit-url-template = "https://github.com/iepathos/stillwater/edit/master/docs/{path}"
+
+[output.html.search]
+enable = true
+limit-results = 30
+use-boolean-and = true
+boost-title = 2
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.playground]
+editable = false
+copyable = true
+line-numbers = true

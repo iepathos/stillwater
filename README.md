@@ -627,6 +627,7 @@ fn boxed() -> BoxedEffect<T, E, Env> { ... } // Explicit boxing
 
 ## Documentation
 
+- [Documentation Site](https://iepathos.github.io/stillwater/) - Published guide and reference
 - [User Guide](docs/guide/README.md) - Comprehensive tutorials
 - [API Docs](https://docs.rs/stillwater) - Full API reference
 - [FAQ](docs/FAQ.md) - Common questions
