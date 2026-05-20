@@ -577,5 +577,5 @@ mod tests {
 
 - Review [Validation guide](02-validation.md) for error accumulation
 - See [Effects guide](03-effects.md) for async processing
-- Check [examples/](../../examples/) for complete examples
+- Check [examples/](https://github.com/iepathos/stillwater/tree/master/examples) for complete examples
 - Read the [API docs](https://docs.rs/stillwater) for full details

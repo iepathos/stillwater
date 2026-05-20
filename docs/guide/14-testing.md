@@ -427,7 +427,7 @@ mod tests {
 
 ## Next Steps
 
-- See [examples/validation.rs](../../examples/validation.rs) for more examples
-- Check [tests/testing_utilities.rs](../../tests/testing_utilities.rs) for comprehensive test patterns
+- See [examples/validation.rs](https://github.com/iepathos/stillwater/blob/master/examples/validation.rs) for more examples
+- Check [tests/testing_utilities.rs](https://github.com/iepathos/stillwater/blob/master/tests/testing_utilities.rs) for comprehensive test patterns
 - Read [Validation Guide](02-validation.md) for more on validation
 - Read [Effects Guide](03-effects.md) for testing effects

@@ -367,5 +367,5 @@ The benefits for debugging usually outweigh the costs.
 ## Next Steps
 
 - Learn about the [IO Module](05-io-module.md)
-- See [error_context example](../../examples/error_context.rs)
+- See [error_context example](https://github.com/iepathos/stillwater/blob/master/examples/error_context.rs)
 - Read about [Helper Combinators](06-helper-combinators.md)

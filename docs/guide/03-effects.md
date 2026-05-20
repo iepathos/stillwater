@@ -844,5 +844,5 @@ fn conditional_fetch(use_cache: bool) -> BoxedEffect<String, String, AppEnv> {
 - Learn about [Error Context](04-error-context.md)
 - Explore the [Reader Pattern](09-reader-pattern.md) in depth
 - See the [Migration Guide](../MIGRATION.md) if upgrading from 0.10.x
-- Check out [testing_patterns example](../../examples/testing_patterns.rs)
+- Check out [testing_patterns example](https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs)
 - Read the [API docs](https://docs.rs/stillwater)

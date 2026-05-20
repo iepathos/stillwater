@@ -116,7 +116,7 @@ Jump to the chapters that interest you. Each chapter is self-contained with link
 
 ### Running Examples
 
-All examples in this guide are runnable. You can find them in the [examples/](../../examples/) directory:
+All examples in this guide are runnable. You can find them in the [examples/](https://github.com/iepathos/stillwater/tree/master/examples) directory:
 
 ```bash
 cargo run --example validation

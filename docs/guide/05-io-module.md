@@ -80,7 +80,7 @@ effect.run(&env).await  // AppEnv automatically provides Database
 
 ## Examples
 
-See full examples in [examples/io_patterns.rs](../../examples/io_patterns.rs).
+See full examples in [examples/io_patterns.rs](https://github.com/iepathos/stillwater/blob/master/examples/io_patterns.rs).
 
 ## Next Steps
 

@@ -729,5 +729,5 @@ fn validate(email: &str, age: u8) -> Validation<User, Vec<Error>> {
 ## Next Steps
 
 - Learn about [Effect composition](03-effects.md)
-- See [full example](../../examples/form_validation.rs)
+- See [full example](https://github.com/iepathos/stillwater/blob/master/examples/form_validation.rs)
 - Read the [API docs](https://docs.rs/stillwater)

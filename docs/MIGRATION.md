@@ -274,7 +274,7 @@ For I/O-bound applications, this difference is negligible. For compute-bound cod
 
 ## Getting Help
 
-- Check the [examples/](../examples/) directory for working code
-- Read the [User Guide](guide/README.md) for comprehensive tutorials
+- Check the [examples/](https://github.com/iepathos/stillwater/tree/master/examples) directory for working code
+- Read the [User Guide](guide/) for comprehensive tutorials
 - See [FAQ.md](FAQ.md) for common questions
 - Open an issue on [GitHub](https://github.com/iepathos/stillwater/issues)

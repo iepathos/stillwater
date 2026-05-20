@@ -62,7 +62,7 @@ Yes! Use `from_fn()` for sync operations. They'll be wrapped in ready futures.
 
 ### How do I test Effects?
 
-Create simple mock environments (just data structures). Pure functions in your Effects need no mocking. See [testing_patterns example](../examples/testing_patterns.rs).
+Create simple mock environments (just data structures). Pure functions in your Effects need no mocking. See [testing_patterns example](https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs).
 
 ### Does Effect have performance overhead?
 
@@ -194,7 +194,7 @@ Result is perfect for operations that should fail fast. Use Result for that! Use
 
 ### How can I help?
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md). We welcome:
+See [CONTRIBUTING.md](https://github.com/iepathos/stillwater/blob/master/CONTRIBUTING.md). We welcome:
 - Bug reports
 - Documentation improvements
 - Examples
@@ -203,7 +203,7 @@ See [CONTRIBUTING.md](../CONTRIBUTING.md). We welcome:
 
 ### What's the roadmap?
 
-See specs in [specs/](../specs/) directory for planned features. Major upcoming features:
+See specs in [specs/](https://github.com/iepathos/stillwater/tree/master/specs) directory for planned features. Major upcoming features:
 - Parallel effect execution
 - More combinators
 - Additional examples
@@ -275,7 +275,7 @@ from_fn(|db: &Db| db.fetch_user(id))
 
 ## Getting More Help
 
-- Read the [User Guide](guide/README.md)
+- Read the [User Guide](guide/)
 - Check [PATTERNS.md](PATTERNS.md) for recipes
-- See [examples/](../examples/) for working code
+- See [examples/](https://github.com/iepathos/stillwater/tree/master/examples) for working code
 - Open an issue on [GitHub](https://github.com/iepathos/stillwater/issues)

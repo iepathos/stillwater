@@ -1,6 +1,8 @@
 # Summary
 
-[Stillwater User Guide](guide/README.md)
+[Stillwater Documentation](README.md)
+
+- [User Guide](guide/README.md)
 
 # Core Concepts
 

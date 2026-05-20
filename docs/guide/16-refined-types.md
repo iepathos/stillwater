@@ -457,6 +457,6 @@ assert_eq!(size_of::<PositiveI32>(), size_of::<i32>());
 
 ## Next Steps
 
-- See [examples/refined.rs](../../examples/refined.rs) for more examples
+- See [examples/refined.rs](https://github.com/iepathos/stillwater/blob/master/examples/refined.rs) for more examples
 - See the [Validation](02-validation.md) guide for error accumulation patterns
 - See the [Effects](03-effects.md) guide for effect integration

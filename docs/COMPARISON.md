@@ -1258,7 +1258,7 @@ fn create_user(email: String) -> impl Effect<Output = User, Error = Error, Env =
 
 ## Further Reading
 
-- [Stillwater User Guide](guide/README.md)
+- [Stillwater User Guide](guide/)
 - [frunk documentation](https://docs.rs/frunk)
 - [monadic documentation](https://docs.rs/monadic)
 - [anyhow documentation](https://docs.rs/anyhow)

@@ -37,6 +37,11 @@ jobs:
       - name: Build book
         run: mdbook build book
 
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --root-dir book/book book/book
+
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         uses: peaceiris/actions-gh-pages@v4

@@ -593,4 +593,4 @@ These patterns cover common use cases. Mix and match them based on your needs!
 
 - See [FAQ](FAQ.md) for common questions
 - Read [Comparison](COMPARISON.md) vs other libraries
-- Check [examples/](../examples/) for working code
+- Check [examples/](https://github.com/iepathos/stillwater/tree/master/examples) for working code

@@ -166,6 +166,10 @@ doc-check:
 book:
     mdbook build book
 
+# Check generated mdBook links
+book-check-links: book
+    lychee --offline --root-dir book/book book/book
+
 # Serve the mdBook documentation site locally
 book-serve:
     mdbook serve book --open
@@ -276,7 +280,7 @@ full-check: clean build test lint doc audit
 # Install development tools
 install-tools:
     rustup component add rustfmt clippy llvm-tools-preview
-    cargo install cargo-watch cargo-llvm-cov cargo-audit cargo-outdated mdbook
+    cargo install cargo-watch cargo-llvm-cov cargo-audit cargo-outdated mdbook lychee
 
 # Install additional development tools
 install-extras:
@@ -323,5 +327,6 @@ help:
     @echo "  cargo check    - Quick syntax check"
     @echo "  cargo doc      - Generate documentation"
     @echo "  mdbook build   - Generate the documentation site"
+    @echo "  lychee         - Check documentation links"
     @echo ""
     @echo "Use 'just <command>' for convenience aliases!"

@@ -615,5 +615,5 @@ Use the Reader pattern when you want clean, testable dependency injection in you
 
 - Review the [Effects guide](03-effects.md) for more Effect patterns
 - Check out the [IO Module](05-io-module.md) for I/O helpers
-- See [testing_patterns example](../../examples/testing_patterns.rs)
+- See [testing_patterns example](https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs)
 - Read about [Error Context](04-error-context.md)

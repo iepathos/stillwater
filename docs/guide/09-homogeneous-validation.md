@@ -535,6 +535,6 @@ validate_homogeneous(
 ## Further Reading
 
 - [Validation Guide](./02-validation.md) - Learn about error accumulation
-- [Semigroup Guide](./11-semigroup.md) - Understand combining operations
+- [Semigroup Guide](01-semigroup.md) - Understand combining operations
 - [Effect Guide](./03-effects.md) - Compose with I/O operations
-- [Philosophy](../../PHILOSOPHY.md) - Pure core, imperative shell pattern
+- [Philosophy](https://github.com/iepathos/stillwater/blob/master/PHILOSOPHY.md) - Pure core, imperative shell pattern
