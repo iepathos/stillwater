@@ -133,10 +133,10 @@ Validate first (pure, accumulates errors), then lift to Effect for I/O.
 Map them to your error types:
 
 ```rust
-IO::execute(|env| async {
+from_async(|env: &AppEnv| async {
     env.db.query()
         .await
-        .map_err(|e| MyError::Database(e.to_string()))
+        .map_err(|err| MyError::Database(err.to_string()))
 })
 ```
 
@@ -211,7 +211,7 @@ See specs in [specs/](../specs/) directory for planned features. Major upcoming 
 
 ### Is this production-ready?
 
-Yes! Stillwater 0.1 is stable with comprehensive tests (111 unit tests, 58 doc tests). The 0.x version indicates the API may evolve based on community feedback.
+Yes. Stillwater 1.0 is stable with comprehensive unit, integration, and documentation tests.
 
 ## Common Issues
 

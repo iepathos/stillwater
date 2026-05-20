@@ -378,7 +378,7 @@ fn create_and_save_user(email: String) -> Effect<User, AppError, AppEnv> {
 }
 
 fn save_user_to_db(user: User) -> Effect<User, AppError, AppEnv> {
-    IO::execute(move |env: &AppEnv| {
+    from_fn(move |env: &AppEnv| {
         env.database.insert_user(&user)
             .map(|_| user.clone())
             .map_err(AppError::DatabaseError)
@@ -389,7 +389,7 @@ fn cache_user(user: User) -> Effect<User, AppError, AppEnv> {
     // Get cache TTL from config
     Effect::asks(|env: &AppEnv| env.config.cache_ttl)
         .and_then(move |ttl| {
-            IO::execute(move |env: &AppEnv| {
+            from_fn(move |env: &AppEnv| {
                 env.cache.set(&user.id, &user, ttl)
                     .map(|_| user.clone())
                     .map_err(AppError::CacheError)
@@ -398,7 +398,7 @@ fn cache_user(user: User) -> Effect<User, AppError, AppEnv> {
 }
 
 fn send_welcome_email(user: User) -> Effect<(), AppError, AppEnv> {
-    IO::execute(move |env: &AppEnv| {
+    from_fn(move |env: &AppEnv| {
         env.email.send(&user.email, "Welcome!", "Thanks for joining!")
             .map_err(AppError::EmailError)
     })

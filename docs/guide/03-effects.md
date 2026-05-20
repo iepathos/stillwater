@@ -580,7 +580,10 @@ use stillwater::prelude::*;
 let (num, text) = par2(
     pure::<_, String, ()>(42),
     pure::<_, String, ()>("hello".to_string()),
-).run(&()).await?;
+    &(),
+).await;
+let num = num?;
+let text = text?;
 ```
 
 ### Homogeneous Parallel (Requires Boxing)
@@ -596,18 +599,18 @@ let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     pure(2).boxed(),
     pure(3).boxed(),
 ];
-let results = par_all(effects).run(&()).await?; // [1, 2, 3]
+let results = par_all(effects, &()).await?; // [1, 2, 3]
 
-// race - return first success
+// race - return first completed result
 let effects: Vec<BoxedEffect<String, String, ()>> = vec![
-    fail("first failed".to_string()).boxed(),
-    pure("second succeeded".to_string()).boxed(),
+    pure("first completed".to_string()).boxed(),
+    pure("second completed".to_string()).boxed(),
 ];
-let result = race(effects).run(&()).await?; // "second succeeded"
+let result = race(effects, &()).await?; // one of the completed values
 
 // par_all_limit - run with concurrency limit
 let effects: Vec<BoxedEffect<i32, String, ()>> = /* many effects */;
-let results = par_all_limit(effects, 10).run(&()).await?; // max 10 concurrent
+let results = par_all_limit(effects, 10, &()).await?; // max 10 concurrent
 ```
 
 ## Real-World Example: User Registration

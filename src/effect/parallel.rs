@@ -2,7 +2,7 @@
 //!
 //! This module provides functions for running effects in parallel:
 //! - `par_all` - Run all effects, collecting results or errors
-//! - `par_try_all` - Run all effects, fail-fast on first error
+//! - `par_try_all` - Run all effects, returning a single error on failure
 //! - `race` - Race effects, return first to complete
 //! - `par2`, `par3` - Run heterogeneous effects in parallel
 
@@ -18,17 +18,16 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
-/// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-///     pure(1).boxed(),
-///     pure(2).boxed(),
-///     pure(3).boxed(),
-/// ];
+/// # tokio_test::block_on(async {
+/// let effects: Vec<BoxedEffect<i32, String, ()>> =
+///     vec![pure(1).boxed(), pure(2).boxed(), pure(3).boxed()];
 ///
 /// let result = par_all(effects, &()).await;
 /// assert_eq!(result, Ok(vec![1, 2, 3]));
+/// # });
 /// ```
 pub async fn par_all<T, E, Env>(
     effects: Vec<BoxedEffect<T, E, Env>>,
@@ -60,23 +59,24 @@ where
     }
 }
 
-/// Execute boxed effects in parallel, fail-fast on first error.
+/// Execute boxed effects in parallel, returning a single error on failure.
 ///
-/// Returns `Ok(results)` if all succeed, `Err(first_error)` on first failure.
-/// Note: Other effects may continue running after the first error.
+/// Returns `Ok(results)` if all succeed, or `Err(first_error)` using
+/// standard `Result` collection semantics. All effects are awaited before
+/// the result is collected.
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
-/// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-///     pure(1).boxed(),
-///     pure(2).boxed(),
-/// ];
+/// # tokio_test::block_on(async {
+/// let effects: Vec<BoxedEffect<i32, String, ()>> =
+///     vec![pure(1).boxed(), fail("first error".to_string()).boxed()];
 ///
 /// let result = par_try_all(effects, &()).await;
-/// assert_eq!(result, Ok(vec![1, 2]));
+/// assert_eq!(result, Err("first error".to_string()));
+/// # });
 /// ```
 pub async fn par_try_all<T, E, Env>(
     effects: Vec<BoxedEffect<T, E, Env>>,
@@ -94,10 +94,10 @@ where
     results.into_iter().collect()
 }
 
-/// Race effects, returning the first to complete successfully.
+/// Race effects, returning the first completed result.
 ///
-/// Returns the result of the first effect to complete.
-/// Other effects are dropped (cancelled).
+/// Returns the result of the first effect to complete, whether success or failure.
+/// Other effects are dropped.
 ///
 /// # Panics
 ///
@@ -105,16 +105,22 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
+/// use std::time::Duration;
 ///
+/// # tokio_test::block_on(async {
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-///     pure(1).boxed(),
-///     pure(2).boxed(),
+///     fail("fast failure".to_string()).boxed(),
+///     from_async(|_: &()| async {
+///         tokio::time::sleep(Duration::from_millis(50)).await;
+///         Ok::<_, String>(2)
+///     }).boxed(),
 /// ];
 ///
 /// let result = race(effects, &()).await;
-/// // Result is either Ok(1) or Ok(2), whichever completes first
+/// assert_eq!(result, Err("fast failure".to_string()));
+/// # });
 /// ```
 pub async fn race<T, E, Env>(effects: Vec<BoxedEffect<T, E, Env>>, env: &Env) -> Result<T, E>
 where
@@ -141,15 +147,17 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let e1 = pure::<_, String, ()>(42);
 /// let e2 = pure::<_, String, ()>("hello".to_string());
 ///
 /// let (r1, r2) = par2(e1, e2, &()).await;
 /// assert_eq!(r1, Ok(42));
 /// assert_eq!(r2, Ok("hello".to_string()));
+/// # });
 /// ```
 pub async fn par2<E1, E2>(
     e1: E1,
@@ -217,15 +225,17 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
 /// let effects: Vec<BoxedEffect<i32, String, ()>> = (1..=10)
 ///     .map(|i| pure(i).boxed())
 ///     .collect();
 ///
 /// let result = par_all_limit(effects, 3, &()).await;
 /// assert_eq!(result.as_ref().map(|v| v.len()), Ok(10));
+/// # });
 /// ```
 pub async fn par_all_limit<T, E, Env>(
     effects: Vec<BoxedEffect<T, E, Env>>,
@@ -266,14 +276,20 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 ///
+/// # tokio_test::block_on(async {
+/// let env = ();
 /// let e1 = pure::<_, String, ()>(1);
 /// let e2 = pure::<_, String, ()>(2);
 /// let e3 = pure::<_, String, ()>(3);
 ///
 /// let (r1, r2, r3) = par!(&env; e1, e2, e3);
+/// assert_eq!(r1, Ok(1));
+/// assert_eq!(r2, Ok(2));
+/// assert_eq!(r3, Ok(3));
+/// # });
 /// ```
 #[macro_export]
 macro_rules! par {

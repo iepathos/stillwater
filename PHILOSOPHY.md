@@ -62,15 +62,15 @@ fn apply_discount(user: User, discount: f64) -> User {
 
 // Effects (the "water" shell)
 fn process_user_effect(id: UserId) -> Effect<User, Error, AppEnv> {
-    IO::query(|db| db.fetch_user(id))           // I/O
+    IO::read(|db| db.fetch_user(id))            // I/O
         .and_then(|user| {
             validate_age(user.age)?;            // Pure!
             let discount = calculate_discount(&user); // Pure!
             let updated = apply_discount(user, discount); // Pure!
-            Effect::pure(updated)
+            pure(updated)
         })
         .and_then(|user| {
-            IO::execute(|db| db.save_user(&user)) // I/O
+            IO::write(|db| db.save_user(&user)) // I/O
                 .map(|_| user)
         })
 }
@@ -334,7 +334,7 @@ assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
 assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
 
 // Apply to any effect
-Effect::retry(|| fetch_data(), policy);
+retry(|| fetch_data(), policy);
 ```
 
 **Benefits:**

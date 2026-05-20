@@ -350,33 +350,41 @@ where
 
 ```rust
 // Fetch multiple users concurrently
-fn fetch_users(ids: Vec<i32>) -> Effect<Vec<User>, DbError, AppEnv> {
-    let effects = ids.into_iter().map(|id| fetch_user(id));
-    Effect::par_all(effects)
+async fn fetch_users(ids: Vec<i32>, env: &AppEnv) -> Result<Vec<User>, Vec<DbError>> {
+    let effects: Vec<BoxedEffect<User, DbError, AppEnv>> = ids
+        .into_iter()
+        .map(|id| fetch_user(id).boxed())
+        .collect();
+    par_all(effects, env).await
 }
 
 // Race multiple data sources
-fn fetch_with_fallback(url: String) -> Effect<Data, Error, AppEnv> {
-    Effect::race([
-        fetch_from_cache(url.clone()),
-        fetch_from_primary(url.clone()),
-        fetch_from_backup(url),
-    ])
+async fn fetch_with_fallback(url: String, env: &AppEnv) -> Result<Data, Error> {
+    let effects: Vec<BoxedEffect<Data, Error, AppEnv>> = vec![
+        fetch_from_cache(url.clone()).boxed(),
+        fetch_from_primary(url.clone()).boxed(),
+        fetch_from_backup(url).boxed(),
+    ];
+    race(effects, env).await
 }
 
 // Parallel validation with rate limiting
-fn validate_batch(items: Vec<Item>) -> Effect<Vec<Result>, Error, AppEnv> {
-    let validations = items.into_iter().map(|item| validate_item(item));
-    Effect::par_all_limit(validations, 10) // Max 10 concurrent validations
+async fn validate_batch(items: Vec<Item>, env: &AppEnv) -> Result<Vec<ValidItem>, Vec<Error>> {
+    let validations: Vec<BoxedEffect<ValidItem, Error, AppEnv>> = items
+        .into_iter()
+        .map(|item| validate_item(item).boxed())
+        .collect();
+    par_all_limit(validations, 10, env).await
 }
 
-// Fail-fast parallel operations
-fn check_all_services() -> Effect<Vec<Status>, Error, AppEnv> {
-    Effect::par_try_all([
-        check_database(),
-        check_cache(),
-        check_queue(),
-    ])
+// Return a single error for parallel operations
+async fn check_all_services(env: &AppEnv) -> Result<Vec<Status>, Error> {
+    let checks: Vec<BoxedEffect<Status, Error, AppEnv>> = vec![
+        check_database().boxed(),
+        check_cache().boxed(),
+        check_queue().boxed(),
+    ];
+    par_try_all(checks, env).await
 }
 ```
 
@@ -563,7 +571,7 @@ fn create_invoice(order_id: OrderId, total: Money) -> Invoice {
 // Effect composition (I/O at boundaries)
 fn process_order(order_id: OrderId) -> Effect<Invoice, ContextError<AppError>, AppEnv> {
     // Fetch order from DB
-    IO::query(move |db: &Database| {
+    IO::read(move |db: &Database| {
         db.find_order(order_id)
             .ok_or(AppError::OrderNotFound(order_id))
     })
@@ -587,7 +595,7 @@ fn process_order(order_id: OrderId) -> Effect<Invoice, ContextError<AppError>, A
 
     // Fetch customer
     .and_then(|(order, total)| {
-        IO::query(move |db: &Database| {
+        IO::read(move |db: &Database| {
             db.find_customer(order.customer_id)
                 .ok_or(AppError::CustomerNotFound(order.customer_id))
         })
@@ -608,7 +616,7 @@ fn process_order(order_id: OrderId) -> Effect<Invoice, ContextError<AppError>, A
     // Save invoice
     .and_then(|invoice| {
         let invoice_copy = invoice.clone();
-        IO::execute(move |db: &Database| {
+        IO::write(move |db: &Database| {
             db.save_invoice(&invoice)
         })
         .map(move |_| invoice_copy)
@@ -770,7 +778,7 @@ fn process_data_pipeline(
 
     // Load reference data (I/O)
     .and_then(|valid_records| {
-        IO::query(|db: &Database| {
+        IO::read(|db: &Database| {
             db.load_reference_data()
         })
         .map(move |ref_data| (valid_records, ref_data))

@@ -24,6 +24,7 @@ For operations that modify state (uses interior mutability):
 
 ```rust
 use stillwater::IO;
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 struct Cache {
@@ -32,19 +33,25 @@ struct Cache {
 
 let effect = IO::write(|cache: &Cache| {
     cache.data.lock().unwrap().insert(key, value);
-    Ok(())
 });
 ```
 
-### IO::execute - Async operations
+### IO::read_async and IO::write_async - Async operations
 
-For async I/O:
+For async I/O, use `read_async` for query-style operations and `write_async` for operations that mutate through interior mutability:
 
 ```rust
 use stillwater::IO;
+use std::future::ready;
 
-let effect = IO::execute(|db: &Database| async move {
-    db.save_user(&user).await
+let read_effect = IO::read_async(|db: &Database| {
+    let user = db.fetch_user(123);
+    ready(user)
+});
+
+let write_effect = IO::write_async(|cache: &Cache| {
+    cache.set(key, value);
+    ready(())
 });
 ```
 

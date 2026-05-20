@@ -338,7 +338,7 @@ use stillwater::validation::homogeneous::combine_homogeneous;
 fn aggregate_with_validation(
     job_id: &str,
 ) -> Effect<AggregateResult, Vec<String>, Env> {
-    IO::query(|env| env.load_results(job_id))
+    IO::read(|env| env.load_results(job_id))
         .and_then(|results| {
             // Validation at I/O boundary
             match combine_homogeneous(
@@ -362,7 +362,7 @@ Always validate at system boundaries, not in the middle of business logic:
 
 ✅ **Good**: Validate at I/O boundaries
 ```rust
-IO::query(load_results)
+IO::read(load_results)
     .and_then(|results| validate_and_process(results))
 ```
 

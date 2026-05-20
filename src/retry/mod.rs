@@ -9,24 +9,23 @@
 //!
 //! # Quick Start
 //!
-//! ```rust,ignore
+//! ```rust
 //! // Note: Requires the `async` feature to be enabled
-//! use stillwater::{Effect, RetryPolicy};
+//! # #[cfg(feature = "async")]
+//! # {
+//! use stillwater::effect::prelude::*;
+//! use stillwater::effect::retry::retry;
+//! use stillwater::RetryPolicy;
 //! use std::time::Duration;
 //!
-//! # tokio_test::block_on(async {
-//! // Create a retry policy with exponential backoff
-//! let policy = RetryPolicy::exponential(Duration::from_millis(100))
-//!     .with_max_retries(3);
+//! tokio_test::block_on(async {
+//!     let policy = RetryPolicy::exponential(Duration::from_millis(100))
+//!         .with_max_retries(3);
 //!
-//! // Retry an effect using a factory function
-//! let effect = Effect::retry(
-//!     || Effect::<_, String, ()>::pure(42),
-//!     policy
-//! );
-//!
-//! assert_eq!(effect.run(&()).await.unwrap().into_value(), 42);
-//! # });
+//!     let effect = retry(|| pure::<_, String, ()>(42), policy);
+//!     assert_eq!(effect.run(&()).await.unwrap().into_value(), 42);
+//! });
+//! # }
 //! ```
 //!
 //! # Retry Strategies

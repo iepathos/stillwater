@@ -47,7 +47,7 @@ This guide is organized into progressive chapters, each building on the previous
    - Best practices
 
 5. **[IO Module](05-io-module.md)** - Ergonomic helpers
-   - IO::read, IO::write, IO::execute
+   - IO::read, IO::write, IO::read_async, IO::write_async
    - Dependency injection patterns
    - Testing with mock environments
 
@@ -146,9 +146,9 @@ cargo run --example retry_patterns
 | Default values | fallback() | Use default on any error |
 | Data aggregation | Monoid | Combine collections with fold_all |
 | Numeric operations | Sum/Product | Aggregate numbers with identity |
-| Retry transient errors | Effect::retry | Retry with backoff strategies |
-| Conditional retry | Effect::retry_if | Retry only on certain errors |
-| Timeout operations | Effect::with_timeout | Prevent hanging operations |
+| Retry transient errors | retry | Retry with backoff strategies |
+| Conditional retry | retry_if | Retry only on certain errors |
+| Timeout operations | with_timeout | Prevent hanging operations |
 | Testing validations | assert_success! / assert_failure! | Concise test assertions |
 | Testing effects | TestEffect | Deterministic effect testing |
 | Mock environments | MockEnv | Build test dependencies |

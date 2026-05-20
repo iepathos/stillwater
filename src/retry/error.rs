@@ -8,28 +8,30 @@ use std::time::Duration;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// // Note: Requires the `async` feature to be enabled
-/// use stillwater::{Effect, RetryPolicy, RetryExhausted};
+/// # #[cfg(feature = "async")]
+/// # {
+/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::retry::retry;
+/// use stillwater::RetryPolicy;
 /// use std::time::Duration;
 ///
-/// # tokio_test::block_on(async {
-/// let policy = RetryPolicy::constant(Duration::from_millis(1))
-///     .with_max_retries(2);
+/// tokio_test::block_on(async {
+///     let policy = RetryPolicy::constant(Duration::from_millis(1))
+///         .with_max_retries(2);
 ///
-/// let effect = Effect::retry(
-///     || Effect::<(), _, ()>::fail("always fails"),
-///     policy
-/// );
+///     let effect = retry(|| fail::<(), _, ()>("always fails"), policy);
 ///
-/// match effect.run_standalone().await {
-///     Err(exhausted) => {
-///         assert_eq!(exhausted.final_error, "always fails");
-///         assert_eq!(exhausted.attempts, 3); // 1 initial + 2 retries
+///     match effect.run(&()).await {
+///         Err(exhausted) => {
+///             assert_eq!(exhausted.final_error, "always fails");
+///             assert_eq!(exhausted.attempts, 3); // 1 initial + 2 retries
+///         }
+///         Ok(_) => panic!("Expected failure"),
 ///     }
-///     Ok(_) => panic!("Expected failure"),
-/// }
-/// # });
+/// });
+/// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RetryExhausted<E> {
@@ -91,25 +93,32 @@ impl<E: std::error::Error + 'static> std::error::Error for RetryExhausted<E> {
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```rust
 /// // Note: Requires the `async` feature to be enabled
-/// use stillwater::{Effect, TimeoutError};
+/// # #[cfg(feature = "async")]
+/// # {
+/// use stillwater::effect::prelude::*;
+/// use stillwater::effect::retry::with_timeout;
+/// use stillwater::TimeoutError;
 /// use std::time::Duration;
 ///
-/// # tokio_test::block_on(async {
-/// let effect = Effect::from_async(|_: &()| async {
-///     tokio::time::sleep(Duration::from_secs(10)).await;
-///     Ok::<_, String>(42)
-/// })
-/// .with_timeout(Duration::from_millis(10));
+/// tokio_test::block_on(async {
+///     let effect = with_timeout(
+///         from_async(|_: &()| async {
+///             tokio::time::sleep(Duration::from_millis(50)).await;
+///             Ok::<_, String>(42)
+///         }),
+///         Duration::from_millis(10),
+///     );
 ///
-/// match effect.run_standalone().await {
-///     Err(TimeoutError::Timeout { duration }) => {
-///         assert_eq!(duration, Duration::from_millis(10));
+///     match effect.run(&()).await {
+///         Err(TimeoutError::Timeout { duration }) => {
+///             assert_eq!(duration, Duration::from_millis(10));
+///         }
+///         _ => panic!("Expected timeout"),
 ///     }
-///     _ => panic!("Expected timeout"),
-/// }
-/// # });
+/// });
+/// # }
 /// ```
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TimeoutError<E> {

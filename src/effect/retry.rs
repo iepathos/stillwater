@@ -29,19 +29,21 @@ use crate::retry::{RetryEvent, RetryExhausted, RetryPolicy, TimeoutError};
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 /// use stillwater::effect::retry::retry;
 /// use stillwater::RetryPolicy;
 /// use std::time::Duration;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = retry(
 ///     || pure::<_, String, ()>(42),
 ///     RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3)
 /// );
 ///
-/// let result = effect.execute(&()).await.unwrap();
+/// let result = effect.run(&()).await.unwrap();
 /// assert_eq!(result.into_value(), 42);
+/// # });
 /// ```
 #[cfg(feature = "async")]
 pub fn retry<T, E, Env, F, Eff>(
@@ -101,7 +103,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 /// use stillwater::effect::retry::retry_if;
 /// use stillwater::RetryPolicy;
@@ -110,6 +112,7 @@ where
 /// #[derive(Debug, PartialEq, Clone)]
 /// enum AppError { Transient, Permanent }
 ///
+/// # tokio_test::block_on(async {
 /// let effect = retry_if(
 ///     || fail::<(), _, ()>(AppError::Permanent),
 ///     RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(3),
@@ -117,8 +120,9 @@ where
 /// );
 ///
 /// // Permanent errors are not retried
-/// let result = effect.execute(&()).await;
+/// let result = effect.run(&()).await;
 /// assert_eq!(result, Err(AppError::Permanent));
+/// # });
 /// ```
 #[cfg(feature = "async")]
 pub fn retry_if<T, E, Env, F, P, Eff>(
@@ -177,22 +181,29 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 /// use stillwater::effect::retry::retry_with_hooks;
 /// use stillwater::{RetryPolicy, RetryEvent};
+/// use std::sync::{Arc, atomic::{AtomicUsize, Ordering}};
 /// use std::time::Duration;
 ///
+/// # tokio_test::block_on(async {
+/// let hook_calls = Arc::new(AtomicUsize::new(0));
+/// let hook_calls_for_callback = Arc::clone(&hook_calls);
+///
 /// let effect = retry_with_hooks(
-///     || pure::<_, String, ()>(42),
-///     RetryPolicy::exponential(Duration::from_millis(10)).with_max_retries(3),
-///     |event: &RetryEvent<'_, String>| {
-///         println!(
-///             "Attempt {} failed: {:?}, next delay: {:?}",
-///             event.attempt, event.error, event.next_delay
-///         );
+///     || fail::<i32, _, ()>("nope".to_string()),
+///     RetryPolicy::constant(Duration::from_millis(1)).with_max_retries(0),
+///     move |event: &RetryEvent<'_, String>| {
+///         assert_eq!(event.attempt, 1);
+///         hook_calls_for_callback.fetch_add(1, Ordering::SeqCst);
 ///     }
 /// );
+///
+/// assert!(effect.run(&()).await.is_err());
+/// assert_eq!(hook_calls.load(Ordering::SeqCst), 1);
+/// # });
 /// ```
 #[cfg(feature = "async")]
 pub fn retry_with_hooks<T, E, Env, F, H, Eff>(
@@ -264,26 +275,28 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```rust
 /// use stillwater::effect::prelude::*;
 /// use stillwater::effect::retry::with_timeout;
 /// use stillwater::TimeoutError;
 /// use std::time::Duration;
 ///
+/// # tokio_test::block_on(async {
 /// let effect = with_timeout(
 ///     from_async(|_: &()| async {
-///         tokio::time::sleep(Duration::from_secs(10)).await;
+///         tokio::time::sleep(Duration::from_millis(50)).await;
 ///         Ok::<_, String>(42)
 ///     }),
 ///     Duration::from_millis(10)
 /// );
 ///
-/// match effect.execute(&()).await {
+/// match effect.run(&()).await {
 ///     Err(TimeoutError::Timeout { duration }) => {
 ///         assert_eq!(duration, Duration::from_millis(10));
 ///     }
 ///     _ => panic!("Expected timeout"),
 /// }
+/// # });
 /// ```
 #[cfg(feature = "async")]
 pub fn with_timeout<T, E, Env, Eff>(

@@ -226,7 +226,8 @@ match result {
 ### 8. "Retry logic is scattered and hard to test"
 
 ```rust
-use stillwater::{Effect, RetryPolicy};
+use stillwater::effect::retry::{retry, retry_if, retry_with_hooks};
+use stillwater::RetryPolicy;
 use std::time::Duration;
 
 // Stillwater: Policy as Data
@@ -242,18 +243,18 @@ assert_eq!(api_policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
 assert_eq!(api_policy.delay_for_attempt(2), Some(Duration::from_millis(400)));
 
 // Reuse the same policy across different effects
-Effect::retry(|| fetch_user(id), api_policy.clone());
-Effect::retry(|| save_order(order), api_policy.clone());
+retry(|| fetch_user(id), api_policy.clone());
+retry(|| save_order(order), api_policy.clone());
 
 // Conditional retry: only retry transient failures
-Effect::retry_if(
+retry_if(
     || api_call(),
     api_policy,
     |err| matches!(err, ApiError::Timeout | ApiError::ServerError(_))
 );
 
 // Observability: hook into retry events for logging/metrics
-Effect::retry_with_hooks(
+retry_with_hooks(
     || api_call(),
     policy,
     |event| log::warn!(
@@ -541,19 +542,19 @@ Add to your `Cargo.toml`:
 stillwater = "1.0"
 
 # Optional: async support
-stillwater = { version = "0.11", features = ["async"] }
+stillwater = { version = "1.0", features = ["async"] }
 
 # Optional: tracing integration
-stillwater = { version = "0.11", features = ["tracing"] }
+stillwater = { version = "1.0", features = ["tracing"] }
 
 # Optional: jitter for retry policies
-stillwater = { version = "0.11", features = ["jitter"] }
+stillwater = { version = "1.0", features = ["jitter"] }
 
 # Optional: property-based testing
-stillwater = { version = "0.11", features = ["proptest"] }
+stillwater = { version = "1.0", features = ["proptest"] }
 
 # Multiple features
-stillwater = { version = "0.11", features = ["async", "tracing", "jitter"] }
+stillwater = { version = "1.0", features = ["async", "tracing", "jitter"] }
 ```
 
 ## Examples
@@ -592,16 +593,15 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 0.11.0 - Production Ready**
+**Status: 1.0.1 - Production Ready**
 
-- 355 unit tests passing
-- 113 documentation tests passing
-- 21 runnable examples
+- Comprehensive unit and documentation test coverage
+- 27 runnable examples
 - Zero clippy warnings
 - Full async support
 - CI/CD pipeline with security audits
 
-This library is stable and ready for use. The 0.x version indicates the API may evolve based on community feedback.
+This library is stable and ready for use.
 
 ## Migration from 0.10.x
 

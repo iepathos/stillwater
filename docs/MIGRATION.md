@@ -257,7 +257,7 @@ let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     pure(2).boxed(),
     pure(3).boxed(),
 ];
-let results = par_all(effects).run(&()).await?;
+let results = par_all(effects, &()).await?;
 ```
 
 ## Performance Implications

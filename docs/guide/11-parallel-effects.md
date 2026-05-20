@@ -2,641 +2,520 @@
 
 ## Overview
 
-Stillwater's `Effect` type supports parallel execution of independent effects, enabling concurrent operations while preserving error handling and environment access patterns. This guide demonstrates the four parallel execution methods and when to use each.
+Stillwater provides free functions for running independent effects concurrently while preserving the same environment and error model used by sequential effects.
+
+There are two families of parallel helpers:
+
+- Fixed-arity helpers: `par2`, `par3`, and `par4` for heterogeneous effects without boxing.
+- Collection helpers: `par_all`, `par_try_all`, `race`, and `par_all_limit` for homogeneous `Vec<BoxedEffect<...>>` batches.
+
+This guide focuses on when to use each helper and how to structure real application code around them.
 
 ## Why Parallel Effects?
 
-Many real-world operations involve independent tasks that can run concurrently:
+Many real-world operations are independent and can run concurrently:
 
 - Fetching multiple records from a database
-- Validating multiple fields independently
-- Making multiple API calls simultaneously
-- Loading configuration from multiple sources
-- Processing batches of items
+- Making several API calls at once
+- Loading independent configuration sources
+- Validating independent inputs
+- Processing batches with a concurrency limit
 
-Sequential execution:
+Sequential execution waits for each operation before starting the next:
+
 ```rust
-// Slow - waits for each to complete before starting the next
-let user1 = fetch_user(1).run(&env).await?;
-let user2 = fetch_user(2).run(&env).await?;
-let user3 = fetch_user(3).run(&env).await?;
+let user = fetch_user(id).run(&env).await?;
+let settings = fetch_settings(id).run(&env).await?;
+let preferences = fetch_preferences(id).run(&env).await?;
 ```
 
-Parallel execution:
+Parallel execution starts independent work together:
+
 ```rust
-// Fast - runs all three concurrently
-let users = Effect::par_all([
-    fetch_user(1),
-    fetch_user(2),
-    fetch_user(3),
-]).run(&env).await?;
+use stillwater::effect::prelude::*;
+
+let (user, settings, preferences) = par3(
+    fetch_user(id),
+    fetch_settings(id),
+    fetch_preferences(id),
+    &env,
+).await;
+
+let profile = UserProfile {
+    user: user?,
+    settings: settings?,
+    preferences: preferences?,
+};
 ```
 
-## The Four Parallel Methods
+## Choosing A Helper
 
-### 1. `par_all()` - Collect All Results
+| Need | Helper | Shape |
+|------|--------|-------|
+| 2-4 effects with different output types | `par2`, `par3`, `par4` | Returns a tuple of `Result`s |
+| A batch where all errors should be reported | `par_all` | `Result<Vec<T>, Vec<E>>` |
+| A batch where one error is enough | `par_try_all` | `Result<Vec<T>, E>` |
+| The first completed result should decide | `race` | `Result<T, E>` |
+| A large batch needs bounded concurrency | `par_all_limit` | `Result<Vec<T>, Vec<E>>` |
 
-Runs multiple effects in parallel and collects all results. If any effects fail, **all errors are accumulated**.
+Collection helpers require boxed effects because a `Vec` needs one concrete item type:
 
-**Use when:** You need all results and want to see all errors if multiple operations fail.
-
-**Type signature:**
 ```rust
-pub fn par_all<I>(effects: I) -> Effect<Vec<T>, Vec<E>, Env>
-where
-    I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
-    I::IntoIter: Send,
+use stillwater::effect::prelude::*;
+
+let effects: Vec<BoxedEffect<User, DbError, AppEnv>> = user_ids
+    .into_iter()
+    .map(|id| fetch_user(id).boxed())
+    .collect();
+
+let users = par_all(effects, &env).await?;
 ```
 
-**Example: Fetch Multiple Users**
-```rust
-use stillwater::Effect;
+## Heterogeneous Parallel Effects
 
-async fn fetch_user(id: i32) -> Effect<User, DbError, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        env.db.find_user(id).await
-    })
+Use `par2`, `par3`, or `par4` when effects have different output types, or when you want to avoid boxing.
+
+```rust
+use stillwater::effect::prelude::*;
+
+let (price, inventory, shipping) = par3(
+    fetch_price(item_id),
+    fetch_inventory(item_id),
+    fetch_shipping_options(item_id),
+    &env,
+).await;
+
+let quote = Quote {
+    price: price?,
+    inventory: inventory?,
+    shipping: shipping?,
+};
+```
+
+These helpers return a tuple of results instead of short-circuiting. That makes each outcome explicit:
+
+```rust
+let (database, cache) = par2(check_database(), check_cache(), &env).await;
+
+match (database, cache) {
+    (Ok(db), Ok(cache)) => Health::healthy(db, cache),
+    (db_result, cache_result) => Health::degraded(db_result.err(), cache_result.err()),
 }
-
-async fn load_team(ids: Vec<i32>) -> Result<Vec<User>, Vec<DbError>> {
-    let env = AppEnv::new();
-
-    let effects = ids.into_iter().map(|id| fetch_user(id));
-
-    Effect::par_all(effects).run(&env).await
-}
-
-// Usage
-# tokio_test::block_on(async {
-match load_team(vec![1, 2, 3]).await {
-    Ok(users) => println!("Loaded {} users", users.len()),
-    Err(errors) => {
-        // See ALL failures, not just the first
-        for error in errors {
-            eprintln!("Failed: {}", error);
-        }
-    }
-}
-# });
 ```
 
-**Error behavior:**
+This is useful for diagnostics and health checks where you want to inspect every independent subsystem.
+
+## `par_all` - Collect All Results Or All Errors
+
+Use `par_all` when every operation should run to completion and callers benefit from a complete error report.
+
 ```rust
-# tokio_test::block_on(async {
-let effects = vec![
-    Effect::<i32, String, ()>::pure(1),
-    Effect::fail("error1".to_string()),
-    Effect::fail("error2".to_string()),
+use stillwater::effect::prelude::*;
+
+async fn validate_import(records: Vec<Record>, env: &AppEnv) -> Result<Vec<ValidRecord>, Vec<ValidationError>> {
+    let effects: Vec<BoxedEffect<ValidRecord, ValidationError, AppEnv>> = records
+        .into_iter()
+        .map(|record| validate_record(record).boxed())
+        .collect();
+
+    par_all(effects, env).await
+}
+```
+
+If any effect fails, `par_all` returns all failures:
+
+```rust
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    fail("bad input".to_string()).boxed(),
+    fail("missing field".to_string()).boxed(),
 ];
 
-let result = Effect::par_all(effects).run_standalone().await;
-
-// Result is Err(vec!["error1", "error2"])
-// All errors are collected, not just the first
-# });
+let result = par_all(effects, &()).await;
+assert_eq!(
+    result,
+    Err(vec!["bad input".to_string(), "missing field".to_string()])
+);
 ```
 
-### 2. `par_try_all()` - Fail Fast
+This is the right choice for form validation, import validation, batch reporting, and admin tools where users need a full list of failures.
 
-Runs effects in parallel but **stops immediately when the first error occurs**.
+## `par_try_all` - Return A Single Error
 
-**Use when:** You need all results but one failure invalidates the entire operation.
+Use `par_try_all` when one error is enough for the caller.
 
-**Type signature:**
 ```rust
-pub fn par_try_all<I>(effects: I) -> Effect<Vec<T>, E, Env>
-where
-    I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
-    I::IntoIter: Send,
+use stillwater::effect::prelude::*;
+
+async fn load_required_services(env: &AppEnv) -> Result<Vec<ServiceStatus>, ServiceError> {
+    let checks: Vec<BoxedEffect<ServiceStatus, ServiceError, AppEnv>> = vec![
+        check_database().boxed(),
+        check_cache().boxed(),
+        check_queue().boxed(),
+    ];
+
+    par_try_all(checks, env).await
+}
 ```
 
-**Example: Health Check**
+`par_try_all` awaits the batch and then collects with normal `Result` semantics, returning the first error in result order. It is not a cancellation primitive.
+
 ```rust
-use stillwater::Effect;
-
-async fn check_database() -> Effect<Status, Error, AppEnv> {
-    Effect::from_async_fn(|env| async move {
-        env.db.ping().await.map(|_| Status::Ok)
-    })
-}
-
-async fn check_cache() -> Effect<Status, Error, AppEnv> {
-    Effect::from_async_fn(|env| async move {
-        env.cache.ping().await.map(|_| Status::Ok)
-    })
-}
-
-async fn check_queue() -> Effect<Status, Error, AppEnv> {
-    Effect::from_async_fn(|env| async move {
-        env.queue.ping().await.map(|_| Status::Ok)
-    })
-}
-
-async fn health_check() -> Effect<Vec<Status>, Error, AppEnv> {
-    // If ANY service is down, fail immediately
-    Effect::par_try_all([
-        check_database(),
-        check_cache(),
-        check_queue(),
-    ])
-}
-
-# tokio_test::block_on(async {
-let env = AppEnv::new();
-
-match health_check().run(&env).await {
-    Ok(statuses) => println!("All services healthy"),
-    Err(error) => {
-        // Got the FIRST error, didn't wait for others
-        eprintln!("Health check failed: {}", error);
-    }
-}
-# });
-```
-
-**Comparison with par_all:**
-```rust
-# tokio_test::block_on(async {
-let effects = vec![
-    Effect::<i32, String, ()>::pure(1),
-    Effect::fail("error1".to_string()),
-    Effect::fail("error2".to_string()),
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    pure(1).boxed(),
+    fail("first error".to_string()).boxed(),
+    fail("second error".to_string()).boxed(),
 ];
 
-// par_try_all returns Err("error1")
-let result = Effect::par_try_all(effects.clone()).run_standalone().await;
-assert!(result.is_err());
-
-// par_all returns Err(vec!["error1", "error2"])
-let result = Effect::par_all(effects).run_standalone().await;
-assert_eq!(result.unwrap_err().len(), 2);
-# });
+let result = par_try_all(effects, &()).await;
+assert_eq!(result, Err("first error".to_string()));
 ```
 
-### 3. `race()` - First to Complete
+Use `par_all` when you need every error. Use `par_try_all` when the caller only needs to know that the batch failed.
 
-Runs multiple effects in parallel and returns **the first successful result**. If all fail, collects all errors.
+## `race` - First Completed Result
 
-**Use when:** You have multiple equivalent sources and want the fastest response.
+Use `race` when the first completed result should decide the outcome.
 
-**Type signature:**
 ```rust
-pub fn race<I>(effects: I) -> Effect<T, Vec<E>, Env>
-where
-    I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
-    I::IntoIter: Send,
-```
+use stillwater::effect::prelude::*;
 
-**Example: Fallback Data Sources**
-```rust
-use stillwater::Effect;
+async fn fetch_from_fastest_replica(key: String, env: &AppEnv) -> Result<Data, FetchError> {
+    let effects: Vec<BoxedEffect<Data, FetchError, AppEnv>> = vec![
+        fetch_from_replica_a(key.clone()).boxed(),
+        fetch_from_replica_b(key.clone()).boxed(),
+        fetch_from_replica_c(key).boxed(),
+    ];
 
-async fn fetch_from_cache(key: String) -> Effect<Data, Error, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        env.cache.get(&key).await
-    })
-}
-
-async fn fetch_from_primary(key: String) -> Effect<Data, Error, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        env.primary_db.fetch(&key).await
-    })
-}
-
-async fn fetch_from_backup(key: String) -> Effect<Data, Error, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        env.backup_db.fetch(&key).await
-    })
-}
-
-async fn fetch_data(key: String) -> Effect<Data, Vec<Error>, AppEnv> {
-    // Try all sources, use whichever responds first
-    Effect::race([
-        fetch_from_cache(key.clone()),
-        fetch_from_primary(key.clone()),
-        fetch_from_backup(key),
-    ])
-}
-
-# tokio_test::block_on(async {
-let env = AppEnv::new();
-
-match fetch_data("user:123".into()).run(&env).await {
-    Ok(data) => {
-        // Got data from the fastest source
-        println!("Retrieved data: {:?}", data);
-    }
-    Err(errors) => {
-        // ALL sources failed
-        eprintln!("All sources failed:");
-        for error in errors {
-            eprintln!("  - {}", error);
-        }
-    }
-}
-# });
-```
-
-**Example: Timeout Pattern**
-```rust
-use stillwater::Effect;
-use std::time::Duration;
-
-async fn with_timeout<T, E, Env>(
-    effect: Effect<T, E, Env>,
-    timeout: Duration,
-) -> Effect<T, Vec<E>, Env>
-where
-    T: Send + 'static,
-    E: Send + From<String> + 'static,
-    Env: Send + Sync + 'static,
-{
-    let timeout_effect = Effect::from_async_fn(move |_env| async move {
-        tokio::time::sleep(timeout).await;
-        Err(E::from("Operation timed out".to_string()))
-    });
-
-    Effect::race([effect, timeout_effect])
-}
-
-// Usage
-# tokio_test::block_on(async {
-let slow_operation = Effect::<i32, String, ()>::from_async_fn(|_| async {
-    tokio::time::sleep(Duration::from_secs(10)).await;
-    Ok(42)
-});
-
-let result = with_timeout(slow_operation, Duration::from_secs(1))
-    .run_standalone()
-    .await;
-
-assert!(result.is_err()); // Times out after 1 second
-# });
-```
-
-### 4. `par_all_limit()` - Bounded Concurrency
-
-Runs effects in parallel but limits the number running concurrently.
-
-**Use when:** You need to control resource usage (rate limiting, connection pools, etc.)
-
-**Type signature:**
-```rust
-pub fn par_all_limit<I>(effects: I, limit: usize) -> Effect<Vec<T>, Vec<E>, Env>
-where
-    I: IntoIterator<Item = Effect<T, E, Env>> + Send + 'static,
-    I::IntoIter: Send,
-```
-
-**Example: Batch Processing with Rate Limit**
-```rust
-use stillwater::Effect;
-
-async fn process_item(item: Item) -> Effect<Result, Error, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        env.api.process(item).await
-    })
-}
-
-async fn process_batch(items: Vec<Item>) -> Effect<Vec<Result>, Vec<Error>, AppEnv> {
-    let effects = items.into_iter().map(|item| process_item(item));
-
-    // Process up to 5 items concurrently
-    // If you have 100 items, only 5 run at once
-    Effect::par_all_limit(effects, 5)
-}
-
-# tokio_test::block_on(async {
-let env = AppEnv::new();
-let items: Vec<Item> = vec![/* ... */];
-
-match process_batch(items).run(&env).await {
-    Ok(results) => {
-        println!("Processed {} items", results.len());
-    }
-    Err(errors) => {
-        eprintln!("Errors processing batch: {:?}", errors);
-    }
-}
-# });
-```
-
-**Example: Database Connection Pool**
-```rust
-use stillwater::Effect;
-
-async fn query_user(id: i32) -> Effect<User, DbError, AppEnv> {
-    Effect::from_async_fn(move |env| async move {
-        // Uses connection from pool
-        env.db.query_user(id).await
-    })
-}
-
-async fn load_users(ids: Vec<i32>) -> Effect<Vec<User>, Vec<DbError>, AppEnv> {
-    let effects = ids.into_iter().map(|id| query_user(id));
-
-    // Don't exhaust connection pool
-    // If pool has 10 connections, use at most 8 for queries
-    Effect::par_all_limit(effects, 8)
+    race(effects, env).await
 }
 ```
 
-## Environment Access in Parallel Effects
-
-All parallel effects share the same environment, which must be `Sync` (safe to share across threads).
+`race` returns the first completed result, whether success or error. It does not wait to find the first success.
 
 ```rust
-use stillwater::Effect;
+let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
+    fail("fast failure".to_string()).boxed(),
+    pure(42).boxed(),
+];
+
+let result = race(effects, &()).await;
+assert_eq!(result, Err("fast failure".to_string()));
+```
+
+This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with `or_else`, `fallback_to`, or explicit retry/fallback logic instead of `race`.
+
+## `par_all_limit` - Bounded Concurrency
+
+Use `par_all_limit` for large batches or limited resources such as connection pools, file descriptors, or API rate limits.
+
+```rust
+use stillwater::effect::prelude::*;
+
+async fn process_queue(
+    queue: Vec<WorkItem>,
+    max_concurrent: usize,
+    env: &AppEnv,
+) -> Result<Vec<ProcessedItem>, Vec<ProcessingError>> {
+    let effects: Vec<BoxedEffect<ProcessedItem, ProcessingError, AppEnv>> = queue
+        .into_iter()
+        .map(|item| process_item(item).boxed())
+        .collect();
+
+    par_all_limit(effects, max_concurrent, env).await
+}
+```
+
+The function still runs every effect and collects all errors, but it only keeps `limit` futures in flight at once.
+
+```rust
+let effects: Vec<BoxedEffect<i32, String, ()>> = (1..=10)
+    .map(|n| pure(n).boxed())
+    .collect();
+
+let result = par_all_limit(effects, 3, &()).await;
+assert_eq!(result.as_ref().map(|values| values.len()), Ok(10));
+```
+
+## Environment Access
+
+Parallel helpers receive a shared `&Env`. Boxed collection helpers require `Env: Clone + Send + Sync + 'static`, so application environments usually store services in cheap-to-clone handles:
+
+```rust
+use std::sync::Arc;
 
 #[derive(Clone)]
 struct AppEnv {
-    config: Config,
-    db: Database,
-}
-
-// Environment must be Sync for parallel execution
-impl Sync for AppEnv {}
-
-async fn parallel_with_env() -> Effect<Vec<i32>, String, AppEnv> {
-    Effect::par_all([
-        // All three effects access the same environment
-        Effect::asks(|env: &AppEnv| env.config.timeout),
-        Effect::asks(|env: &AppEnv| env.config.max_retries),
-        Effect::asks(|env: &AppEnv| env.config.batch_size),
-    ])
+    config: Arc<Config>,
+    db: Arc<DatabasePool>,
+    http: Arc<HttpClient>,
 }
 ```
 
-## Composing Parallel Effects
-
-Parallel effects compose naturally with other Effect combinators:
+Each effect still controls how it uses the environment:
 
 ```rust
-use stillwater::Effect;
+use stillwater::effect::prelude::*;
 
-async fn load_and_process(ids: Vec<i32>) -> Effect<Vec<ProcessedData>, Error, AppEnv> {
-    // Load in parallel
-    let load_effects = ids.into_iter().map(|id| fetch_user(id));
+fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {
+    from_async(move |env: &AppEnv| {
+        let db = env.db.clone();
+        async move { db.fetch_user(id).await }
+    })
+}
+```
 
-    Effect::par_all(load_effects)
-        // Then process each result
-        .map(|users| {
-            users.into_iter()
-                .map(|user| process_user(user))
-                .collect()
-        })
-        // Then save all in parallel
-        .and_then(|processed| {
-            let save_effects = processed.into_iter().map(|data| save_data(data));
-            Effect::par_all(save_effects)
-        })
+## Composing Parallel And Sequential Work
+
+Parallel work often appears inside a larger sequential workflow. Use normal Rust control flow around the async helper calls:
+
+```rust
+use stillwater::effect::prelude::*;
+
+async fn build_dashboard(user_id: UserId, env: &AppEnv) -> Result<Dashboard, AppError> {
+    let user = fetch_user(user_id).run(env).await?;
+
+    let (activity, recommendations, alerts) = par3(
+        fetch_activity(user.id),
+        fetch_recommendations(user.id),
+        fetch_alerts(user.id),
+        env,
+    ).await;
+
+    Ok(Dashboard {
+        user,
+        activity: activity?,
+        recommendations: recommendations?,
+        alerts: alerts?,
+    })
+}
+```
+
+For a second parallel phase, build another effect collection after the first phase succeeds:
+
+```rust
+async fn load_and_save(ids: Vec<UserId>, env: &AppEnv) -> Result<Vec<Receipt>, Vec<AppError>> {
+    let load_effects: Vec<BoxedEffect<User, AppError, AppEnv>> = ids
+        .into_iter()
+        .map(|id| fetch_user(id).boxed())
+        .collect();
+
+    let users = par_all(load_effects, env).await?;
+
+    let save_effects: Vec<BoxedEffect<Receipt, AppError, AppEnv>> = users
+        .into_iter()
+        .map(|user| save_user_snapshot(user).boxed())
+        .collect();
+
+    par_all(save_effects, env).await
 }
 ```
 
 ## Practical Patterns
 
-### Pattern 1: Parallel Validation
+### Parallel Validation
 
-Validate multiple fields independently:
+Use `par_all` when expensive validation checks can run independently and the user should see all failures:
 
 ```rust
-use stillwater::{Effect, Validation};
+async fn validate_signup(data: SignupData, env: &AppEnv) -> Result<ValidSignup, Vec<SignupError>> {
+    let effects: Vec<BoxedEffect<FieldCheck, SignupError, AppEnv>> = vec![
+        validate_email(data.email).boxed(),
+        validate_username(data.username).boxed(),
+        validate_password(data.password).boxed(),
+    ];
 
-async fn validate_signup(data: SignupData) -> Effect<ValidUser, Vec<String>, AppEnv> {
-    Effect::par_all([
-        validate_email(data.email),
-        validate_username(data.username),
-        validate_password(data.password),
-    ])
-    .and_then(|results| {
-        // All validations succeeded
-        Effect::pure(ValidUser::new(results))
-    })
+    let checks = par_all(effects, env).await?;
+    Ok(ValidSignup::from_checks(checks))
 }
 ```
 
-### Pattern 2: Scatter-Gather
+### Health Checks
 
-Query multiple services and combine results:
+Use fixed-arity helpers when each subsystem has a distinct result:
 
 ```rust
-async fn dashboard_data(user_id: i32) -> Effect<Dashboard, Error, AppEnv> {
-    Effect::par_all([
-        fetch_user_profile(user_id),
-        fetch_recent_activity(user_id),
-        fetch_recommendations(user_id),
-    ])
-    .map(|results| Dashboard {
-        profile: results[0],
-        activity: results[1],
-        recommendations: results[2],
-    })
+async fn health(env: &AppEnv) -> HealthReport {
+    let (database, cache, queue) = par3(
+        check_database(),
+        check_cache(),
+        check_queue(),
+        env,
+    ).await;
+
+    HealthReport {
+        database,
+        cache,
+        queue,
+    }
 }
 ```
 
-### Pattern 3: Defensive Timeout
+### Rate-Limited API Imports
 
-Wrap risky operations with timeouts:
+Use `par_all_limit` when the remote system enforces a concurrency cap:
 
 ```rust
-async fn with_timeout<T>(
-    effect: Effect<T, Error, AppEnv>,
-    timeout_ms: u64,
-) -> Effect<T, Vec<Error>, AppEnv> {
-    let timeout = Effect::from_async_fn(|_| async move {
-        tokio::time::sleep(Duration::from_millis(timeout_ms)).await;
-        Err(Error::Timeout)
-    });
+async fn import_customers(customers: Vec<Customer>, env: &AppEnv) -> ImportSummary {
+    let effects: Vec<BoxedEffect<ImportReceipt, ImportError, AppEnv>> = customers
+        .into_iter()
+        .map(|customer| send_customer(customer).boxed())
+        .collect();
 
-    Effect::race([effect, timeout])
+    match par_all_limit(effects, 10, env).await {
+        Ok(receipts) => ImportSummary::success(receipts),
+        Err(errors) => ImportSummary::failure(errors),
+    }
 }
 ```
 
-### Pattern 4: Work Queue Processing
+### Fastest Completed Source
 
-Process work items with concurrency control:
+Use `race` only when "first completed" is the desired behavior:
 
 ```rust
-async fn process_queue(
-    queue: Vec<WorkItem>,
-    max_concurrent: usize,
-) -> Effect<Vec<Result>, Vec<Error>, AppEnv> {
-    let effects = queue.into_iter().map(|item| process_work_item(item));
+async fn query_fastest_index(term: SearchTerm, env: &AppEnv) -> Result<SearchResults, SearchError> {
+    let effects: Vec<BoxedEffect<SearchResults, SearchError, AppEnv>> = vec![
+        query_primary_index(term.clone()).boxed(),
+        query_replica_index(term).boxed(),
+    ];
 
-    Effect::par_all_limit(effects, max_concurrent)
+    race(effects, env).await
+}
+```
+
+If a fast failure should not win, use a fallback chain:
+
+```rust
+fn query_with_fallback(term: SearchTerm) -> impl Effect<Output = SearchResults, Error = SearchError, Env = AppEnv> {
+    query_primary_index(term.clone())
+        .fallback_to(query_replica_index(term))
 }
 ```
 
 ## Performance Considerations
 
-### Choose the Right Method
-
-- **par_all**: When you need all errors for debugging/reporting
-- **par_try_all**: When one failure means the entire operation should stop
-- **race**: When you have redundant data sources or want fastest response
-- **par_all_limit**: When you need to protect resources (connections, memory, rate limits)
-
 ### Actual Concurrency
 
-All parallel methods use actual async concurrency:
+The parallel helpers use async concurrency. They do not spawn OS threads by themselves; each effect must be asynchronous or otherwise yield for concurrency to matter.
 
 ```rust
-# tokio_test::block_on(async {
-use std::time::Instant;
+use stillwater::effect::prelude::*;
+use std::time::{Duration, Instant};
 
 let start = Instant::now();
 
-let effects = vec![
-    Effect::<(), String, ()>::from_async_fn(|_| async {
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Ok(())
-    }),
-    Effect::from_async_fn(|_| async {
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Ok(())
-    }),
-    Effect::from_async_fn(|_| async {
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        Ok(())
-    }),
-];
+let effects: Vec<BoxedEffect<(), String, ()>> = (0..3)
+    .map(|_| {
+        from_async(|_: &()| async {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            Ok::<_, String>(())
+        })
+        .boxed()
+    })
+    .collect();
 
-Effect::par_all(effects).run_standalone().await.unwrap();
+par_all(effects, &()).await.unwrap();
 
 let elapsed = start.elapsed();
-
-// Should take ~100ms, not ~300ms
-assert!(elapsed < Duration::from_millis(150));
-# });
+assert!(elapsed < Duration::from_millis(200));
 ```
+
+### Boxing Cost
+
+Fixed-arity helpers avoid boxing and are the best fit for small, known sets of independent effects.
+
+Collection helpers require boxing because a vector needs one concrete type. Prefer collection helpers for dynamic or large batches where the allocation cost is dominated by I/O.
 
 ### Memory Usage
 
-- `par_all` and `par_try_all` spawn all tasks immediately
-- `par_all_limit` only keeps `limit` tasks in flight at once
-- For large batches with limited resources, use `par_all_limit`
-
-## Error Handling Best Practices
-
-### Accumulate Errors for Reporting
-
-```rust
-async fn import_records(records: Vec<Record>) -> ImportResult {
-    let effects = records.iter().map(|r| validate_and_save(r));
-
-    match Effect::par_all(effects).run(&env).await {
-        Ok(results) => {
-            ImportResult::success(results.len())
-        }
-        Err(errors) => {
-            // Show user ALL validation errors, not just first
-            ImportResult::failure(errors)
-        }
-    }
-}
-```
-
-### Fail Fast for Critical Operations
-
-```rust
-async fn critical_setup() -> Effect<(), Error, AppEnv> {
-    // If any step fails, abort immediately
-    Effect::par_try_all([
-        initialize_database(),
-        connect_to_cache(),
-        load_critical_config(),
-    ])
-    .map(|_| ())
-}
-```
-
-### Graceful Degradation with Race
-
-```rust
-async fn fetch_with_fallback(key: String) -> Effect<Data, Error, AppEnv> {
-    match Effect::race([
-        fetch_from_cache(key.clone()),
-        fetch_from_primary(key.clone()),
-    ]).run(&env).await {
-        Ok(data) => Ok(data),
-        Err(_) => {
-            // Both failed, try backup
-            fetch_from_backup(key).run(&env).await
-        }
-    }
-}
-```
+- `par_all` and `par_try_all` keep the whole batch in flight.
+- `race` keeps the whole batch in flight until the first result completes.
+- `par_all_limit` keeps at most `limit` effects in flight and is the safer default for large batches.
 
 ## Testing Parallel Effects
 
-Parallel effects work with test environments just like sequential effects:
+Parallel effects use the same environment pattern as sequential effects:
 
 ```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[tokio::test]
+async fn loads_users_in_parallel() {
+    let env = TestEnv::with_users(vec![
+        User::new(1),
+        User::new(2),
+        User::new(3),
+    ]);
 
-    #[tokio::test]
-    async fn test_parallel_fetch() {
-        let test_env = TestEnv {
-            db: MockDatabase::new(),
-        };
+    let effects: Vec<BoxedEffect<User, TestError, TestEnv>> = vec![
+        fetch_user(1).boxed(),
+        fetch_user(2).boxed(),
+        fetch_user(3).boxed(),
+    ];
 
-        let result = Effect::par_all([
-            fetch_user(1),
-            fetch_user(2),
-            fetch_user(3),
-        ]).run(&test_env).await;
-
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap().len(), 3);
-    }
+    let users = par_all(effects, &env).await.unwrap();
+    assert_eq!(users.len(), 3);
 }
 ```
 
+For timing-sensitive tests, keep assertions loose enough to avoid flakes. Prefer testing result shape and concurrency limits over exact elapsed time.
+
 ## Common Pitfalls
 
-### Don't Use for Dependent Operations
+### Do Not Parallelize Dependent Operations
 
 ```rust
-// WRONG: second operation depends on first
-Effect::par_all([
-    create_user(data),
-    send_welcome_email(user_id),  // Needs user_id from create_user!
-])
+// Wrong: sending the email needs the user returned by create_user.
+let effects: Vec<BoxedEffect<(), AppError, AppEnv>> = vec![
+    create_user(data).map(|_| ()).boxed(),
+    send_welcome_email(user_id).boxed(),
+];
 
-// RIGHT: use sequential composition
+// Right: compose dependent work sequentially.
 create_user(data)
     .and_then(|user| send_welcome_email(user.id))
 ```
 
-### Remember Sync Requirement
+### Do Not Use `race` For "First Success"
+
+`race` returns the first completed result. A fast error wins over a slower success. If you need "try primary, then backup," use `fallback_to` or `or_else`.
+
+### Use `Arc`, Not `Rc`, In Shared Environments
 
 ```rust
-// WRONG: Environment not Sync
+// Wrong: Rc is not Send + Sync.
 struct AppEnv {
-    db: Rc<Database>,  // Rc is not Sync!
+    db: Rc<DatabasePool>,
 }
 
-// RIGHT: Use Arc for shared ownership
+// Right: Arc works in async shared environments.
+#[derive(Clone)]
 struct AppEnv {
-    db: Arc<Database>,  // Arc is Sync
+    db: Arc<DatabasePool>,
 }
+```
+
+### Box At Collection Boundaries
+
+Keep individual effect builders zero-cost, and box only when placing them into a homogeneous collection:
+
+```rust
+fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {
+    from_async(move |env: &AppEnv| {
+        let db = env.db.clone();
+        async move { db.fetch_user(id).await }
+    })
+}
+
+let effects: Vec<BoxedEffect<User, DbError, AppEnv>> = ids
+    .into_iter()
+    .map(|id| fetch_user(id).boxed())
+    .collect();
 ```
 
 ## Summary
 
-Stillwater provides four parallel execution methods:
-
-1. **par_all** - Run all, collect all results and all errors
-2. **par_try_all** - Run all, fail fast on first error
-3. **race** - Return first success, collect all errors if all fail
-4. **par_all_limit** - Run with concurrency limit
-
-All methods:
-- Provide true async concurrency
-- Share environment safely across tasks
-- Compose naturally with other Effect combinators
-- Work seamlessly with the test environment pattern
-
-Choose based on your error handling needs and resource constraints.
+- Use `par2`, `par3`, and `par4` for small heterogeneous sets without boxing.
+- Use `par_all` when all errors should be reported.
+- Use `par_try_all` when one error is enough, but do not treat it as cancellation.
+- Use `race` when the first completed result should decide the outcome.
+- Use `par_all_limit` to protect connection pools, memory, rate limits, and other bounded resources.
