@@ -539,7 +539,7 @@ match result {
 }
 ```
 
-For more advanced patterns, see the [Traverse Patterns guide](12-traverse-patterns.md).
+For more advanced patterns, see the [Traverse Patterns guide](11-traverse-patterns.md).
 
 **Alternative using `all_vec` (less convenient)**:
 

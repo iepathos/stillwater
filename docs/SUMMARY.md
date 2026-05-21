@@ -18,15 +18,18 @@
 # Effect Patterns
 
 - [Reader Pattern](guide/09-reader-pattern.md)
-- [Parallel Effects](guide/11-parallel-effects.md)
-- [Traverse Patterns](guide/12-traverse-patterns.md)
-- [Retry and Resilience](guide/15-retry.md)
+- [Parallel Effects](guide/10-parallel-effects.md)
+- [Traverse Patterns](guide/11-traverse-patterns.md)
+- [Retry and Resilience](guide/12-retry.md)
 
 # Validation Patterns
 
-- [Homogeneous Validation](guide/09-homogeneous-validation.md)
-- [Refined Types](guide/16-refined-types.md)
-- [Testing](guide/14-testing.md)
+- [Homogeneous Validation](guide/13-homogeneous-validation.md)
+- [Refined Types](guide/14-refined-types.md)
+
+# Testing & Quality
+
+- [Testing](guide/15-testing.md)
 
 # Reference
 

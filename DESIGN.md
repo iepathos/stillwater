@@ -395,7 +395,7 @@ async fn check_all_services(env: &AppEnv) -> Result<Vec<Status>, Error> {
 - Clear error semantics (accumulate vs fail-fast)
 - Each effect in the collection has one Box allocation (negligible for I/O-bound work)
 
-See [Parallel Effects guide](docs/guide/11-parallel-effects.md) for comprehensive examples and patterns.
+See [Parallel Effects guide](docs/guide/10-parallel-effects.md) for comprehensive examples and patterns.
 
 ### IO Module
 

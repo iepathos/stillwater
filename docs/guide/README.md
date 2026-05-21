@@ -32,15 +32,6 @@ This guide is organized into progressive chapters, each building on the previous
    - Testing effectful code
    - Async support
 
-8. **[Monoid](08-monoid.md)** - Identity elements for composition
-   - What is a Monoid?
-   - Extending Semigroup with identity
-   - Numeric monoids (Sum, Product, Max, Min)
-   - Using fold_all and reduce
-   - Real-world aggregation patterns
-
-### Supporting Features
-
 4. **[Error Context](04-error-context.md)** - Better debugging
    - Adding context to errors
    - Error trails
@@ -61,9 +52,47 @@ This guide is organized into progressive chapters, each building on the previous
    - When to enable try_trait
    - Migration path
 
-### Advanced Patterns
+8. **[Monoid](08-monoid.md)** - Identity elements for composition
+   - What is a Monoid?
+   - Extending Semigroup with identity
+   - Numeric monoids (Sum, Product, Max, Min)
+   - Using fold_all and reduce
+   - Real-world aggregation patterns
 
-16. **[Refined Types](16-refined-types.md)** - Parse, don't validate
+### Effect Patterns
+
+9. **[Reader Pattern](09-reader-pattern.md)** - Dependency injection through environments
+   - Asking for environment values
+   - Dependency injection without singletons
+   - Testing with mock environments
+
+10. **[Parallel Effects](10-parallel-effects.md)** - Running independent effects concurrently
+   - Heterogeneous parallel effects
+   - Homogeneous parallel collections
+   - Error behavior and environment sharing
+
+11. **[Traverse Patterns](11-traverse-patterns.md)** - Working with collections
+   - Collection validation with error accumulation
+   - Effect processing over collections
+   - Batch operations
+   - Traverse vs sequence
+   - Real-world examples
+
+12. **[Retry and Resilience](12-retry.md)** - Handling transient failures
+   - Retry policies and backoff strategies
+   - Conditional retry with retry_if
+   - Observability hooks for logging/metrics
+   - Timeout support
+   - Combining retry with timeout
+
+### Validation Patterns
+
+13. **[Homogeneous Validation](13-homogeneous-validation.md)** - Type-consistent error accumulation
+   - Combining enum variants safely
+   - Preventing incompatible accumulation
+   - Validation patterns for homogeneous data
+
+14. **[Refined Types](14-refined-types.md)** - Parse, don't validate
    - `Refined<T, P>` for type-level invariants
    - Numeric predicates: Positive, NonNegative, NonZero, InRange
    - String predicates: NonEmpty, Trimmed, MaxLength, MinLength
@@ -71,38 +100,24 @@ This guide is organized into progressive chapters, each building on the previous
    - Validation integration for error accumulation
    - Zero-cost: same memory layout as inner type
 
-17. **Compile-Time Resource Tracking** - Type-level resource safety
-   - Resource markers (FileRes, DbRes, TxRes, etc.)
-   - ResourceEffect trait with Acquires/Releases tracking
-   - Extension methods: `.acquires()`, `.releases()`, `.neutral()`
-   - resource_bracket for guaranteed cleanup
-   - Zero runtime overhead - purely type-level
-   - See `src/effect/resource/mod.rs` for full documentation
-
-12. **[Traverse Patterns](12-traverse-patterns.md)** - Working with collections
-   - Collection validation with error accumulation
-   - Effect processing over collections
-   - Batch operations
-   - Traverse vs sequence
-   - Real-world examples
-
-15. **[Retry and Resilience](15-retry.md)** - Handling transient failures
-   - Retry policies and backoff strategies
-   - Conditional retry with retry_if
-   - Observability hooks for logging/metrics
-   - Timeout support
-   - Combining retry with timeout
-
 ### Testing & Quality
 
-14. **[Testing](14-testing.md)** - Testing utilities and patterns
+15. **[Testing](15-testing.md)** - Testing utilities and patterns
    - MockEnv builder for test environments
    - Assertion macros for Validation
    - TestEffect for deterministic testing
    - Property-based testing with proptest
    - Testing best practices
 
-Note: Chapter 8 (Monoid) is listed under Core Concepts as it's fundamental to understanding error accumulation and composition patterns.
+### Additional Advanced Topics
+
+**Compile-Time Resource Tracking** - Type-level resource safety
+- Resource markers (FileRes, DbRes, TxRes, etc.)
+- ResourceEffect trait with Acquires/Releases tracking
+- Extension methods: `.acquires()`, `.releases()`, `.neutral()`
+- resource_bracket for guaranteed cleanup
+- Zero runtime overhead - purely type-level
+- See `src/effect/resource/mod.rs` for full documentation
 
 ## How to Use This Guide
 

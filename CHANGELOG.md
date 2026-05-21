@@ -599,7 +599,7 @@ Zero-cost effect chains eliminate heap allocations:
 - **Documentation**:
   - Comprehensive example in `examples/retry_patterns.rs` (8 patterns demonstrated)
   - API documentation with usage examples
-  - Guide in `docs/guide/15-retry.md`
+  - Guide in `docs/guide/12-retry.md`
 
 ### Changed
 
@@ -630,7 +630,7 @@ Zero-cost effect chains eliminate heap allocations:
   - Configuration validation with typed values
   - Database query result validation
 - **Documentation**:
-  - Comprehensive guide in `docs/guide/09-homogeneous-validation.md`
+  - Comprehensive guide in `docs/guide/13-homogeneous-validation.md`
   - API comparison table showing validation vs panic approaches
   - Property-based tests verifying correctness
   - Integration tests with real-world scenarios
@@ -667,7 +667,7 @@ Zero-cost effect chains eliminate heap allocations:
 
 #### Documentation
 
-- **`docs/guide/14-testing.md`** - Comprehensive testing guide (433 lines)
+- **`docs/guide/15-testing.md`** - Comprehensive testing guide (433 lines)
   - MockEnv builder patterns for test environments
   - Assertion macro usage and examples
   - TestEffect patterns for deterministic testing
@@ -715,7 +715,7 @@ Zero-cost effect chains eliminate heap allocations:
 
 #### Documentation
 
-- **`docs/guide/12-traverse-patterns.md`** - Comprehensive guide to traverse operations (581 lines)
+- **`docs/guide/11-traverse-patterns.md`** - Comprehensive guide to traverse operations (581 lines)
   - Collection validation patterns with error accumulation
   - Effect processing over collections
   - Batch operations and practical examples
@@ -793,7 +793,7 @@ Zero-cost effect chains eliminate heap allocations:
 
 #### Documentation
 
-- **`docs/guide/11-parallel-effects.md`** - Comprehensive guide to parallel execution (643 lines)
+- **`docs/guide/10-parallel-effects.md`** - Comprehensive guide to parallel execution (643 lines)
   - Detailed examples for all four parallel methods
   - Performance considerations and best practices
   - Common patterns: scatter-gather, timeouts, graceful degradation

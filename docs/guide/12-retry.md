@@ -418,5 +418,5 @@ let effect = retry_if(
 ## See Also
 
 - [examples/retry_patterns.rs](https://github.com/iepathos/stillwater/blob/master/examples/retry_patterns.rs) - Comprehensive retry examples
-- [Parallel Effects](11-parallel-effects.md) - Running effects concurrently
+- [Parallel Effects](10-parallel-effects.md) - Running effects concurrently
 - [Error Context](04-error-context.md) - Adding context to errors
