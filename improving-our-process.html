@@ -1,0 +1,888 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Improving Our Process - Stillwater Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Guide and reference documentation for Stillwater, a pragmatic Rust library for effect composition and validation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-0b3a5f54.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-be49391b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Stillwater Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/improving-our-process.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="improving-our-design--planning-process"><a class="header" href="#improving-our-design--planning-process">Improving Our Design &amp; Planning Process</a></h1>
+<h2 id="what-weve-done-well-"><a class="header" href="#what-weve-done-well-">What We’ve Done Well ✅</a></h2>
+<h3 id="1-example-driven-design"><a class="header" href="#1-example-driven-design">1. Example-Driven Design</a></h3>
+<ul>
+<li>✅ Wrote examples before implementation</li>
+<li>✅ Tested ergonomics with realistic code</li>
+<li>✅ Identified pain points early</li>
+</ul>
+<h3 id="2-comprehensive-analysis"><a class="header" href="#2-comprehensive-analysis">2. Comprehensive Analysis</a></h3>
+<ul>
+<li>✅ Compared alternatives (tuples vs HList, read vs query)</li>
+<li>✅ Documented trade-offs explicitly</li>
+<li>✅ Evaluated pain points systematically</li>
+</ul>
+<h3 id="3-clear-philosophy"><a class="header" href="#3-clear-philosophy">3. Clear Philosophy</a></h3>
+<ul>
+<li>✅ “Pure core, imperative shell” is well-defined</li>
+<li>✅ Design principles documented</li>
+<li>✅ Anti-patterns identified (no heavy macros, etc.)</li>
+</ul>
+<h3 id="4-thorough-documentation"><a class="header" href="#4-thorough-documentation">4. Thorough Documentation</a></h3>
+<ul>
+<li>✅ DESIGN.md captures API</li>
+<li>✅ PHILOSOPHY.md explains “why”</li>
+<li>✅ Examples show real usage</li>
+</ul>
+<hr>
+<h2 id="critical-gaps-"><a class="header" href="#critical-gaps-">Critical Gaps 🚨</a></h2>
+<h3 id="gap-1-no-validation-through-code"><a class="header" href="#gap-1-no-validation-through-code">Gap 1: No Validation Through Code</a></h3>
+<p><strong>Problem:</strong> All our examples are fictional - they don’t compile!</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Assumptions might be wrong</li>
+<li>API might not work as expected</li>
+<li>Hidden complexity not discovered</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Create a minimal proof-of-concept:
+// stillwater/prototypes/validation_poc.rs
+
+// Actually implement just Validation&lt;T, E&gt;
+// Write REAL tests that COMPILE and RUN
+// Discover what breaks, what's awkward
+
+#[test]
+fn test_validation_accumulation() {
+    let result = Validation::all((
+        validate_email("test@example.com"),
+        validate_age(25),
+    ));
+
+    // Does this actually work?
+    // Is the syntax actually ergonomic?
+    // What error messages does the compiler give?
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Create <code>prototypes/</code> directory</li>
+<li><input disabled="" type="checkbox"> Implement minimal Validation type</li>
+<li><input disabled="" type="checkbox"> Write 10 real test cases</li>
+<li><input disabled="" type="checkbox"> Document surprises/learnings</li>
+</ul>
+<hr>
+<h3 id="gap-2-no-user-validation"><a class="header" href="#gap-2-no-user-validation">Gap 2: No User Validation</a></h3>
+<p><strong>Problem:</strong> We’re designing in a vacuum - no external feedback.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Solving wrong problems</li>
+<li>Missing critical use cases</li>
+<li>API might not resonate with real users</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="a-define-user-personas"><a class="header" href="#a-define-user-personas">A. Define User Personas</a></h4>
+<pre><code class="language-markdown">## Persona 1: Backend Developer (Primary)
+- Building REST APIs with Axum/Actix
+- Uses PostgreSQL/SQLx
+- Pain: Testing business logic mixed with DB
+- Wants: Testable code, clear error messages
+
+## Persona 2: CLI Tool Author (Secondary)
+- Building command-line tools
+- Reads configs, processes files
+- Pain: Error context is lost
+- Wants: Great error messages, validation
+
+## Persona 3: Data Engineer (Tertiary)
+- ETL pipelines, CSV processing
+- Needs bulk validation
+- Pain: Want all errors, not first one
+- Wants: Performance, parallelism
+</code></pre>
+<h4 id="b-create-user-stories"><a class="header" href="#b-create-user-stories">B. Create User Stories</a></h4>
+<pre><code class="language-markdown">As a backend developer,
+I want to validate API inputs and get all errors,
+So that users can fix their entire request at once.
+
+As a CLI tool author,
+I want clear error context showing what failed,
+So that users can debug issues without my help.
+
+As a data engineer,
+I want to validate thousands of records in parallel,
+So that pipelines complete faster.
+</code></pre>
+<h4 id="c-early-user-interviews"><a class="header" href="#c-early-user-interviews">C. Early User Interviews</a></h4>
+<ul>
+<li><input disabled="" type="checkbox"> Share design docs on r/rust</li>
+<li><input disabled="" type="checkbox"> Get feedback from 5-10 Rust developers</li>
+<li><input disabled="" type="checkbox"> Ask: “Would you use this? Why/why not?”</li>
+<li><input disabled="" type="checkbox"> Document objections and address them</li>
+</ul>
+<hr>
+<h3 id="gap-3-no-performance-validation"><a class="header" href="#gap-3-no-performance-validation">Gap 3: No Performance Validation</a></h3>
+<p><strong>Problem:</strong> We assume async wrapping is cheap, but haven’t measured.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Performance might be worse than expected</li>
+<li>Might not be zero-cost in practice</li>
+<li>Could be a deal-breaker for some users</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="benchmark-critical-paths"><a class="header" href="#benchmark-critical-paths">Benchmark Critical Paths</a></h4>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// benchmarks/effect_overhead.rs
+
+#[bench]
+fn hand_written_sync(b: &amp;mut Bencher) {
+    b.iter(|| {
+        let user = fetch_user_direct(42);
+        let validated = validate_user_direct(user);
+        save_user_direct(validated)
+    });
+}
+
+#[bench]
+fn stillwater_sync(b: &amp;mut Bencher) {
+    b.iter(|| {
+        Effect::from_fn(|_| fetch_user(42))
+            .and_then(|user| validate_user(user))
+            .and_then(|user| save_user(user))
+            .run(&amp;())
+    });
+}
+
+// Measure:
+// - Boxing overhead
+// - Future wrapping cost
+// - Comparison to hand-written
+// - Memory allocations
+<span class="boring">}</span></code></pre>
+<p><strong>Acceptance Criteria:</strong></p>
+<ul>
+<li>Effect overhead &lt; 5% vs hand-written</li>
+<li>Memory allocations reasonable</li>
+<li>Document in README if overhead exists</li>
+</ul>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Create benchmark suite</li>
+<li><input disabled="" type="checkbox"> Run on realistic workloads</li>
+<li><input disabled="" type="checkbox"> Profile with <code>cargo flamegraph</code></li>
+<li><input disabled="" type="checkbox"> Document results in PERFORMANCE.md</li>
+</ul>
+<hr>
+<h3 id="gap-4-no-competitive-analysis"><a class="header" href="#gap-4-no-competitive-analysis">Gap 4: No Competitive Analysis</a></h3>
+<p><strong>Problem:</strong> Haven’t deeply compared to alternatives.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Missing features others have</li>
+<li>Repeating mistakes</li>
+<li>Can’t articulate our advantages</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="deep-dive-comparison"><a class="header" href="#deep-dive-comparison">Deep Dive Comparison</a></h4>
+<pre><code class="language-markdown">## vs. anyhow/eyre (Error Handling)
+
+| Feature | anyhow | stillwater |
+|---------|--------|------------|
+| Error context | ✅ Yes | ✅ Yes |
+| Validation accumulation | ❌ No | ✅ Yes |
+| Effect composition | ❌ No | ✅ Yes |
+| Pure/effect separation | ❌ No | ✅ Yes |
+
+**When to use anyhow:** Simple apps, don't need validation
+**When to use stillwater:** Need validation, testability, effect composition
+
+## vs. frunk (Validation)
+
+| Feature | frunk | stillwater |
+|---------|-------|------------|
+| Validation | ✅ Yes | ✅ Yes |
+| HList | ✅ Yes | ❌ No (not needed) |
+| Effect composition | ❌ No | ✅ Yes |
+| Documentation | ⚠️ Sparse | ✅ Comprehensive |
+| Learning curve | ⚠️ Steep | ✅ Gentle |
+
+**When to use frunk:** Type-level programming, Generic derives
+**When to use stillwater:** Practical validation, clear APIs
+
+## vs. Hand-rolling
+
+| Aspect | Hand-rolled | stillwater |
+|--------|-------------|------------|
+| Boilerplate | ❌ High | ✅ Low |
+| Consistency | ⚠️ Varies | ✅ Enforced |
+| Testing | ⚠️ Manual | ✅ Patterns built-in |
+| Onboarding | ⚠️ Team-specific | ✅ Documented |
+
+**When to hand-roll:** Very simple apps, unique requirements
+**When to use stillwater:** Team projects, maintainability matters
+</code></pre>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Try building same feature with alternatives</li>
+<li><input disabled="" type="checkbox"> Measure LOC, compile time, ergonomics</li>
+<li><input disabled="" type="checkbox"> Document in COMPARISON.md</li>
+<li><input disabled="" type="checkbox"> Use in marketing/README</li>
+</ul>
+<hr>
+<h3 id="gap-5-missing-implementation-experiments"><a class="header" href="#gap-5-missing-implementation-experiments">Gap 5: Missing Implementation Experiments</a></h3>
+<p><strong>Problem:</strong> Designing without building reveals hidden complexity late.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Lifetime issues we haven’t anticipated</li>
+<li>Trait bounds that don’t work</li>
+<li>Type inference failures</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="spikeprototype-critical-parts"><a class="header" href="#spikeprototype-critical-parts">Spike/Prototype Critical Parts</a></h4>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// prototypes/effect_lifetimes.rs
+
+// Experiment: Can we avoid boxing?
+struct EffectNoBox&lt;T, E, Env, F&gt;
+where
+    F: FnOnce(&amp;Env) -&gt; BoxFuture&lt;'_, Result&lt;T, E&gt;&gt;,
+{
+    run_fn: F,
+}
+
+// Try implementing and_then without boxing
+// See what breaks, what lifetime errors occur
+// Document findings
+
+// Results:
+// - [ ] Boxing necessary? Why/why not?
+// - [ ] Can we use impl Trait instead?
+// - [ ] What's the actual cost?
+<span class="boring">}</span></code></pre>
+<p><strong>Experiments to Run:</strong></p>
+<ol>
+<li><input disabled="" type="checkbox"> Effect without boxing (is it possible?)</li>
+<li><input disabled="" type="checkbox"> Validation with Iterator instead of tuples</li>
+<li><input disabled="" type="checkbox"> Context without String allocation</li>
+<li><input disabled="" type="checkbox"> Try trait integration (can we make ? work?)</li>
+<li><input disabled="" type="checkbox"> Environment extraction (trait vs direct access)</li>
+</ol>
+<hr>
+<h3 id="gap-6-no-migrationadoption-story"><a class="header" href="#gap-6-no-migrationadoption-story">Gap 6: No Migration/Adoption Story</a></h3>
+<p><strong>Problem:</strong> How does someone actually start using this?</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Adoption friction</li>
+<li>Unclear path from current code</li>
+<li>All-or-nothing approach</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="progressive-adoption-guide"><a class="header" href="#progressive-adoption-guide">Progressive Adoption Guide</a></h4>
+<pre><code class="language-markdown">## Migration Path
+
+### Stage 1: Validation Only (Week 1)
+Start with just validation in new API endpoints:
+
+```rust
+// Before
+fn create_user(input: UserInput) -&gt; Result&lt;User, Error&gt; {
+    if !validate_email(&amp;input.email) {
+        return Err(Error::InvalidEmail);
+    }
+    // ... continue with first-error-only
+}
+
+// After (just add validation)
+fn create_user(input: UserInput) -&gt; Result&lt;User, Vec&lt;ValidationError&gt;&gt; {
+    Validation::all((
+        validate_email(&amp;input.email),
+        validate_age(input.age),
+    ))
+    .into_result()
+}
+</code></pre>
+<p><strong>Benefits:</strong> Immediate value, low risk, no refactoring needed</p>
+<h3 id="stage-2-effect-separation-week-2-3"><a class="header" href="#stage-2-effect-separation-week-2-3">Stage 2: Effect Separation (Week 2-3)</a></h3>
+<p>Extract pure business logic in critical paths:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Pure functions (new)
+fn calculate_discount(customer: &amp;Customer) -&gt; Money { ... }
+fn apply_discount(order: Order, discount: Money) -&gt; Order { ... }
+
+// Keep existing I/O code (not refactored yet)
+async fn process_order(id: OrderId) -&gt; Result&lt;Invoice, Error&gt; {
+    let order = db.fetch_order(id).await?;
+    let discount = calculate_discount(&amp;order.customer);  // Pure!
+    let final_order = apply_discount(order, discount);   // Pure!
+    db.save_invoice(final_order).await
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Benefits:</strong> Better testability immediately, incremental change</p>
+<h3 id="stage-3-full-effects-month-2"><a class="header" href="#stage-3-full-effects-month-2">Stage 3: Full Effects (Month 2+)</a></h3>
+<p>Gradually wrap I/O in Effects for new features:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process_order_v2(id: OrderId) -&gt; Effect&lt;Invoice, Error, AppEnv&gt; {
+    // Full stillwater style
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Benefits:</strong> New code uses best practices, old code still works</p>
+<pre><code>
+**Action Items:**
+- [ ] Write migration guide
+- [ ] Create "starter" templates
+- [ ] Document integration with popular frameworks
+- [ ] Show how to use with existing codebases
+
+---
+
+### Gap 7: No Clear Success Metrics
+
+**Problem:** "100+ stars" is vague. How do we know we succeeded?
+
+**Impact:**
+- Can't measure progress
+- Don't know when to pivot
+- Unclear what "good" looks like
+
+**Solution:**
+
+#### Define Concrete Metrics
+
+**Technical Metrics:**
+- [ ] Compiles with zero warnings
+- [ ] 100% documented (rustdoc)
+- [ ] &lt;5% overhead vs hand-written (benchmark)
+- [ ] &lt;2s additional compile time for simple project
+- [ ] All examples compile and run
+
+**Adoption Metrics (6 months):**
+- [ ] 3+ production users (verified via contact)
+- [ ] 10+ GitHub issues filed (engagement)
+- [ ] 100+ downloads/week on crates.io
+- [ ] Featured in "This Week in Rust" or similar
+
+**Quality Metrics:**
+- [ ] Positive HN/Reddit feedback (&gt;70% upvote)
+- [ ] 0 critical bugs reported
+- [ ] &lt;24hr response time to issues
+- [ ] 5+ external contributors
+
+**Educational Metrics:**
+- [ ] Blog post written about it
+- [ ] Conference talk accepted
+- [ ] 3+ community examples/tutorials
+
+**Leading Indicators (Month 1):**
+- [ ] 5 people try it and give feedback
+- [ ] 2 people say "I'd use this"
+- [ ] 0 people say "This solves nothing"
+
+---
+
+### Gap 8: Documentation Organization
+
+**Problem:** Design docs scattered across many files.
+
+**Impact:**
+- Hard to find information
+- Redundancy/conflicts
+- No clear entry point
+
+**Solution:**
+
+#### Documentation Structure
+
+</code></pre>
+<p>stillwater/
+├── README.md                          # Quick intro, examples
+├── docs/
+│   ├── guide/
+│   │   ├── 01-getting-started.md
+│   │   ├── 02-validation.md
+│   │   ├── 03-effects.md
+│   │   ├── 04-testing.md
+│   │   └── 05-async.md
+│   ├── design/
+│   │   ├── philosophy.md              # Why we made these choices
+│   │   ├── architecture.md            # How it works
+│   │   ├── decisions/
+│   │   │   ├── 001-tuples-for-validation.md
+│   │   │   ├── 002-read-write-not-query-execute.md
+│   │   │   ├── 003-async-first.md
+│   │   │   └── template.md
+│   │   └── alternatives.md            # vs frunk, anyhow, etc.
+│   ├── examples/
+│   │   ├── web-api-validation.md
+│   │   ├── cli-tool-errors.md
+│   │   ├── data-pipeline.md
+│   │   └── testing-patterns.md
+│   └── contributing/
+│       ├── development.md
+│       ├── testing.md
+│       └── releasing.md
+├── examples/                          # Runnable code
+├── prototypes/                        # Experiments
+└── benchmarks/                        # Performance tests</p>
+<pre><code>
+**Action Items:**
+- [ ] Reorganize current docs into structure
+- [ ] Create templates for decision records
+- [ ] Add navigation/ToC to each doc
+- [ ] Cross-reference related docs
+
+---
+
+### Gap 9: No "Why Not" Section
+
+**Problem:** Don't address objections head-on.
+
+**Impact:**
+- Users have unanswered concerns
+- Seems like we're hiding weaknesses
+- Can't learn from critics
+
+**Solution:**
+
+#### Address Objections Explicitly
+
+```markdown
+## Why NOT Use Stillwater?
+
+### "I don't need validation accumulation"
+**Then use:** anyhow/eyre for simple error handling
+**Stillwater adds:** Unnecessary complexity if you don't validate forms/data
+
+### "This adds too much abstraction"
+**Valid concern:** Yes, it's more abstract than hand-written code
+**Trade-off:** Abstraction buys you testability and consistency
+**Decision:** If your team values simplicity &gt; testability, skip this
+
+### "Async-first means I can't use it in sync code"
+**Clarification:** You CAN use it in sync code (wraps in ready Future)
+**But:** You do need an async runtime (tokio)
+**Alternative:** If you're building pure sync CLI, the overhead might not be worth it
+
+### "I don't like the philosophy"
+**That's fine:** If "pure core, imperative shell" doesn't resonate, this isn't for you
+**Alternative:** Many roads to good code - this is one path
+
+### "The API is too verbose"
+**Valid in some cases:** `Effect&lt;T, ContextError&lt;E&gt;, Env&gt;` is long
+**Mitigation:** Type aliases reduce this: `type AppEffect&lt;T&gt; = ...`
+**Decision:** We chose explicit over magic
+</code></pre>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> List all objections we can think of</li>
+<li><input disabled="" type="checkbox"> Get feedback from critics</li>
+<li><input disabled="" type="checkbox"> Address honestly in FAQ</li>
+<li><input disabled="" type="checkbox"> Don’t be defensive - acknowledge trade-offs</li>
+</ul>
+<hr>
+<h3 id="gap-10-no-failure-scenarios-considered"><a class="header" href="#gap-10-no-failure-scenarios-considered">Gap 10: No Failure Scenarios Considered</a></h3>
+<p><strong>Problem:</strong> Only designed for success case.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>What if compilation is slow?</li>
+<li>What if error messages are cryptic?</li>
+<li>What if adoption is zero?</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="plan-for-failure"><a class="header" href="#plan-for-failure">Plan for Failure</a></h4>
+<p><strong>Scenario 1: Compile Times Are Terrible</strong></p>
+<ul>
+<li><strong>Detection:</strong> &gt;10s for small project</li>
+<li><strong>Response:</strong> Profile with <code>-Z self-profile</code>, identify hot spots</li>
+<li><strong>Mitigation:</strong> Reduce generic instantiations, use trait objects</li>
+<li><strong>Pivot:</strong> If unfixable, document clearly and target specific use cases</li>
+</ul>
+<p><strong>Scenario 2: Error Messages Are Cryptic</strong></p>
+<ul>
+<li><strong>Detection:</strong> User feedback: “I don’t understand this error”</li>
+<li><strong>Response:</strong> Collect examples of bad errors</li>
+<li><strong>Mitigation:</strong> Add trait bounds diagnostics, custom error messages</li>
+<li><strong>Pivot:</strong> Simplify type system if needed</li>
+</ul>
+<p><strong>Scenario 3: No Adoption After 6 Months</strong></p>
+<ul>
+<li><strong>Detection:</strong> &lt;10 downloads/week, no GitHub activity</li>
+<li><strong>Response:</strong> User interviews - why didn’t it resonate?</li>
+<li><strong>Pivot Options:</strong>
+<ul>
+<li>Simplify to just validation (drop effects)</li>
+<li>Target specific niche (e.g., just data pipelines)</li>
+<li>Merge into existing library</li>
+<li>Archive project and document learnings</li>
+</ul>
+</li>
+</ul>
+<p><strong>Scenario 4: Competing Library Emerges</strong></p>
+<ul>
+<li><strong>Detection:</strong> New library with similar goals gets traction</li>
+<li><strong>Response:</strong> Compare features, identify gaps</li>
+<li><strong>Options:</strong>
+<ul>
+<li>Collaborate/merge</li>
+<li>Differentiate clearly</li>
+<li>Concede if theirs is better</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="immediate-action-plan"><a class="header" href="#immediate-action-plan">Immediate Action Plan</a></h2>
+<h3 id="this-week"><a class="header" href="#this-week">This Week</a></h3>
+<p><strong>1. Build Minimal Prototype</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Implement just Validation&lt;T, E&gt; (200 LOC)</li>
+<li><input disabled="" type="checkbox"> Write 10 real test cases</li>
+<li><input disabled="" type="checkbox"> Document surprises</li>
+</ul>
+<p><strong>2. Get External Feedback</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Share design docs on r/rust</li>
+<li><input disabled="" type="checkbox"> Ask 3 Rust developers to review</li>
+<li><input disabled="" type="checkbox"> Collect objections</li>
+</ul>
+<p><strong>3. Benchmark Assumptions</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Measure boxing overhead</li>
+<li><input disabled="" type="checkbox"> Compare to hand-written code</li>
+<li><input disabled="" type="checkbox"> Document results</li>
+</ul>
+<h3 id="next-week"><a class="header" href="#next-week">Next Week</a></h3>
+<p><strong>4. Competitive Analysis</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Build same feature with frunk</li>
+<li><input disabled="" type="checkbox"> Build same feature with anyhow</li>
+<li><input disabled="" type="checkbox"> Compare LOC, ergonomics</li>
+</ul>
+<p><strong>5. Define Success Metrics</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Technical goals (compile time, overhead)</li>
+<li><input disabled="" type="checkbox"> Adoption goals (users, downloads)</li>
+<li><input disabled="" type="checkbox"> Quality goals (bugs, response time)</li>
+</ul>
+<p><strong>6. Reorganize Documentation</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Create docs/ structure</li>
+<li><input disabled="" type="checkbox"> Move existing docs</li>
+<li><input disabled="" type="checkbox"> Add navigation</li>
+</ul>
+<h3 id="month-1"><a class="header" href="#month-1">Month 1</a></h3>
+<p><strong>7. Implement Core MVP</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Validation type (complete)</li>
+<li><input disabled="" type="checkbox"> Effect type (basic)</li>
+<li><input disabled="" type="checkbox"> Context errors</li>
+<li><input disabled="" type="checkbox"> IO helpers</li>
+</ul>
+<p><strong>8. Write Real Examples</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Convert fictional examples to real</li>
+<li><input disabled="" type="checkbox"> All examples compile and run</li>
+<li><input disabled="" type="checkbox"> Add to CI</li>
+</ul>
+<p><strong>9. Gather User Feedback</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 5 developers try it</li>
+<li><input disabled="" type="checkbox"> Collect feedback</li>
+<li><input disabled="" type="checkbox"> Iterate on API</li>
+</ul>
+<hr>
+<h2 id="process-improvements"><a class="header" href="#process-improvements">Process Improvements</a></h2>
+<h3 id="add-to-workflow"><a class="header" href="#add-to-workflow">Add to Workflow</a></h3>
+<p><strong>Before Any Design Decision:</strong></p>
+<ol>
+<li>✅ Write example code showing usage</li>
+<li>✅ Compare 2-3 alternatives</li>
+<li>✅ Document trade-offs</li>
+<li>➕ <strong>Prototype if unclear</strong> (NEW)</li>
+<li>➕ <strong>Benchmark if performance-sensitive</strong> (NEW)</li>
+</ol>
+<p><strong>Before Finalizing API:</strong></p>
+<ol>
+<li>✅ Examples compile and run</li>
+<li>➕ <strong>Get feedback from 3+ external developers</strong> (NEW)</li>
+<li>➕ <strong>Ensure migration path exists</strong> (NEW)</li>
+</ol>
+<p><strong>Before Calling It “Done”:</strong></p>
+<ol>
+<li>✅ All tests pass</li>
+<li>✅ Documentation complete</li>
+<li>➕ <strong>Success metrics defined and measured</strong> (NEW)</li>
+<li>➕ <strong>Performance validated</strong> (NEW)</li>
+<li>➕ <strong>“Why not” section written</strong> (NEW)</li>
+</ol>
+<hr>
+<h2 id="key-insight"><a class="header" href="#key-insight">Key Insight</a></h2>
+<p><strong>We’ve been designing in a vacuum.</strong></p>
+<p>Good:</p>
+<ul>
+<li>✅ Thorough analysis</li>
+<li>✅ Clear philosophy</li>
+<li>✅ Example-driven</li>
+</ul>
+<p>Missing:</p>
+<ul>
+<li>❌ No real code validation</li>
+<li>❌ No user feedback</li>
+<li>❌ No performance data</li>
+<li>❌ No competitive validation</li>
+<li>❌ No clear success criteria</li>
+</ul>
+<p><strong>Fix:</strong>
+Build small, validate often, talk to users.</p>
+<hr>
+<h2 id="recommended-next-steps"><a class="header" href="#recommended-next-steps">Recommended Next Steps</a></h2>
+<p><strong>Priority 1: Validate Core Assumptions</strong></p>
+<ol>
+<li>Build minimal Validation prototype</li>
+<li>Write real tests that compile</li>
+<li>Measure performance</li>
+<li>Get 3 people to try it</li>
+</ol>
+<p><strong>Priority 2: External Validation</strong></p>
+<ol>
+<li>Share on r/rust</li>
+<li>User interviews</li>
+<li>Competitive analysis</li>
+<li>Document objections</li>
+</ol>
+<p><strong>Priority 3: Organize for Success</strong></p>
+<ol>
+<li>Define clear metrics</li>
+<li>Reorganize documentation</li>
+<li>Create migration guide</li>
+<li>Plan for failure scenarios</li>
+</ol>
+<hr>
+<p><em>Great design emerges from iteration with reality, not just thought experiments.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="io-api-analysis.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="io-api-analysis.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

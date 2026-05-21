@@ -1,0 +1,832 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Reader Pattern - Stillwater Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Guide and reference documentation for Stillwater, a pragmatic Rust library for effect composition and validation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-0b3a5f54.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-be49391b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Stillwater Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/09-reader-pattern.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="reader-pattern-in-stillwater"><a class="header" href="#reader-pattern-in-stillwater">Reader Pattern in Stillwater</a></h1>
+<h2 id="what-is-the-reader-pattern"><a class="header" href="#what-is-the-reader-pattern">What is the Reader Pattern?</a></h2>
+<p>The Reader pattern is a functional programming technique for dependency injection. Instead of passing dependencies through every function parameter, you “ask” for them from an environment when needed.</p>
+<p>In Stillwater, the Reader pattern is built into the <code>Effect</code> type through three key functions:</p>
+<ul>
+<li><code>ask()</code> - Get the entire environment</li>
+<li><code>asks(f)</code> - Extract a specific value from the environment</li>
+<li><code>local(f, effect)</code> - Run an effect with a modified environment</li>
+</ul>
+<h2 id="why-use-the-reader-pattern"><a class="header" href="#why-use-the-reader-pattern">Why Use the Reader Pattern?</a></h2>
+<h3 id="problem-dependency-threading"><a class="header" href="#problem-dependency-threading">Problem: Dependency Threading</a></h3>
+<p>Without Reader, you pass dependencies everywhere:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process_order(order: Order, db: &amp;Database, cache: &amp;Cache, logger: &amp;Logger) -&gt; Result&lt;()&gt; {
+    validate_order(order, db)?;
+    save_order(order, db, cache, logger)?;
+    notify_customer(order, logger)?;
+    Ok(())
+}
+
+fn validate_order(order: Order, db: &amp;Database) -&gt; Result&lt;()&gt; {
+    // Only needs db, but caller must provide it
+}
+
+fn save_order(order: Order, db: &amp;Database, cache: &amp;Cache, logger: &amp;Logger) -&gt; Result&lt;()&gt; {
+    // All three dependencies needed
+}
+<span class="boring">}</span></code></pre>
+<p>This gets tedious and error-prone as the application grows.</p>
+<h3 id="solution-reader-pattern"><a class="header" href="#solution-reader-pattern">Solution: Reader Pattern</a></h3>
+<p>With Reader, dependencies live in an environment:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, IO};
+
+struct AppEnv {
+    db: Database,
+    cache: Cache,
+    logger: Logger,
+}
+
+fn process_order(order: Order) -&gt; Effect&lt;(), Error, AppEnv&gt; {
+    validate_order(order.clone())
+        .and_then(|_| save_order(order.clone()))
+        .and_then(|_| notify_customer(order))
+}
+
+fn validate_order(order: Order) -&gt; Effect&lt;(), Error, AppEnv&gt; {
+    // Ask for just the database when needed
+    IO::read(|env: &amp;AppEnv| env.db.validate(&amp;order))
+}
+
+fn save_order(order: Order) -&gt; Effect&lt;(), Error, AppEnv&gt; {
+    // Functions get dependencies implicitly
+    IO::read(|env: &amp;AppEnv| env.db.save(&amp;order))
+        .and_then(|_| IO::write(|env: &amp;mut AppEnv| {
+            env.cache.invalidate(&amp;order.id)
+        }))
+}
+<span class="boring">}</span></code></pre>
+<p>Benefits:</p>
+<ul>
+<li>No threading dependencies through parameters</li>
+<li>Easy to add new dependencies without changing function signatures</li>
+<li>Environment is explicit at type level (<code>AppEnv</code>)</li>
+<li>Testing is easier with mock environments</li>
+</ul>
+<h2 id="core-functions"><a class="header" href="#core-functions">Core Functions</a></h2>
+<h3 id="ask---access-the-whole-environment"><a class="header" href="#ask---access-the-whole-environment"><code>ask()</code> - Access the Whole Environment</a></h3>
+<p>Use <code>ask()</code> when you need the entire environment:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+#[derive(Clone)]
+struct Config {
+    api_key: String,
+    timeout: u64,
+    debug: bool,
+}
+
+fn log_config() -&gt; Effect&lt;String, String, Config&gt; {
+    Effect::ask()
+        .map(|cfg: Config| {
+            format!(
+                "Config: timeout={}, debug={}",
+                cfg.timeout,
+                cfg.debug
+            )
+        })
+}
+
+// Run it
+<span class="boring">tokio_test::block_on(async {
+</span>let config = Config {
+    api_key: "secret".into(),
+    timeout: 30,
+    debug: true,
+};
+
+let result = log_config().run(&amp;config).await.unwrap();
+assert_eq!(result, "Config: timeout=30, debug=true");
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h3 id="asks---query-specific-values"><a class="header" href="#asks---query-specific-values"><code>asks()</code> - Query Specific Values</a></h3>
+<p>Use <code>asks(f)</code> when you only need part of the environment:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+struct AppEnv {
+    database_url: String,
+    cache_url: String,
+    max_connections: u32,
+}
+
+fn get_db_url() -&gt; Effect&lt;String, String, AppEnv&gt; {
+    Effect::asks(|env: &amp;AppEnv| env.database_url.clone())
+}
+
+fn get_max_connections() -&gt; Effect&lt;u32, String, AppEnv&gt; {
+    Effect::asks(|env: &amp;AppEnv| env.max_connections)
+}
+
+// Compose them
+fn connect() -&gt; Effect&lt;String, String, AppEnv&gt; {
+    Effect::asks(|env: &amp;AppEnv| env.database_url.clone())
+        .and_then(|url| {
+            Effect::asks(|env: &amp;AppEnv| env.max_connections)
+                .map(move |max| {
+                    format!("Connecting to {} with {} connections", url, max)
+                })
+        })
+}
+
+<span class="boring">tokio_test::block_on(async {
+</span>let env = AppEnv {
+    database_url: "postgres://localhost".into(),
+    cache_url: "redis://localhost".into(),
+    max_connections: 10,
+};
+
+let result = connect().run(&amp;env).await.unwrap();
+assert_eq!(result, "Connecting to postgres://localhost with 10 connections");
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h3 id="local---temporary-environment-modifications"><a class="header" href="#local---temporary-environment-modifications"><code>local()</code> - Temporary Environment Modifications</a></h3>
+<p>Use <code>local(f, effect)</code> to run an effect with a modified environment:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+#[derive(Clone)]
+struct Config {
+    timeout: u64,
+    retries: u32,
+}
+
+fn fetch_data() -&gt; Effect&lt;String, String, Config&gt; {
+    Effect::asks(|cfg: &amp;Config| {
+        format!("Fetching with timeout={}, retries={}", cfg.timeout, cfg.retries)
+    })
+}
+
+fn fetch_with_extended_timeout() -&gt; Effect&lt;String, String, Config&gt; {
+    // Temporarily increase timeout for this operation
+    Effect::local(
+        |cfg: &amp;Config| Config {
+            timeout: cfg.timeout * 2,
+            retries: cfg.retries,
+        },
+        fetch_data()
+    )
+}
+
+<span class="boring">tokio_test::block_on(async {
+</span>let config = Config {
+    timeout: 30,
+    retries: 3,
+};
+
+// Normal fetch
+let result = fetch_data().run(&amp;config).await.unwrap();
+assert_eq!(result, "Fetching with timeout=30, retries=3");
+
+// With extended timeout
+let result = fetch_with_extended_timeout().run(&amp;config).await.unwrap();
+assert_eq!(result, "Fetching with timeout=60, retries=3");
+
+// Original config unchanged
+assert_eq!(config.timeout, 30);
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h2 id="composition-patterns"><a class="header" href="#composition-patterns">Composition Patterns</a></h2>
+<h3 id="pattern-1-combining-asks-with-business-logic"><a class="header" href="#pattern-1-combining-asks-with-business-logic">Pattern 1: Combining asks() with Business Logic</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+struct PricingEnv {
+    tax_rate: f64,
+    discount_rate: f64,
+}
+
+fn calculate_price(base_price: f64) -&gt; Effect&lt;f64, String, PricingEnv&gt; {
+    Effect::asks(|env: &amp;PricingEnv| env.tax_rate)
+        .and_then(move |tax| {
+            Effect::asks(|env: &amp;PricingEnv| env.discount_rate)
+                .map(move |discount| {
+                    let discounted = base_price * (1.0 - discount);
+                    discounted * (1.0 + tax)
+                })
+        })
+}
+
+<span class="boring">tokio_test::block_on(async {
+</span>let env = PricingEnv {
+    tax_rate: 0.08,
+    discount_rate: 0.10,
+};
+
+let final_price = calculate_price(100.0).run(&amp;env).await.unwrap();
+assert_eq!(final_price, 97.2); // (100 * 0.9) * 1.08
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h3 id="pattern-2-environment-dependent-decisions"><a class="header" href="#pattern-2-environment-dependent-decisions">Pattern 2: Environment-Dependent Decisions</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, IO};
+
+struct AppEnv {
+    debug_mode: bool,
+    log_level: String,
+}
+
+fn log_message(msg: String) -&gt; Effect&lt;(), String, AppEnv&gt; {
+    Effect::asks(|env: &amp;AppEnv| env.debug_mode)
+        .and_then(move |debug| {
+            if debug {
+                Effect::from_fn(move |env: &amp;AppEnv| {
+                    println!("[{}] {}", env.log_level, msg);
+                    Ok(())
+                })
+            } else {
+                Effect::pure(())
+            }
+        })
+}
+<span class="boring">}</span></code></pre>
+<h3 id="pattern-3-nested-environments-with-local"><a class="header" href="#pattern-3-nested-environments-with-local">Pattern 3: Nested Environments with local()</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+#[derive(Clone)]
+struct ServerConfig {
+    host: String,
+    port: u16,
+    timeout: u64,
+}
+
+fn make_request(path: &amp;str) -&gt; Effect&lt;String, String, ServerConfig&gt; {
+    Effect::asks(move |cfg: &amp;ServerConfig| {
+        format!("GET {}:{}{} (timeout={})", cfg.host, cfg.port, path, cfg.timeout)
+    })
+}
+
+fn make_critical_request(path: &amp;str) -&gt; Effect&lt;String, String, ServerConfig&gt; {
+    // Critical requests get longer timeout
+    let path = path.to_string();
+    Effect::local(
+        |cfg: &amp;ServerConfig| ServerConfig {
+            timeout: cfg.timeout * 3,
+            ..cfg.clone()
+        },
+        Effect::asks(move |cfg: &amp;ServerConfig| {
+            format!("GET {}:{}{} (timeout={})", cfg.host, cfg.port, path, cfg.timeout)
+        })
+    )
+}
+
+<span class="boring">tokio_test::block_on(async {
+</span>let config = ServerConfig {
+    host: "api.example.com".into(),
+    port: 443,
+    timeout: 10,
+};
+
+let normal = make_request("/users").run(&amp;config).await.unwrap();
+assert_eq!(normal, "GET api.example.com:443/users (timeout=10)");
+
+let critical = make_critical_request("/payment").run(&amp;config).await.unwrap();
+assert_eq!(critical, "GET api.example.com:443/payment (timeout=30)");
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h2 id="real-world-example-multi-tier-application"><a class="header" href="#real-world-example-multi-tier-application">Real-World Example: Multi-Tier Application</a></h2>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, IO};
+
+// Environment with multiple dependencies
+struct AppEnv {
+    database: Database,
+    cache: Cache,
+    email: EmailService,
+    config: AppConfig,
+}
+
+struct AppConfig {
+    max_retries: u32,
+    cache_ttl: u64,
+}
+
+#[derive(Clone)]
+struct User {
+    id: u64,
+    email: String,
+}
+
+// Business logic uses Reader pattern
+fn register_user(email: String) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
+    // Validate email format (pure)
+    validate_email(&amp;email)?
+
+    // Check if user exists (asks for database)
+    check_user_exists(email.clone())
+        .and_then(|exists| {
+            if exists {
+                Effect::fail(AppError::UserExists)
+            } else {
+                create_and_save_user(email)
+            }
+        })
+}
+
+fn check_user_exists(email: String) -&gt; Effect&lt;bool, AppError, AppEnv&gt; {
+    IO::read(move |env: &amp;AppEnv| {
+        env.database.find_by_email(&amp;email)
+            .map(|opt| opt.is_some())
+            .map_err(AppError::DatabaseError)
+    })
+}
+
+fn create_and_save_user(email: String) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
+    let user = User {
+        id: generate_id(),
+        email: email.clone(),
+    };
+
+    // Save to database
+    save_user_to_db(user.clone())
+        // Update cache
+        .and_then(|user| cache_user(user))
+        // Send welcome email
+        .and_then(|user| {
+            send_welcome_email(user.clone())
+                .map(|_| user)
+        })
+}
+
+fn save_user_to_db(user: User) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
+    from_fn(move |env: &amp;AppEnv| {
+        env.database.insert_user(&amp;user)
+            .map(|_| user.clone())
+            .map_err(AppError::DatabaseError)
+    })
+}
+
+fn cache_user(user: User) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
+    // Get cache TTL from config
+    Effect::asks(|env: &amp;AppEnv| env.config.cache_ttl)
+        .and_then(move |ttl| {
+            from_fn(move |env: &amp;AppEnv| {
+                env.cache.set(&amp;user.id, &amp;user, ttl)
+                    .map(|_| user.clone())
+                    .map_err(AppError::CacheError)
+            })
+        })
+}
+
+fn send_welcome_email(user: User) -&gt; Effect&lt;(), AppError, AppEnv&gt; {
+    from_fn(move |env: &amp;AppEnv| {
+        env.email.send(&amp;user.email, "Welcome!", "Thanks for joining!")
+            .map_err(AppError::EmailError)
+    })
+}
+
+// At application boundary
+<span class="boring">tokio_test::block_on(async {
+</span>let env = AppEnv {
+    database: Database::connect("postgres://...").await?,
+    cache: Cache::connect("redis://...").await?,
+    email: EmailService::new("smtp://..."),
+    config: AppConfig {
+        max_retries: 3,
+        cache_ttl: 3600,
+    },
+};
+
+match register_user("user@example.com".into()).run(&amp;env).await {
+    Ok(user) =&gt; println!("User registered: {:?}", user),
+    Err(e) =&gt; eprintln!("Registration failed: {:?}", e),
+}
+<span class="boring">});
+</span><span class="boring">}</span></code></pre>
+<h2 id="testing-with-reader-pattern"><a class="header" href="#testing-with-reader-pattern">Testing with Reader Pattern</a></h2>
+<p>The Reader pattern makes testing easier with mock environments:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::Effect;
+
+struct AppEnv {
+    database: Box&lt;dyn UserRepository&gt;,
+}
+
+trait UserRepository {
+    fn find_by_email(&amp;self, email: &amp;str) -&gt; Result&lt;Option&lt;User&gt;, String&gt;;
+}
+
+fn get_user_by_email(email: String) -&gt; Effect&lt;Option&lt;User&gt;, String, AppEnv&gt; {
+    IO::read(move |env: &amp;AppEnv| {
+        env.database.find_by_email(&amp;email)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct MockDatabase {
+        users: Vec&lt;User&gt;,
+    }
+
+    impl UserRepository for MockDatabase {
+        fn find_by_email(&amp;self, email: &amp;str) -&gt; Result&lt;Option&lt;User&gt;, String&gt; {
+            Ok(self.users.iter()
+                .find(|u| u.email == email)
+                .cloned())
+        }
+    }
+
+    #[tokio::test]
+    async fn test_get_user() {
+        let mock_db = MockDatabase {
+            users: vec![
+                User { id: 1, email: "test@example.com".into() },
+            ],
+        };
+
+        let env = AppEnv {
+            database: Box::new(mock_db),
+        };
+
+        let result = get_user_by_email("test@example.com".into())
+            .run(&amp;env)
+            .await
+            .unwrap();
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().id, 1);
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="when-to-use-each-function"><a class="header" href="#when-to-use-each-function">When to Use Each Function</a></h2>
+<h3 id="use-ask-when"><a class="header" href="#use-ask-when">Use <code>ask()</code> when:</a></h3>
+<ul>
+<li>You need the whole environment</li>
+<li>Passing the environment to another function</li>
+<li>Inspecting multiple environment fields at once</li>
+</ul>
+<h3 id="use-asksf-when"><a class="header" href="#use-asksf-when">Use <code>asks(f)</code> when:</a></h3>
+<ul>
+<li>You only need one or two fields</li>
+<li>Extracting configuration values</li>
+<li>Computing derived values from environment</li>
+</ul>
+<h3 id="use-localf-effect-when"><a class="header" href="#use-localf-effect-when">Use <code>local(f, effect)</code> when:</a></h3>
+<ul>
+<li>Temporarily overriding configuration</li>
+<li>Testing with modified settings</li>
+<li>Scoping changes to specific operations</li>
+<li>Implementing feature flags or A/B tests</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-keep-environments-small-and-focused"><a class="header" href="#1-keep-environments-small-and-focused">1. Keep Environments Small and Focused</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Bad: Kitchen sink environment
+struct AppEnv {
+    db: Database,
+    cache: Cache,
+    email: Email,
+    sms: SMS,
+    payment: Payment,
+    analytics: Analytics,
+    // ... 20 more dependencies
+}
+
+// ✓ Good: Focused environments
+struct DataEnv {
+    db: Database,
+    cache: Cache,
+}
+
+struct NotificationEnv {
+    email: Email,
+    sms: SMS,
+}
+
+struct PaymentEnv {
+    payment: Payment,
+    analytics: Analytics,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="2-use-asks-for-simple-queries"><a class="header" href="#2-use-asks-for-simple-queries">2. Use asks() for Simple Queries</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Verbose
+Effect::ask().map(|env: Config| env.timeout)
+
+// ✓ Concise
+Effect::asks(|env: &amp;Config| env.timeout)
+<span class="boring">}</span></code></pre>
+<h3 id="3-compose-with-and_then-for-dependent-operations"><a class="header" href="#3-compose-with-and_then-for-dependent-operations">3. Compose with and_then for Dependent Operations</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn process() -&gt; Effect&lt;Result, Error, AppEnv&gt; {
+    Effect::asks(|env: &amp;AppEnv| env.config.max_retries)
+        .and_then(|retries| {
+            Effect::asks(|env: &amp;AppEnv| env.database.clone())
+                .and_then(move |db| {
+                    retry_with_db(db, retries)
+                })
+        })
+}
+<span class="boring">}</span></code></pre>
+<h3 id="4-use-local-sparingly"><a class="header" href="#4-use-local-sparingly">4. Use local() Sparingly</a></h3>
+<p>Only use <code>local()</code> when you truly need to modify the environment temporarily. Most of the time, <code>asks()</code> is sufficient.</p>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="pitfall-1-cloning-large-environments"><a class="header" href="#pitfall-1-cloning-large-environments">Pitfall 1: Cloning Large Environments</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ ask() clones the entire environment
+let effect = Effect::&lt;LargeEnv, _, LargeEnv&gt;::ask();
+
+// ✓ asks() only extracts what you need
+let effect = Effect::asks(|env: &amp;LargeEnv| env.small_field.clone());
+<span class="boring">}</span></code></pre>
+<h3 id="pitfall-2-nested-local-calls"><a class="header" href="#pitfall-2-nested-local-calls">Pitfall 2: Nested local() Calls</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// ❌ Hard to follow
+Effect::local(
+    |cfg| modify1(cfg),
+    Effect::local(
+        |cfg| modify2(cfg),
+        Effect::local(
+            |cfg| modify3(cfg),
+            do_work()
+        )
+    )
+)
+
+// ✓ Compose modifications
+Effect::local(
+    |cfg| modify3(&amp;modify2(&amp;modify1(cfg))),
+    do_work()
+)
+<span class="boring">}</span></code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<p>The Reader pattern in Stillwater provides:</p>
+<ul>
+<li>Clean dependency injection without parameter threading</li>
+<li>Type-safe environment access</li>
+<li>Easy testing with mock environments</li>
+<li>Functional composition of environment-dependent operations</li>
+</ul>
+<p>Key functions:</p>
+<ul>
+<li><code>ask()</code> - Get the whole environment</li>
+<li><code>asks(f)</code> - Query specific values</li>
+<li><code>local(f, effect)</code> - Temporary modifications</li>
+</ul>
+<p>Use the Reader pattern when you want clean, testable dependency injection in your Effect compositions.</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Review the <a href="03-effects.html">Effects guide</a> for more Effect patterns</li>
+<li>Check out the <a href="05-io-module.html">IO Module</a> for I/O helpers</li>
+<li>See <a href="https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs">testing_patterns example</a></li>
+<li>Read about <a href="04-error-context.html">Error Context</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guide/08-monoid.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../guide/11-parallel-effects.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guide/08-monoid.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../guide/11-parallel-effects.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

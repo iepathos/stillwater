@@ -1,0 +1,1487 @@
+<!DOCTYPE HTML>
+<html lang="en" class="rust sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Comparison - Stillwater Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Guide and reference documentation for Stillwater, a pragmatic Rust library for effect composition and validation">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "rust";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-0b3a5f54.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-be49391b.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Stillwater Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/COMPARISON.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="comparison-to-other-libraries"><a class="header" href="#comparison-to-other-libraries">Comparison to Other Libraries</a></h1>
+<p>This document compares Stillwater to other Rust libraries providing similar functionality, with <strong>extensive before/after code examples</strong> demonstrating real-world improvements.</p>
+<h2 id="quick-comparison-table"><a class="header" href="#quick-comparison-table">Quick Comparison Table</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Stillwater</th><th>frunk</th><th>monadic</th><th>anyhow</th><th>validator</th></tr>
+</thead>
+<tbody>
+<tr><td>Error accumulation</td><td>✓</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td></tr>
+<tr><td>Effect composition</td><td>✓</td><td>✗</td><td>✓</td><td>✗</td><td>✗</td></tr>
+<tr><td>Async support</td><td>✓</td><td>✗</td><td>✗</td><td>✓</td><td>✗</td></tr>
+<tr><td>Learning curve</td><td>Low</td><td>High</td><td>Medium</td><td>Low</td><td>Low</td></tr>
+<tr><td>Type-level programming</td><td>✗</td><td>✓</td><td>✗</td><td>✗</td><td>✗</td></tr>
+<tr><td>Macro DSL</td><td>✗</td><td>✗</td><td>✓</td><td>✓</td><td>✓</td></tr>
+<tr><td>Pure Rust idioms</td><td>✓</td><td>Partial</td><td>Partial</td><td>✓</td><td>✓</td></tr>
+<tr><td>Dependencies</td><td>0 (core)</td><td>Many</td><td>Few</td><td>Few</td><td>Many</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="beforeafter-examples-form-validation"><a class="header" href="#beforeafter-examples-form-validation">Before/After Examples: Form Validation</a></h2>
+<h3 id="basic-3-field-validation"><a class="header" href="#basic-3-field-validation">Basic 3-Field Validation</a></h3>
+<p><strong>Problem</strong>: Collecting ALL validation errors for a user registration form, not just the first one.</p>
+<p><strong>Before</strong> (Traditional Rust - 22 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn validate_user_registration(
+    email: &amp;str,
+    password: &amp;str,
+    age: u8,
+) -&gt; Result&lt;ValidatedUser, Vec&lt;String&gt;&gt; {
+    let mut errors = Vec::new();
+
+    let validated_email = match validate_email(email) {
+        Ok(e) =&gt; Some(e),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    let validated_password = match validate_password(password) {
+        Ok(p) =&gt; Some(p),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    let validated_age = match validate_age(age) {
+        Ok(a) =&gt; Some(a),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    if errors.is_empty() {
+        Ok(ValidatedUser {
+            email: validated_email.unwrap(),
+            password: validated_password.unwrap(),
+            age: validated_age.unwrap(),
+        })
+    } else {
+        Err(errors)
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 8 lines, 64% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+
+fn validate_user_registration(
+    email: &amp;str,
+    password: &amp;str,
+    age: u8,
+) -&gt; Validation&lt;ValidatedUser, Vec&lt;String&gt;&gt; {
+    (
+        validate_email(email),
+        validate_password(password),
+        validate_age(age),
+    )
+    .validate_all()
+    .map(|(email, password, age)| ValidatedUser { email, password, age })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>64% less code (22 → 8 lines)</li>
+<li>No mutable state or <code>Option</code> unwrapping</li>
+<li>Declarative tuple-based composition</li>
+<li>Type-safe error accumulation via <code>Semigroup</code></li>
+</ul>
+<hr>
+<h3 id="5-field-validation-with-nested-objects"><a class="header" href="#5-field-validation-with-nested-objects">5-Field Validation with Nested Objects</a></h3>
+<p><strong>Problem</strong>: Validating a complex order form with shipping address.</p>
+<p><strong>Before</strong> (Traditional Rust - 42 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn validate_order(input: &amp;OrderInput) -&gt; Result&lt;ValidatedOrder, Vec&lt;String&gt;&gt; {
+    let mut errors = Vec::new();
+
+    let customer_name = match validate_name(&amp;input.customer_name) {
+        Ok(n) =&gt; Some(n),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    let email = match validate_email(&amp;input.email) {
+        Ok(e) =&gt; Some(e),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    let phone = match validate_phone(&amp;input.phone) {
+        Ok(p) =&gt; Some(p),
+        Err(e) =&gt; { errors.push(e); None }
+    };
+
+    // Nested address validation
+    let street = match validate_street(&amp;input.address.street) {
+        Ok(s) =&gt; Some(s),
+        Err(e) =&gt; { errors.push(format!("address.street: {}", e)); None }
+    };
+
+    let city = match validate_city(&amp;input.address.city) {
+        Ok(c) =&gt; Some(c),
+        Err(e) =&gt; { errors.push(format!("address.city: {}", e)); None }
+    };
+
+    let postal_code = match validate_postal_code(&amp;input.address.postal_code) {
+        Ok(p) =&gt; Some(p),
+        Err(e) =&gt; { errors.push(format!("address.postal_code: {}", e)); None }
+    };
+
+    if errors.is_empty() {
+        Ok(ValidatedOrder {
+            customer_name: customer_name.unwrap(),
+            email: email.unwrap(),
+            phone: phone.unwrap(),
+            address: ValidatedAddress {
+                street: street.unwrap(),
+                city: city.unwrap(),
+                postal_code: postal_code.unwrap(),
+            },
+        })
+    } else {
+        Err(errors)
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 18 lines, 57% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+
+fn validate_order(input: &amp;OrderInput) -&gt; Validation&lt;ValidatedOrder, Vec&lt;String&gt;&gt; {
+    let address = (
+        validate_street(&amp;input.address.street)
+            .map_err(|e| vec![format!("address.street: {}", e)]),
+        validate_city(&amp;input.address.city)
+            .map_err(|e| vec![format!("address.city: {}", e)]),
+        validate_postal_code(&amp;input.address.postal_code)
+            .map_err(|e| vec![format!("address.postal_code: {}", e)]),
+    )
+    .validate_all()
+    .map(|(street, city, postal_code)| ValidatedAddress { street, city, postal_code });
+
+    (
+        validate_name(&amp;input.customer_name),
+        validate_email(&amp;input.email),
+        validate_phone(&amp;input.phone),
+        address,
+    )
+    .validate_all()
+    .map(|(customer_name, email, phone, address)| {
+        ValidatedOrder { customer_name, email, phone, address }
+    })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>57% less code (42 → 18 lines)</li>
+<li>Composable nested validation</li>
+<li>Field path prefixes handled cleanly</li>
+<li>No nested conditionals</li>
+</ul>
+<hr>
+<h3 id="conditional-validation"><a class="header" href="#conditional-validation">Conditional Validation</a></h3>
+<p><strong>Problem</strong>: Password confirmation must match, but only validate strength if they match.</p>
+<p><strong>Before</strong> (Traditional Rust - 20 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn validate_password_change(
+    current: &amp;str,
+    new_password: &amp;str,
+    confirm: &amp;str,
+) -&gt; Result&lt;ValidatedPassword, Vec&lt;String&gt;&gt; {
+    let mut errors = Vec::new();
+
+    // First check if passwords match
+    if new_password != confirm {
+        errors.push("Passwords do not match".to_string());
+    }
+
+    // Validate current password
+    if current.is_empty() {
+        errors.push("Current password required".to_string());
+    }
+
+    // Only validate strength if passwords match
+    if new_password == confirm {
+        if new_password.len() &lt; 8 {
+            errors.push("Password must be at least 8 characters".to_string());
+        }
+        if !new_password.chars().any(|c| c.is_uppercase()) {
+            errors.push("Password must contain uppercase".to_string());
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(ValidatedPassword { password: new_password.to_string() })
+    } else {
+        Err(errors)
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 14 lines, 30% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+
+fn validate_password_change(
+    current: &amp;str,
+    new_password: &amp;str,
+    confirm: &amp;str,
+) -&gt; Validation&lt;ValidatedPassword, Vec&lt;String&gt;&gt; {
+    let passwords_match = if new_password == confirm {
+        Validation::success(new_password.to_string())
+    } else {
+        Validation::failure(vec!["Passwords do not match".to_string()])
+    };
+
+    (
+        validate_non_empty(current, "Current password required"),
+        passwords_match.and_then(validate_password_strength),
+    )
+    .validate_all()
+    .map(|(_, password)| ValidatedPassword { password })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>Conditional validation via <code>and_then</code></li>
+<li>Early exit for mismatched passwords</li>
+<li>Clean separation of concerns</li>
+</ul>
+<hr>
+<h2 id="beforeafter-examples-error-context"><a class="header" href="#beforeafter-examples-error-context">Before/After Examples: Error Context</a></h2>
+<h3 id="error-trail-for-debugging"><a class="header" href="#error-trail-for-debugging">Error Trail for Debugging</a></h3>
+<p><strong>Problem</strong>: When a deeply nested operation fails, you need the full context trail.</p>
+<p><strong>Before</strong> (Traditional Rust - 24 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug)]
+struct ContextError {
+    message: String,
+    context: Vec&lt;String&gt;,
+}
+
+fn process_order(order_id: u64) -&gt; Result&lt;Receipt, ContextError&gt; {
+    let order = fetch_order(order_id)
+        .map_err(|e| ContextError {
+            message: e,
+            context: vec!["fetching order".to_string()],
+        })?;
+
+    let inventory = check_inventory(&amp;order.items)
+        .map_err(|e| ContextError {
+            message: e,
+            context: vec![
+                "checking inventory".to_string(),
+                format!("for order {}", order_id),
+            ],
+        })?;
+
+    let receipt = create_receipt(&amp;order, &amp;inventory)
+        .map_err(|e| ContextError {
+            message: e,
+            context: vec![
+                "creating receipt".to_string(),
+                format!("for order {}", order_id),
+            ],
+        })?;
+
+    Ok(receipt)
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 16 lines, 33% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::effect::context::{EffectContext, EffectContextChain};
+use stillwater::context::ContextError;
+
+fn process_order(order_id: u64) -&gt; impl Effect&lt;Output = Receipt, Error = ContextError&lt;String&gt;, Env = AppEnv&gt; {
+    fetch_order_effect(order_id)
+        .context("fetching order")
+        .context_chain(format!("processing order {}", order_id))
+        .and_then(move |order| {
+            check_inventory_effect(order)
+                .context("checking inventory")
+                .context_chain(format!("processing order {}", order_id))
+                .and_then(move |order| {
+                    create_receipt_effect(order)
+                        .context("creating receipt")
+                        .context_chain(format!("processing order {}", order_id))
+                })
+        })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li><code>.context()</code> wraps any error in <code>ContextError&lt;E&gt;</code> with the given message</li>
+<li><code>.context_chain()</code> adds additional context to an existing <code>ContextError</code></li>
+<li>Error trail shows: <code>["fetching order", "processing order 999"]</code> on failure</li>
+<li>Each operation gets its own context; outer context added via <code>context_chain</code></li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: <code>.context()</code> creates a new <code>ContextError</code> wrapping the inner error.
+Use <code>.context_chain()</code> to add to an existing <code>ContextError</code>’s trail.</p>
+</blockquote>
+<hr>
+<h2 id="beforeafter-examples-dependency-injection"><a class="header" href="#beforeafter-examples-dependency-injection">Before/After Examples: Dependency Injection</a></h2>
+<h3 id="parameter-threading-3-dependencies-4-functions"><a class="header" href="#parameter-threading-3-dependencies-4-functions">Parameter Threading (3 Dependencies, 4 Functions)</a></h3>
+<p><strong>Problem</strong>: Passing database, cache, and email service through multiple function calls.</p>
+<p><strong>Before</strong> (Traditional Rust - 32 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn process_user_signup(
+    db: &amp;Database,
+    cache: &amp;Cache,
+    email_service: &amp;EmailService,
+    input: SignupInput,
+) -&gt; Result&lt;User, Error&gt; {
+    let validated = validate_signup(&amp;input)?;
+
+    let user = create_user(db, &amp;validated).await?;
+
+    cache_user_session(cache, &amp;user).await?;
+
+    send_welcome_email(email_service, &amp;user).await?;
+
+    Ok(user)
+}
+
+async fn create_user(db: &amp;Database, input: &amp;ValidatedSignup) -&gt; Result&lt;User, Error&gt; {
+    db.insert_user(input).await
+}
+
+async fn cache_user_session(cache: &amp;Cache, user: &amp;User) -&gt; Result&lt;(), Error&gt; {
+    cache.set(&amp;user.session_id, &amp;user.id).await
+}
+
+async fn send_welcome_email(email_service: &amp;EmailService, user: &amp;User) -&gt; Result&lt;(), Error&gt; {
+    email_service.send_template("welcome", &amp;user.email).await
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater Reader Pattern - 24 lines, 25% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+fn process_user_signup(input: SignupInput) -&gt; impl Effect&lt;Output = User, Error = Error, Env = AppEnv&gt; {
+    from_result(validate_signup(&amp;input))
+        .and_then(create_user)
+        .and_then(|user| {
+            let user_for_email = user.clone();
+            let user_to_return = user.clone();
+            cache_user_session(&amp;user)
+                .and_then(move |_| send_welcome_email(&amp;user_for_email))
+                .map(move |_| user_to_return)
+        })
+}
+
+fn create_user(input: ValidatedSignup) -&gt; impl Effect&lt;Output = User, Error = Error, Env = AppEnv&gt; {
+    from_async(move |env: &amp;AppEnv| {
+        let db = env.db.clone();
+        async move { db.insert_user(&amp;input).await }
+    })
+}
+
+fn cache_user_session(user: &amp;User) -&gt; impl Effect&lt;Output = (), Error = Error, Env = AppEnv&gt; {
+    let session_id = user.session_id.clone();
+    let user_id = user.id;
+    from_async(move |env: &amp;AppEnv| {
+        let cache = env.cache.clone();
+        async move { cache.set(&amp;session_id, &amp;user_id).await }
+    })
+}
+
+fn send_welcome_email(user: &amp;User) -&gt; impl Effect&lt;Output = (), Error = Error, Env = AppEnv&gt; {
+    let email = user.email.clone();
+    from_async(move |env: &amp;AppEnv| {
+        let email_service = env.email.clone();
+        async move { email_service.send_template("welcome", &amp;email).await }
+    })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>No parameter threading (dependencies accessed via environment)</li>
+<li>Functions are self-contained and composable</li>
+<li>Adding a new dependency requires only changing <code>AppEnv</code></li>
+<li>Testing is trivial (just provide a test environment)</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: When composing effects that need the same value, clone upfront to satisfy
+Rust’s ownership rules. The helper functions already extract only what they need.</p>
+</blockquote>
+<hr>
+<h3 id="testing-with-mock-dependencies"><a class="header" href="#testing-with-mock-dependencies">Testing with Mock Dependencies</a></h3>
+<p><strong>Before</strong> (Traditional Rust - complex mocking):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use mockall::{automock, predicate::*};
+
+    #[automock]
+    trait DatabaseTrait {
+        async fn fetch_user(&amp;self, id: u64) -&gt; Result&lt;User, Error&gt;;
+    }
+
+    #[tokio::test]
+    async fn test_process_user() {
+        let mut mock_db = MockDatabaseTrait::new();
+        mock_db.expect_fetch_user()
+            .with(eq(123))
+            .times(1)
+            .returning(|_| Ok(User { id: 123, name: "Test".into() }));
+
+        let result = process_user(&amp;mock_db, 123).await;
+        assert!(result.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 12 lines, simpler):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use stillwater::effect::prelude::*;
+    use std::sync::Arc;
+
+    #[tokio::test]
+    async fn test_process_user() {
+        let test_env = AppEnv {
+            db: Arc::new(InMemoryDb::with_user(User { id: 123, name: "Test".into() })),
+            cache: Arc::new(NoOpCache),
+            email: Arc::new(RecordingEmailService::new()),
+        };
+
+        let result = process_user(123).run(&amp;test_env).await;
+        assert!(result.is_ok());
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>No mocking framework required</li>
+<li>Test environment is just data</li>
+<li>Easy to reuse test fixtures across tests</li>
+<li>Behavior verification via recording implementations</li>
+</ul>
+<hr>
+<h2 id="beforeafter-examples-async-composition"><a class="header" href="#beforeafter-examples-async-composition">Before/After Examples: Async Composition</a></h2>
+<h3 id="retry-with-exponential-backoff"><a class="header" href="#retry-with-exponential-backoff">Retry with Exponential Backoff</a></h3>
+<p><strong>Problem</strong>: Retry a flaky network call with exponential backoff.</p>
+<p><strong>Before</strong> (Traditional Rust - 35 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::time::Duration;
+use tokio::time::sleep;
+
+async fn fetch_with_retry(url: &amp;str, max_retries: u32) -&gt; Result&lt;Response, Error&gt; {
+    let mut attempt = 0;
+    let mut delay = Duration::from_millis(100);
+
+    loop {
+        match http_client.get(url).await {
+            Ok(response) =&gt; return Ok(response),
+            Err(e) =&gt; {
+                attempt += 1;
+                if attempt &gt; max_retries {
+                    return Err(Error::RetriesExhausted {
+                        attempts: attempt,
+                        last_error: Box::new(e),
+                    });
+                }
+
+                // Exponential backoff with jitter
+                let jitter = rand::random::&lt;u64&gt;() % 50;
+                sleep(delay + Duration::from_millis(jitter)).await;
+                delay = std::cmp::min(delay * 2, Duration::from_secs(30));
+            }
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 14 lines, 60% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::effect::retry::retry;
+use stillwater::retry::RetryExhausted;
+use stillwater::RetryPolicy;
+use std::time::Duration;
+
+fn fetch_with_retry(url: String)
+    -&gt; impl Effect&lt;Output = RetryExhausted&lt;Response&gt;, Error = RetryExhausted&lt;Error&gt;, Env = AppEnv&gt;
+{
+    retry(
+        move || {
+            let url = url.clone();
+            from_async(move |env: &amp;AppEnv| {
+                let client = env.http.clone();
+                async move { client.get(&amp;url).await }
+            })
+        },
+        RetryPolicy::exponential(Duration::from_millis(100))
+            .with_max_retries(3)
+            .with_max_delay(Duration::from_secs(30)),
+    )
+}
+
+// Usage: extract the response from RetryExhausted
+// let result = fetch_with_retry(url).run(&amp;env).await?;
+// let response = result.into_value();  // Get the Response
+// let attempts = result.attempts;       // How many attempts it took
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>60% less code (35 → 14 lines)</li>
+<li>Built-in jitter and backoff calculations</li>
+<li>Configurable retry policy</li>
+<li><code>RetryExhausted</code> tracks attempt count and total duration on both success and failure</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: Both success and failure are wrapped in <code>RetryExhausted&lt;T&gt;</code> which provides
+<code>.into_value()</code>, <code>.attempts</code>, and <code>.total_duration</code> for observability.</p>
+</blockquote>
+<hr>
+<h3 id="parallel-operations-with-timeout"><a class="header" href="#parallel-operations-with-timeout">Parallel Operations with Timeout</a></h3>
+<p><strong>Problem</strong>: Fetch user data from multiple services concurrently with a timeout.</p>
+<p><strong>Before</strong> (Traditional Rust - 25 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use tokio::time::timeout;
+use futures::future::try_join3;
+
+async fn fetch_user_dashboard(user_id: u64) -&gt; Result&lt;Dashboard, Error&gt; {
+    let timeout_duration = Duration::from_secs(5);
+
+    let (profile, orders, recommendations) = timeout(
+        timeout_duration,
+        try_join3(
+            fetch_profile(user_id),
+            fetch_recent_orders(user_id),
+            fetch_recommendations(user_id),
+        )
+    )
+    .await
+    .map_err(|_| Error::Timeout)?
+    .map_err(Error::from)?;
+
+    Ok(Dashboard {
+        profile,
+        orders,
+        recommendations,
+    })
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 17 lines, 32% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::effect::retry::with_timeout;
+use stillwater::TimeoutError;
+use std::time::Duration;
+
+fn fetch_user_dashboard(user_id: u64) -&gt; impl Effect&lt;Output = Dashboard, Error = TimeoutError&lt;Error&gt;, Env = AppEnv&gt; {
+    with_timeout(
+        zip3(
+            fetch_profile(user_id),
+            fetch_recent_orders(user_id),
+            fetch_recommendations(user_id),
+        )
+        .map(|(profile, orders, recommendations)| Dashboard {
+            profile,
+            orders,
+            recommendations,
+        }),
+        Duration::from_secs(5),
+    )
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>32% less code</li>
+<li><code>zip3</code> for type-safe parallel composition (returns an Effect)</li>
+<li>Integrated timeout handling</li>
+<li>Clear error type showing timeout vs inner error</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: Use <code>zip3</code> for Effect composition. The <code>par3</code> function is an async helper
+that returns a tuple of Results directly, useful when you need individual error handling.</p>
+</blockquote>
+<hr>
+<h2 id="real-world-scenarios"><a class="header" href="#real-world-scenarios">Real-World Scenarios</a></h2>
+<h3 id="scenario-1-api-request-handler"><a class="header" href="#scenario-1-api-request-handler">Scenario 1: API Request Handler</a></h3>
+<p><strong>Problem</strong>: Handle an API request with validation, business logic, and error handling.</p>
+<p><strong>Before</strong> (Traditional Rust - 45 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn handle_create_order(
+    db: &amp;Database,
+    cache: &amp;Cache,
+    email: &amp;EmailService,
+    request: CreateOrderRequest,
+) -&gt; Result&lt;ApiResponse&lt;Order&gt;, ApiError&gt; {
+    // Validate input
+    let mut validation_errors = Vec::new();
+
+    if request.items.is_empty() {
+        validation_errors.push("Order must have at least one item");
+    }
+    if request.customer_id == 0 {
+        validation_errors.push("Invalid customer ID");
+    }
+    if request.items.iter().any(|i| i.quantity == 0) {
+        validation_errors.push("Item quantity must be positive");
+    }
+
+    if !validation_errors.is_empty() {
+        return Err(ApiError::ValidationFailed(validation_errors));
+    }
+
+    // Check customer exists
+    let customer = db.get_customer(request.customer_id)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?
+        .ok_or(ApiError::NotFound("Customer not found"))?;
+
+    // Check inventory
+    for item in &amp;request.items {
+        let stock = cache.get_stock(item.product_id)
+            .await
+            .map_err(|e| ApiError::Internal(e.to_string()))?;
+        if stock &lt; item.quantity {
+            return Err(ApiError::BusinessLogic("Insufficient stock"));
+        }
+    }
+
+    // Create order
+    let order = db.create_order(&amp;customer, &amp;request.items)
+        .await
+        .map_err(|e| ApiError::Internal(e.to_string()))?;
+
+    // Send confirmation (fire and forget)
+    let _ = email.send_order_confirmation(&amp;customer.email, &amp;order).await;
+
+    Ok(ApiResponse::success(order))
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 30 lines, 33% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+use stillwater::effect::prelude::*;
+
+fn handle_create_order(request: CreateOrderRequest) -&gt; impl Effect&lt;Output = ApiResponse&lt;Order&gt;, Error = ApiError, Env = AppEnv&gt; {
+    // Validation phase
+    let validated = (
+        validate_non_empty_items(&amp;request.items),
+        validate_customer_id(request.customer_id),
+        validate_item_quantities(&amp;request.items),
+    )
+    .validate_all()
+    .map_err(ApiError::ValidationFailed);
+
+    from_validation(validated)
+        .and_then(move |_| {
+            // Business logic phase
+            fetch_customer(request.customer_id)
+                .and_then(move |customer| {
+                    check_inventory(&amp;request.items)
+                        .and_then(move |_| create_order(&amp;customer, &amp;request.items))
+                        .and_then(move |order| {
+                            send_confirmation(&amp;customer.email, &amp;order)
+                                .map(move |_| ApiResponse::success(order))
+                        })
+                })
+        })
+        .map_err(|e| ApiError::Internal(e.to_string()))
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>Clear separation: validation → business logic</li>
+<li>All validation errors collected upfront</li>
+<li>No explicit error mapping at each step</li>
+<li>Composable, testable functions</li>
+</ul>
+<hr>
+<h3 id="scenario-2-database-transaction"><a class="header" href="#scenario-2-database-transaction">Scenario 2: Database Transaction</a></h3>
+<p><strong>Problem</strong>: Execute multiple database operations atomically.</p>
+<p><strong>Before</strong> (Traditional Rust - 30 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn transfer_funds(
+    db: &amp;Database,
+    from_account: u64,
+    to_account: u64,
+    amount: Decimal,
+) -&gt; Result&lt;Transfer, Error&gt; {
+    let tx = db.begin_transaction().await?;
+
+    let result = async {
+        // Check source balance
+        let from = tx.get_account(from_account).await?;
+        if from.balance &lt; amount {
+            return Err(Error::InsufficientFunds);
+        }
+
+        // Debit source
+        tx.update_balance(from_account, from.balance - amount).await?;
+
+        // Credit destination
+        let to = tx.get_account(to_account).await?;
+        tx.update_balance(to_account, to.balance + amount).await?;
+
+        // Record transfer
+        let transfer = tx.create_transfer(from_account, to_account, amount).await?;
+
+        Ok(transfer)
+    }.await;
+
+    match result {
+        Ok(transfer) =&gt; {
+            tx.commit().await?;
+            Ok(transfer)
+        }
+        Err(e) =&gt; {
+            tx.rollback().await?;
+            Err(e)
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater bracket - 24 lines, 20% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::effect::bracket::{bracket_full, BracketError};
+
+fn transfer_funds(
+    from_account: u64,
+    to_account: u64,
+    amount: Decimal,
+) -&gt; impl Effect&lt;Output = Transfer, Error = BracketError&lt;Error&gt;, Env = AppEnv&gt; {
+    bracket_full(
+        // Acquire: begin transaction
+        from_async(|env: &amp;AppEnv| {
+            let db = env.db.clone();
+            async move { db.begin_transaction().await }
+        }),
+        // Release: always attempt commit (rollback on drop if uncommitted)
+        |tx| async move { tx.commit().await },
+        // Use: perform transfer operations
+        |tx| {
+            check_balance(tx, from_account, amount)
+                .and_then(move |_| debit_account(tx, from_account, amount))
+                .and_then(move |_| credit_account(tx, to_account, amount))
+                .and_then(move |_| record_transfer(tx, from_account, to_account, amount))
+        },
+    )
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>Resource safety via <code>bracket_full</code> pattern</li>
+<li><code>BracketError</code> distinguishes acquire/use/cleanup failures</li>
+<li>Transaction auto-rollbacks on drop if not committed</li>
+<li>Composable operations within transaction</li>
+</ul>
+<blockquote>
+<p><strong>Note</strong>: <code>bracket_full</code> returns <code>BracketError&lt;E&gt;</code> which tells you exactly which phase
+failed. Use plain <code>bracket</code> if you only need the use error (cleanup errors are logged).</p>
+</blockquote>
+<hr>
+<h3 id="scenario-3-configuration-validation"><a class="header" href="#scenario-3-configuration-validation">Scenario 3: Configuration Validation</a></h3>
+<p><strong>Problem</strong>: Validate application configuration at startup.</p>
+<p><strong>Before</strong> (Traditional Rust - 40 lines):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn validate_config(config: &amp;RawConfig) -&gt; Result&lt;ValidatedConfig, Vec&lt;ConfigError&gt;&gt; {
+    let mut errors = Vec::new();
+
+    let port = match config.port {
+        Some(p) if p &gt; 0 &amp;&amp; p &lt; 65536 =&gt; Some(p as u16),
+        Some(p) =&gt; { errors.push(ConfigError::InvalidPort(p)); None }
+        None =&gt; { errors.push(ConfigError::MissingPort); None }
+    };
+
+    let database_url = match &amp;config.database_url {
+        Some(url) if url.starts_with("postgres://") =&gt; Some(url.clone()),
+        Some(url) =&gt; { errors.push(ConfigError::InvalidDatabaseUrl(url.clone())); None }
+        None =&gt; { errors.push(ConfigError::MissingDatabaseUrl); None }
+    };
+
+    let log_level = match config.log_level.as_deref() {
+        Some("debug") | Some("info") | Some("warn") | Some("error") =&gt; {
+            Some(config.log_level.clone().unwrap())
+        }
+        Some(level) =&gt; { errors.push(ConfigError::InvalidLogLevel(level.to_string())); None }
+        None =&gt; Some("info".to_string()) // Default
+    };
+
+    let max_connections = match config.max_connections {
+        Some(n) if n &gt; 0 &amp;&amp; n &lt;= 1000 =&gt; Some(n),
+        Some(n) =&gt; { errors.push(ConfigError::InvalidMaxConnections(n)); None }
+        None =&gt; Some(10) // Default
+    };
+
+    if errors.is_empty() {
+        Ok(ValidatedConfig {
+            port: port.unwrap(),
+            database_url: database_url.unwrap(),
+            log_level: log_level.unwrap(),
+            max_connections: max_connections.unwrap(),
+        })
+    } else {
+        Err(errors)
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>After</strong> (With Stillwater - 22 lines, 45% reduction):</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+
+fn validate_config(config: &amp;RawConfig) -&gt; Validation&lt;ValidatedConfig, Vec&lt;ConfigError&gt;&gt; {
+    (
+        validate_port(config.port),
+        validate_database_url(&amp;config.database_url),
+        validate_log_level(&amp;config.log_level).map(|v| v.unwrap_or("info".to_string())),
+        validate_max_connections(config.max_connections).map(|v| v.unwrap_or(10)),
+    )
+    .validate_all()
+    .map(|(port, database_url, log_level, max_connections)| {
+        ValidatedConfig { port, database_url, log_level, max_connections }
+    })
+}
+
+fn validate_port(port: Option&lt;i32&gt;) -&gt; Validation&lt;u16, Vec&lt;ConfigError&gt;&gt; {
+    match port {
+        Some(p) if p &gt; 0 &amp;&amp; p &lt; 65536 =&gt; Validation::success(p as u16),
+        Some(p) =&gt; Validation::failure(vec![ConfigError::InvalidPort(p)]),
+        None =&gt; Validation::failure(vec![ConfigError::MissingPort]),
+    }
+}
+// ... similar for other validators
+<span class="boring">}</span></code></pre>
+<p><strong>Key Improvements</strong>:</p>
+<ul>
+<li>45% less code</li>
+<li>Each field validator is independent and testable</li>
+<li>Default values handled cleanly with <code>map</code></li>
+<li>All config errors reported at once</li>
+</ul>
+<hr>
+<h2 id="boilerplate-reduction-summary"><a class="header" href="#boilerplate-reduction-summary">Boilerplate Reduction Summary</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Scenario</th><th>Before (LOC)</th><th>After (LOC)</th><th>Reduction</th></tr>
+</thead>
+<tbody>
+<tr><td>3-field validation</td><td>22</td><td>8</td><td><strong>64%</strong></td></tr>
+<tr><td>5-field nested validation</td><td>42</td><td>18</td><td><strong>57%</strong></td></tr>
+<tr><td>Conditional validation</td><td>20</td><td>14</td><td><strong>30%</strong></td></tr>
+<tr><td>Error context chain</td><td>24</td><td>16</td><td><strong>33%</strong></td></tr>
+<tr><td>Dependency threading (3 deps)</td><td>32</td><td>24</td><td><strong>25%</strong></td></tr>
+<tr><td>Retry with backoff</td><td>35</td><td>14</td><td><strong>60%</strong></td></tr>
+<tr><td>Parallel with timeout</td><td>25</td><td>17</td><td><strong>32%</strong></td></tr>
+<tr><td>API request handler</td><td>45</td><td>30</td><td><strong>33%</strong></td></tr>
+<tr><td>Database transaction</td><td>30</td><td>24</td><td><strong>20%</strong></td></tr>
+<tr><td>Config validation</td><td>40</td><td>22</td><td><strong>45%</strong></td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Average reduction across all examples: ~40%</strong></p>
+<hr>
+<h2 id="complementary-usage-stillwater--other-crates"><a class="header" href="#complementary-usage-stillwater--other-crates">Complementary Usage: Stillwater + Other Crates</a></h2>
+<h3 id="stillwater--anyhow"><a class="header" href="#stillwater--anyhow">Stillwater + anyhow</a></h3>
+<p>Use anyhow for error propagation, Stillwater for validation and effects:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, validation::ValidateAll};
+use stillwater::effect::prelude::*;
+use anyhow::{Result, Context};
+
+fn process_request(input: RequestInput) -&gt; impl Effect&lt;Output = Response, Error = anyhow::Error, Env = AppEnv&gt; {
+    // Validation phase with Stillwater
+    let validated = (
+        validate_email(&amp;input.email),
+        validate_name(&amp;input.name),
+    )
+    .validate_all()
+    .into_result()
+    .map_err(|errors| anyhow::anyhow!("Validation failed: {:?}", errors));
+
+    from_result(validated)
+        .and_then(|(email, name)| {
+            // Effect composition with context
+            create_user(email, name)
+                .map_err(|e| anyhow::anyhow!(e))
+        })
+}
+<span class="boring">}</span></code></pre>
+<h3 id="stillwater--validator"><a class="header" href="#stillwater--validator">Stillwater + validator</a></h3>
+<p>Use validator derive macros for struct validation, Stillwater for custom logic:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use validator::Validate;
+use stillwater::{Validation, validation::ValidateAll};
+
+#[derive(Validate)]
+struct UserInput {
+    #[validate(email)]
+    email: String,
+    #[validate(length(min = 8))]
+    password: String,
+}
+
+fn validate_user(input: &amp;UserInput) -&gt; Validation&lt;ValidatedUser, Vec&lt;String&gt;&gt; {
+    // Struct-level validation via validator
+    let struct_valid = match input.validate() {
+        Ok(()) =&gt; Validation::success(()),
+        Err(e) =&gt; Validation::failure(vec![format!("Struct validation: {}", e)]),
+    };
+
+    // Custom business logic via Stillwater
+    let email_unique = check_email_unique(&amp;input.email);
+    let password_not_common = check_password_not_common(&amp;input.password);
+
+    (struct_valid, email_unique, password_not_common)
+        .validate_all()
+        .map(|_| ValidatedUser {
+            email: input.email.clone(),
+            password: input.password.clone(),
+        })
+}
+<span class="boring">}</span></code></pre>
+<h3 id="stillwater--thiserror"><a class="header" href="#stillwater--thiserror">Stillwater + thiserror</a></h3>
+<p>Use thiserror for error definitions, Stillwater for composition:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use thiserror::Error;
+use stillwater::effect::prelude::*;
+
+#[derive(Error, Debug)]
+enum OrderError {
+    #[error("Customer not found: {0}")]
+    CustomerNotFound(u64),
+    #[error("Insufficient stock for product {product_id}")]
+    InsufficientStock { product_id: u64 },
+    #[error("Database error: {0}")]
+    Database(#[from] sqlx::Error),
+}
+
+fn process_order(order: Order) -&gt; impl Effect&lt;Output = Receipt, Error = OrderError, Env = AppEnv&gt; {
+    fetch_customer(order.customer_id)
+        .map_err(OrderError::from)
+        .and_then(move |customer| {
+            check_stock(&amp;order.items)
+                .and_then(move |_| create_receipt(&amp;customer, &amp;order))
+        })
+}
+<span class="boring">}</span></code></pre>
+<hr>
+<h2 id="vs-frunk"><a class="header" href="#vs-frunk">vs frunk</a></h2>
+<p><strong>frunk</strong> focuses on type-level functional programming with HLists, Generic, and other advanced concepts.</p>
+<h3 id="similarities"><a class="header" href="#similarities">Similarities</a></h3>
+<ul>
+<li>Both provide Validation with error accumulation</li>
+<li>Both implement Semigroup</li>
+</ul>
+<h3 id="differences"><a class="header" href="#differences">Differences</a></h3>
+<p><strong>Stillwater</strong>:</p>
+<ul>
+<li>✓ Practical focus on common patterns</li>
+<li>✓ Effect composition for I/O separation</li>
+<li>✓ Lower learning curve</li>
+<li>✓ Better documentation for beginners</li>
+<li>✓ Async support</li>
+</ul>
+<p><strong>frunk</strong>:</p>
+<ul>
+<li>✓ More advanced type-level features (HLists, Generic)</li>
+<li>✓ Powerful generic programming</li>
+<li>✗ Steeper learning curve</li>
+<li>✗ No effect system</li>
+<li>✗ No async support</li>
+</ul>
+<h3 id="when-to-use-frunk"><a class="header" href="#when-to-use-frunk">When to use frunk</a></h3>
+<ul>
+<li>Type-level programming is important</li>
+<li>You need HList transformations</li>
+<li>You’re comfortable with advanced type theory</li>
+</ul>
+<h3 id="when-to-use-stillwater"><a class="header" href="#when-to-use-stillwater">When to use Stillwater</a></h3>
+<ul>
+<li>Validation and effects are your primary needs</li>
+<li>You want a gentler learning curve</li>
+<li>You need async support</li>
+</ul>
+<hr>
+<h2 id="vs-monadic"><a class="header" href="#vs-monadic">vs monadic</a></h2>
+<p><strong>monadic</strong> provides Reader/Writer/State monads with macro-based do-notation.</p>
+<h3 id="similarities-1"><a class="header" href="#similarities-1">Similarities</a></h3>
+<ul>
+<li>Both provide effect composition</li>
+<li>Both handle dependencies (Reader monad)</li>
+</ul>
+<h3 id="differences-1"><a class="header" href="#differences-1">Differences</a></h3>
+<p><strong>Stillwater</strong>:</p>
+<ul>
+<li>✓ No macro DSL (more idiomatic Rust)</li>
+<li>✓ Method chaining instead of do-notation</li>
+<li>✓ Validation with error accumulation</li>
+<li>✓ Async support</li>
+<li>✓ Zero dependencies</li>
+<li>✓ Writer Effect for logging/accumulation</li>
+<li>✓ Reader pattern with <code>ask()</code>/<code>asks()</code>/<code>local()</code></li>
+</ul>
+<p><strong>monadic</strong>:</p>
+<ul>
+<li>✓ State monad</li>
+<li>✓ Do-notation via macros</li>
+<li>✗ Macro-heavy syntax (<code>rdrdo!</code>)</li>
+<li>✗ No validation</li>
+<li>✗ No async support</li>
+</ul>
+<h3 id="when-to-use-monadic"><a class="header" href="#when-to-use-monadic">When to use monadic</a></h3>
+<ul>
+<li>You want Haskell-style do-notation</li>
+<li>You need State monad</li>
+<li>You’re porting Haskell code</li>
+</ul>
+<h3 id="when-to-use-stillwater-1"><a class="header" href="#when-to-use-stillwater-1">When to use Stillwater</a></h3>
+<ul>
+<li>You prefer Rust idioms over Haskell syntax</li>
+<li>You need validation and effects together</li>
+<li>You want async support</li>
+<li>You need Writer Effect for logging/metrics</li>
+</ul>
+<hr>
+<h2 id="vs-anyhow--thiserror"><a class="header" href="#vs-anyhow--thiserror">vs anyhow / thiserror</a></h2>
+<p><strong>anyhow</strong> provides ergonomic error handling. <strong>thiserror</strong> provides derive macros for error types.</p>
+<h3 id="similarities-2"><a class="header" href="#similarities-2">Similarities</a></h3>
+<ul>
+<li>All handle errors</li>
+<li>All work with Result</li>
+</ul>
+<h3 id="differences-2"><a class="header" href="#differences-2">Differences</a></h3>
+<p><strong>Stillwater</strong>:</p>
+<ul>
+<li>✓ Error accumulation (Validation)</li>
+<li>✓ Effect composition</li>
+<li>✓ ContextError for trails</li>
+<li>✗ Less focused on error handling alone</li>
+</ul>
+<p><strong>anyhow/thiserror</strong>:</p>
+<ul>
+<li>✓ Excellent error handling ergonomics</li>
+<li>✓ Great for error propagation</li>
+<li>✗ No error accumulation</li>
+<li>✗ No effect system</li>
+</ul>
+<h3 id="when-to-use-anyhowthiserror"><a class="header" href="#when-to-use-anyhowthiserror">When to use anyhow/thiserror</a></h3>
+<ul>
+<li>Error handling is your only need</li>
+<li>You want minimal boilerplate</li>
+<li>Short-circuiting errors are fine</li>
+</ul>
+<h3 id="when-to-use-stillwater-2"><a class="header" href="#when-to-use-stillwater-2">When to use Stillwater</a></h3>
+<ul>
+<li>You need error accumulation</li>
+<li>You want effect composition</li>
+<li>You’re building validation-heavy apps</li>
+</ul>
+<p><strong>Recommendation</strong>: Use both! Stillwater for business logic, anyhow for error propagation.</p>
+<hr>
+<h2 id="vs-validator"><a class="header" href="#vs-validator">vs validator</a></h2>
+<p><strong>validator</strong> provides derive macros for common validation rules.</p>
+<h3 id="similarities-3"><a class="header" href="#similarities-3">Similarities</a></h3>
+<ul>
+<li>Both validate data</li>
+<li>Both can accumulate errors</li>
+</ul>
+<h3 id="differences-3"><a class="header" href="#differences-3">Differences</a></h3>
+<p><strong>Stillwater</strong>:</p>
+<ul>
+<li>✓ Functional composition</li>
+<li>✓ Effect system</li>
+<li>✓ Custom validation logic</li>
+<li>✗ No derive macros</li>
+<li>✗ More verbose for simple cases</li>
+</ul>
+<p><strong>validator</strong>:</p>
+<ul>
+<li>✓ Derive macros for common validations</li>
+<li>✓ Less boilerplate for simple cases</li>
+<li>✗ No effect system</li>
+<li>✗ Less flexible for complex logic</li>
+</ul>
+<h3 id="when-to-use-validator"><a class="header" href="#when-to-use-validator">When to use validator</a></h3>
+<ul>
+<li>Simple struct validation with standard rules</li>
+<li>You want derive macros</li>
+<li>Validation is your only need</li>
+</ul>
+<h3 id="when-to-use-stillwater-3"><a class="header" href="#when-to-use-stillwater-3">When to use Stillwater</a></h3>
+<ul>
+<li>Complex validation logic</li>
+<li>Need effect composition</li>
+<li>Want full control over validation</li>
+</ul>
+<p><strong>Recommendation</strong>: Use both! validator for struct-level rules, Stillwater for complex logic.</p>
+<hr>
+<h2 id="vs-standard-library-result-option"><a class="header" href="#vs-standard-library-result-option">vs Standard Library (Result, Option)</a></h2>
+<p><strong>Result</strong> and <strong>Option</strong> are the foundation. When should you reach for Stillwater?</p>
+<h3 id="use-result-when"><a class="header" href="#use-result-when">Use Result when</a></h3>
+<ul>
+<li>Short-circuiting is desired (fail fast)</li>
+<li>Single error is sufficient</li>
+<li>Simple error propagation</li>
+</ul>
+<h3 id="use-validation-when"><a class="header" href="#use-validation-when">Use Validation when</a></h3>
+<ul>
+<li>You want ALL errors at once</li>
+<li>Validating forms or API requests</li>
+<li>Independent validations</li>
+</ul>
+<h3 id="use-effect-when"><a class="header" href="#use-effect-when">Use Effect when</a></h3>
+<ul>
+<li>Separating I/O from logic</li>
+<li>Testing with mock environments</li>
+<li>Composing async operations</li>
+</ul>
+<p><strong>Rule of thumb</strong>: Start with Result. Reach for Stillwater when you need error accumulation or I/O separation.</p>
+<hr>
+<h2 id="philosophy-comparison"><a class="header" href="#philosophy-comparison">Philosophy Comparison</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Library</th><th>Philosophy</th></tr>
+</thead>
+<tbody>
+<tr><td>Stillwater</td><td>Pragmatic FP: common patterns, low learning curve</td></tr>
+<tr><td>frunk</td><td>Academic FP: type-level programming, HLists</td></tr>
+<tr><td>monadic</td><td>Haskell-style: monad abstraction, do-notation</td></tr>
+<tr><td>anyhow</td><td>Ergonomic errors: minimal boilerplate</td></tr>
+<tr><td>validator</td><td>Declarative: derive macros for common cases</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h2>
+<h3 id="from-result-to-stillwater"><a class="header" href="#from-result-to-stillwater">From Result to Stillwater</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before: Result (short-circuits)
+fn validate(data: Data) -&gt; Result&lt;Valid, Error&gt; {
+    let email = validate_email(data.email)?;
+    let age = validate_age(data.age)?;
+    Ok(Valid { email, age })
+}
+
+// After: Validation (accumulates)
+use stillwater::{Validation, validation::ValidateAll};
+
+fn validate(data: Data) -&gt; Validation&lt;Valid, Vec&lt;Error&gt;&gt; {
+    (
+        validate_email(data.email),
+        validate_age(data.age),
+    )
+    .validate_all()
+    .map(|(email, age)| Valid { email, age })
+}
+<span class="boring">}</span></code></pre>
+<h3 id="from-async-fn-to-effect"><a class="header" href="#from-async-fn-to-effect">From async fn to Effect</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Before: async fn (hard to test)
+async fn create_user(db: &amp;Database, email: String) -&gt; Result&lt;User, Error&gt; {
+    let user = User { email };
+    db.save(&amp;user).await?;
+    Ok(user)
+}
+
+// After: Effect (testable)
+use stillwater::effect::prelude::*;
+
+fn create_user(email: String) -&gt; impl Effect&lt;Output = User, Error = Error, Env = AppEnv&gt; {
+    let user = User { email };
+    from_async(move |env: &amp;AppEnv| {
+        let db = env.db.clone();
+        let user = user.clone();
+        async move {
+            db.save(&amp;user).await?;
+            Ok(user)
+        }
+    })
+}
+<span class="boring">}</span></code></pre>
+<hr>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Use Case</th><th>Best Choice</th></tr>
+</thead>
+<tbody>
+<tr><td>Form validation</td><td>Stillwater Validation</td></tr>
+<tr><td>API validation</td><td>Stillwater Validation</td></tr>
+<tr><td>Testable I/O</td><td>Stillwater Effect</td></tr>
+<tr><td>Error propagation</td><td>anyhow + Stillwater</td></tr>
+<tr><td>Simple validations</td><td>validator + Stillwater</td></tr>
+<tr><td>Type-level programming</td><td>frunk</td></tr>
+<tr><td>Haskell-style monads</td><td>monadic</td></tr>
+<tr><td>Generic error handling</td><td>anyhow/thiserror</td></tr>
+</tbody>
+</table>
+</div>
+<hr>
+<h2 id="further-reading"><a class="header" href="#further-reading">Further Reading</a></h2>
+<ul>
+<li><a href="guide/">Stillwater User Guide</a></li>
+<li><a href="https://docs.rs/frunk">frunk documentation</a></li>
+<li><a href="https://docs.rs/monadic">monadic documentation</a></li>
+<li><a href="https://docs.rs/anyhow">anyhow documentation</a></li>
+<li><a href="https://docs.rs/validator">validator documentation</a></li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="MIGRATION.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="validation-api-comparison.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="MIGRATION.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="validation-api-comparison.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-09f2665d.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-c22b7243.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
