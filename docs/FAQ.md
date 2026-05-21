@@ -203,11 +203,12 @@ See [CONTRIBUTING.md](https://github.com/iepathos/stillwater/blob/master/CONTRIB
 
 ### What's the roadmap?
 
-See specs in [specs/](https://github.com/iepathos/stillwater/tree/master/specs) directory for planned features. Major upcoming features:
-- Parallel effect execution
-- More combinators
-- Additional examples
-- Performance optimizations
+See specs in the [specs/](https://github.com/iepathos/stillwater/tree/master/specs) directory for planned features. Current areas under consideration include:
+- Saga-style compensation for multi-step workflows
+- Serde and framework integration
+- Benchmarks and performance validation
+- Circuit breaker support
+- Additional Result and tuple combinator ergonomics
 
 ### Is this production-ready?
 

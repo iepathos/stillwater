@@ -462,7 +462,7 @@ let result = create_user(input).run(&env).await?;
 
 ## Zero-Cost Effect System
 
-Version 0.11.0 introduces a zero-cost effect system following the `futures` crate pattern:
+Stillwater's current effect API uses a zero-cost effect system following the `futures` crate pattern:
 
 ```rust
 // Free-standing constructors (not methods)
@@ -603,9 +603,9 @@ See [examples/](examples/) directory for full code.
 
 This library is stable and ready for use.
 
-## Migration from 0.10.x
+## Migration from Pre-0.11 Releases
 
-Version 0.11.0 introduces breaking changes with the zero-cost effect system. See [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions.
+The zero-cost effect API was introduced in 0.11.0 and remains the current API in 1.x. See [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions from the older boxed effect API.
 
 **Key changes:**
 ```rust
@@ -614,7 +614,7 @@ Effect::pure(x)
 Effect::fail(e)
 Effect::from_fn(f)
 
-// After (0.11.0)
+// After (current API)
 pure(x)
 fail(e)
 from_fn(f)
@@ -635,7 +635,7 @@ fn boxed() -> BoxedEffect<T, E, Env> { ... } // Explicit boxing
 - [Philosophy](PHILOSOPHY.md) - Core principles
 - [Patterns](docs/PATTERNS.md) - Common patterns and recipes
 - [Comparison](docs/COMPARISON.md) - vs other libraries
-- [Migration Guide](docs/MIGRATION.md) - Upgrading from 0.10.x to 0.11.0
+- [Migration Guide](docs/MIGRATION.md) - Upgrading from the pre-0.11 boxed effect API
 
 ## Migrating from Result
 

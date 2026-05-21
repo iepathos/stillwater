@@ -30,9 +30,8 @@ This project adheres to a code of conduct. By participating, you are expected to
 
 ### Prerequisites
 
-- Rust 1.75 or later
+- Rust 1.89 or later
 - Git
-- Claude CLI (for testing workflows)
 
 ### Building from Source
 
