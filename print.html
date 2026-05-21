@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-04df59bc.js";
+            window.path_to_searchindex_js = "searchindex-4f251ccc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0f4dd888.js"></script>
+        <script src="toc-705dc3a5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,6 +196,7 @@
 <li><a href="#error-context-never-lose-the-trail">Error Context</a></li>
 <li><a href="#io-module-ergonomic-effect-creation">IO Module</a></li>
 <li><a href="#try-trait-support-nightly-feature">Try Trait</a></li>
+<li><a href="#compile-time-resource-tracking">Compile-Time Resource Tracking</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stillwater-user-guide"><a class="header" href="#stillwater-user-guide">Stillwater User Guide</a></h1>
@@ -350,14 +351,15 @@
 <li>Testing best practices</li>
 </ul>
 <h3 id="additional-advanced-topics"><a class="header" href="#additional-advanced-topics">Additional Advanced Topics</a></h3>
-<p><strong>Compile-Time Resource Tracking</strong> - Type-level resource safety</p>
+<ol start="16">
+<li><strong><a href="#compile-time-resource-tracking">Compile-Time Resource Tracking</a></strong> - Type-level resource safety</li>
+</ol>
 <ul>
 <li>Resource markers (FileRes, DbRes, TxRes, etc.)</li>
 <li>ResourceEffect trait with Acquires/Releases tracking</li>
 <li>Extension methods: <code>.acquires()</code>, <code>.releases()</code>, <code>.neutral()</code></li>
 <li>resource_bracket for guaranteed cleanup</li>
 <li>Zero runtime overhead - purely type-level</li>
-<li>See <code>src/effect/resource/mod.rs</code> for full documentation</li>
 </ul>
 <h2 id="how-to-use-this-guide"><a class="header" href="#how-to-use-this-guide">How to Use This Guide</a></h2>
 <h3 id="for-beginners"><a class="header" href="#for-beginners">For Beginners</a></h3>
@@ -372,6 +374,7 @@ cargo run --example monoid
 cargo run --example form_validation
 cargo run --example recover_patterns
 cargo run --example retry_patterns
+cargo run --example resource_tracking
 </code></pre>
 <h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
 <h3 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h3>
@@ -6788,6 +6791,170 @@ mod tests {
 <li>Read <a href="#validation-with-error-accumulation">Validation Guide</a> for more on validation</li>
 <li>Read <a href="#effect-composition-pure-core-imperative-shell">Effects Guide</a> for testing effects</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="compile-time-resource-tracking"><a class="header" href="#compile-time-resource-tracking">Compile-Time Resource Tracking</a></h1>
+<p>Stillwater’s resource tracking layer lets you describe resource acquisition and release in types. It is useful when an effect opens something that must be closed, such as a file handle, database transaction, lock, socket, or custom resource.</p>
+<p>This feature is opt-in. Existing <code>Effect</code> code continues to work without resource annotations.</p>
+<h2 id="when-to-use-it"><a class="header" href="#when-to-use-it">When to Use It</a></h2>
+<p>Use resource tracking when:</p>
+<ul>
+<li>a workflow has explicit acquire/use/release phases</li>
+<li>a missing cleanup step would be a correctness bug</li>
+<li>the resource protocol matters, such as begin/commit/rollback</li>
+<li>you want function signatures to document resource behavior</li>
+</ul>
+<p>For ordinary scoped cleanup, the runtime bracket helpers are often enough. Resource tracking adds type-level documentation and compile-time neutrality checks on top.</p>
+<h2 id="core-types"><a class="header" href="#core-types">Core Types</a></h2>
+<p>Resource tracking is built from marker types and type-level sets:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+
+// Built-in resource markers
+FileRes;
+DbRes;
+LockRes;
+SocketRes;
+TxRes;
+
+// Type-level resource sets
+Empty;        // no resources
+Has&lt;FileRes&gt;; // one tracked resource</code></pre>
+<p>Tracked effects implement <code>ResourceEffect</code>, which extends <code>Effect</code> with two associated resource sets:</p>
+<pre><code class="language-rust ignore">trait ResourceEffect {
+    type Acquires;
+    type Releases;
+}</code></pre>
+<p>These sets describe what an effect acquires and releases at the type level. The tracking wrapper has no runtime behavior beyond running the original effect.</p>
+<h2 id="annotating-effects"><a class="header" href="#annotating-effects">Annotating Effects</a></h2>
+<p>Use extension methods to mark effects as acquiring, releasing, or neutral with respect to resources:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
+
+fn open_file(path: &amp;str) -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Has&lt;FileRes&gt;,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;(format!("FileHandle({path})"))
+        .acquires::&lt;FileRes&gt;()
+}
+
+fn close_file(handle: String) -&gt; impl ResourceEffect&lt;
+    Output = (),
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Has&lt;FileRes&gt;,
+&gt; {
+    let _ = handle;
+    pure::&lt;_, String, ()&gt;(()).releases::&lt;FileRes&gt;()
+}
+
+fn read_contents(handle: &amp;str) -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;(format!("Contents of {handle}")).neutral()
+}</code></pre>
+<p>The function signatures make the resource contract explicit:</p>
+<ul>
+<li><code>open_file</code> acquires <code>FileRes</code></li>
+<li><code>close_file</code> releases <code>FileRes</code></li>
+<li><code>read_contents</code> is resource-neutral</li>
+</ul>
+<h2 id="prefer-bracket-for-resource-safety"><a class="header" href="#prefer-bracket-for-resource-safety">Prefer Bracket for Resource Safety</a></h2>
+<p>The most ergonomic way to acquire and release a resource safely is the bracket builder:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
+
+let effect = bracket::&lt;FileRes&gt;()
+    .acquire(pure::&lt;_, String, ()&gt;("file_handle".to_string()))
+    .release(|handle: String| async move {
+        let _ = handle;
+        Ok(())
+    })
+    .use_fn(|handle: &amp;String| {
+        pure::&lt;_, String, ()&gt;(format!("Processed: {handle}"))
+    });
+
+let result = effect.run(&amp;()).await;</code></pre>
+<p>The bracket shape is:</p>
+<ol>
+<li>acquire the resource</li>
+<li>use the resource</li>
+<li>release the resource even if use fails</li>
+</ol>
+<p>The bracketed effect is resource-neutral as a whole: it does not leak its acquired resource through the type signature.</p>
+<h2 id="protocol-enforcement"><a class="header" href="#protocol-enforcement">Protocol Enforcement</a></h2>
+<p>Resource tracking is also useful for protocols such as transactions:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
+
+fn begin_transaction() -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Has&lt;TxRes&gt;,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;("tx_12345".to_string()).acquires::&lt;TxRes&gt;()
+}
+
+fn commit_transaction(tx: String) -&gt; impl ResourceEffect&lt;
+    Output = (),
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Has&lt;TxRes&gt;,
+&gt; {
+    let _ = tx;
+    pure::&lt;_, String, ()&gt;(()).releases::&lt;TxRes&gt;()
+}
+
+fn run_in_transaction() -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Empty,
+&gt; {
+    bracket::&lt;TxRes&gt;()
+        .acquire(begin_transaction())
+        .release(|tx| async move { commit_transaction(tx).run(&amp;()).await })
+        .use_fn(|tx| pure::&lt;_, String, ()&gt;(format!("used {tx}")))
+}</code></pre>
+<p>The return type says <code>run_in_transaction</code> is neutral: it begins and ends the transaction internally.</p>
+<h2 id="compile-time-neutrality-checks"><a class="header" href="#compile-time-neutrality-checks">Compile-Time Neutrality Checks</a></h2>
+<p>Use <code>assert_resource_neutral</code> when an API must not expose outstanding resources:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+
+fn must_be_neutral&lt;E&gt;(effect: E) -&gt; E
+where
+    E: ResourceEffect&lt;Acquires = Empty, Releases = Empty&gt;,
+{
+    assert_resource_neutral(effect)
+}</code></pre>
+<p>If the effect still acquires or releases a resource, the code will fail to compile.</p>
+<h2 id="custom-resource-markers"><a class="header" href="#custom-resource-markers">Custom Resource Markers</a></h2>
+<p>Define a marker when the built-in resource kinds do not fit your domain:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::ResourceKind;
+
+pub struct PoolCheckout;
+
+impl ResourceKind for PoolCheckout {
+    const NAME: &amp;'static str = "PoolCheckout";
+}</code></pre>
+<p>You can then use <code>.acquires::&lt;PoolCheckout&gt;()</code>, <code>.releases::&lt;PoolCheckout&gt;()</code>, and <code>bracket::&lt;PoolCheckout&gt;()</code> the same way as built-in markers.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<p>Run the full example:</p>
+<pre><code class="language-bash">cargo run --example resource_tracking
+</code></pre>
+<p>The example covers basic annotations, bracket usage, transaction protocol enforcement, multiple resource types, custom resource markers, and compile-time neutrality assertions.</p>
+<p>For API-level details, see <code>stillwater::effect::resource</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="common-patterns-and-recipes"><a class="header" href="#common-patterns-and-recipes">Common Patterns and Recipes</a></h1>
 <p>This document collects common patterns and recipes for using Stillwater effectively.</p>

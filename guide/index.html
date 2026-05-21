@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04df59bc.js";
+            window.path_to_searchindex_js = "../searchindex-4f251ccc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-0f4dd888.js"></script>
+        <script src="../toc-705dc3a5.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -332,14 +332,15 @@
 <li>Testing best practices</li>
 </ul>
 <h3 id="additional-advanced-topics"><a class="header" href="#additional-advanced-topics">Additional Advanced Topics</a></h3>
-<p><strong>Compile-Time Resource Tracking</strong> - Type-level resource safety</p>
+<ol start="16">
+<li><strong><a href="16-resource-tracking.html">Compile-Time Resource Tracking</a></strong> - Type-level resource safety</li>
+</ol>
 <ul>
 <li>Resource markers (FileRes, DbRes, TxRes, etc.)</li>
 <li>ResourceEffect trait with Acquires/Releases tracking</li>
 <li>Extension methods: <code>.acquires()</code>, <code>.releases()</code>, <code>.neutral()</code></li>
 <li>resource_bracket for guaranteed cleanup</li>
 <li>Zero runtime overhead - purely type-level</li>
-<li>See <code>src/effect/resource/mod.rs</code> for full documentation</li>
 </ul>
 <h2 id="how-to-use-this-guide"><a class="header" href="#how-to-use-this-guide">How to Use This Guide</a></h2>
 <h3 id="for-beginners"><a class="header" href="#for-beginners">For Beginners</a></h3>
@@ -354,6 +355,7 @@ cargo run --example monoid
 cargo run --example form_validation
 cargo run --example recover_patterns
 cargo run --example retry_patterns
+cargo run --example resource_tracking
 </code></pre>
 <h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
 <h3 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h3>

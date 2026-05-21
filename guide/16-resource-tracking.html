@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Error Context - Stillwater Documentation</title>
+        <title>Compile-Time Resource Tracking - Stillwater Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -146,7 +146,7 @@
                         <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/04-error-context.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/16-resource-tracking.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,362 +180,179 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="error-context-never-lose-the-trail"><a class="header" href="#error-context-never-lose-the-trail">Error Context: Never Lose the Trail</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Standard errors lose context as they bubble up:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn load_user_profile(id: u64) -&gt; Result&lt;Profile, Error&gt; {
-    let user = database.fetch_user(id).await?;
-    // Error: "Connection refused"
-    // Lost: Why were we connecting? What were we trying to do?
-}
-<span class="boring">}</span></code></pre>
-<p>When an error occurs deep in your code, you lose valuable context:</p>
+                        <h1 id="compile-time-resource-tracking"><a class="header" href="#compile-time-resource-tracking">Compile-Time Resource Tracking</a></h1>
+<p>Stillwater’s resource tracking layer lets you describe resource acquisition and release in types. It is useful when an effect opens something that must be closed, such as a file handle, database transaction, lock, socket, or custom resource.</p>
+<p>This feature is opt-in. Existing <code>Effect</code> code continues to work without resource annotations.</p>
+<h2 id="when-to-use-it"><a class="header" href="#when-to-use-it">When to Use It</a></h2>
+<p>Use resource tracking when:</p>
 <ul>
-<li>What operation was being attempted?</li>
-<li>What was the call path?</li>
-<li>Which resource failed?</li>
+<li>a workflow has explicit acquire/use/release phases</li>
+<li>a missing cleanup step would be a correctness bug</li>
+<li>the resource protocol matters, such as begin/commit/rollback</li>
+<li>you want function signatures to document resource behavior</li>
 </ul>
-<h2 id="the-solution-contexterror"><a class="header" href="#the-solution-contexterror">The Solution: ContextError</a></h2>
-<p><code>ContextError</code> wraps errors and accumulates context as they propagate:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+<p>For ordinary scoped cleanup, the runtime bracket helpers are often enough. Resource tracking adds type-level documentation and compile-time neutrality checks on top.</p>
+<h2 id="core-types"><a class="header" href="#core-types">Core Types</a></h2>
+<p>Resource tracking is built from marker types and type-level sets:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
 
-let err = ContextError::new("connection refused")
-    .context("fetching user from database")
-    .context("loading user profile")
-    .context("rendering dashboard");
+// Built-in resource markers
+FileRes;
+DbRes;
+LockRes;
+SocketRes;
+TxRes;
 
-println!("{}", err);
-// Output:
-// Error: connection refused
-//   -&gt; fetching user from database
-//   -&gt; loading user profile
-//   -&gt; rendering dashboard
-<span class="boring">}</span></code></pre>
-<p>Now you know exactly what failed and why!</p>
-<h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
-<h3 id="creating-context-errors"><a class="header" href="#creating-context-errors">Creating Context Errors</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+// Type-level resource sets
+Empty;        // no resources
+Has&lt;FileRes&gt;; // one tracked resource</code></pre>
+<p>Tracked effects implement <code>ResourceEffect</code>, which extends <code>Effect</code> with two associated resource sets:</p>
+<pre><code class="language-rust ignore">trait ResourceEffect {
+    type Acquires;
+    type Releases;
+}</code></pre>
+<p>These sets describe what an effect acquires and releases at the type level. The tracking wrapper has no runtime behavior beyond running the original effect.</p>
+<h2 id="annotating-effects"><a class="header" href="#annotating-effects">Annotating Effects</a></h2>
+<p>Use extension methods to mark effects as acquiring, releasing, or neutral with respect to resources:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
 
-// Wrap an error
-let err = ContextError::new("file not found");
-
-// Add context
-let err = err.context("reading config file");
-<span class="boring">}</span></code></pre>
-<h3 id="adding-context-layers"><a class="header" href="#adding-context-layers">Adding Context Layers</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
-
-let err = ContextError::new("parse error")
-    .context("reading config.toml")
-    .context("initializing application")
-    .context("startup sequence");
-
-// Context accumulates in order (innermost to outermost)
-assert_eq!(err.context_trail(), &amp;[
-    "reading config.toml",
-    "initializing application",
-    "startup sequence"
-]);
-<span class="boring">}</span></code></pre>
-<h3 id="accessing-the-error"><a class="header" href="#accessing-the-error">Accessing the Error</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
-
-let err = ContextError::new("base error")
-    .context("operation failed");
-
-// Get reference to inner error
-assert_eq!(err.inner(), &amp;"base error");
-
-// Consume and get inner error
-let inner = err.into_inner();
-assert_eq!(inner, "base error");
-
-// Get context trail
-let trail = err.context_trail();
-assert_eq!(trail, &amp;["operation failed"]);
-<span class="boring">}</span></code></pre>
-<h2 id="using-with-effect"><a class="header" href="#using-with-effect">Using with Effect</a></h2>
-<p>Context errors integrate seamlessly with Effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, ContextError};
-
-fn load_user(id: u64) -&gt; Effect&lt;User, ContextError&lt;DbError&gt;, AppEnv&gt; {
-    IO::read(|env: &amp;AppEnv| env.db.fetch_user(id))
-        .map_err(|e| ContextError::new(e).context("fetching user from database"))
-        .and_then(|user| {
-            load_profile(&amp;user)
-                .map_err(|e| e.context("loading user profile"))
-        })
-        .map_err(|e| e.context("rendering dashboard"))
-}
-<span class="boring">}</span></code></pre>
-<p>Even better, Effect provides a <code>context</code> method:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Effect;
-
-fn load_user(id: u64) -&gt; Effect&lt;User, String, AppEnv&gt; {
-    IO::read(|env: &amp;AppEnv| env.db.fetch_user(id))
-        .context("fetching user from database")
-        .and_then(|user| {
-            load_profile(&amp;user)
-                .context("loading user profile")
-        })
-        .context("rendering dashboard")
-}
-<span class="boring">}</span></code></pre>
-<p>The Effect’s <code>context</code> method automatically wraps errors in ContextError!</p>
-<h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, IO, ContextError};
-
-struct AppEnv {
-    db: Database,
-    cache: Cache,
+fn open_file(path: &amp;str) -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Has&lt;FileRes&gt;,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;(format!("FileHandle({path})"))
+        .acquires::&lt;FileRes&gt;()
 }
 
-#[derive(Debug)]
-enum AppError {
-    DatabaseError(String),
-    CacheError(String),
-    NotFound,
+fn close_file(handle: String) -&gt; impl ResourceEffect&lt;
+    Output = (),
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Has&lt;FileRes&gt;,
+&gt; {
+    let _ = handle;
+    pure::&lt;_, String, ()&gt;(()).releases::&lt;FileRes&gt;()
 }
 
-impl std::fmt::Display for AppError {
-    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
-        match self {
-            AppError::DatabaseError(msg) =&gt; write!(f, "Database error: {}", msg),
-            AppError::CacheError(msg) =&gt; write!(f, "Cache error: {}", msg),
-            AppError::NotFound =&gt; write!(f, "Resource not found"),
-        }
-    }
-}
+fn read_contents(handle: &amp;str) -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;(format!("Contents of {handle}")).neutral()
+}</code></pre>
+<p>The function signatures make the resource contract explicit:</p>
+<ul>
+<li><code>open_file</code> acquires <code>FileRes</code></li>
+<li><code>close_file</code> releases <code>FileRes</code></li>
+<li><code>read_contents</code> is resource-neutral</li>
+</ul>
+<h2 id="prefer-bracket-for-resource-safety"><a class="header" href="#prefer-bracket-for-resource-safety">Prefer Bracket for Resource Safety</a></h2>
+<p>The most ergonomic way to acquire and release a resource safely is the bracket builder:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
 
-impl std::error::Error for AppError {}
-
-fn get_user_dashboard(
-    user_id: u64
-) -&gt; Effect&lt;Dashboard, ContextError&lt;AppError&gt;, AppEnv&gt; {
-    // Try cache first
-    IO::read(|env: &amp;AppEnv| {
-        env.cache.get_user(user_id)
-            .map_err(|e| AppError::CacheError(e.to_string()))
+let effect = bracket::&lt;FileRes&gt;()
+    .acquire(pure::&lt;_, String, ()&gt;("file_handle".to_string()))
+    .release(|handle: String| async move {
+        let _ = handle;
+        Ok(())
     })
-    .map_err(|e| ContextError::new(e).context("checking user cache"))
-    .and_then(|cached| {
-        match cached {
-            Some(user) =&gt; Effect::pure(user),
-            None =&gt; {
-                // Cache miss - fetch from database
-                IO::read(|env: &amp;AppEnv| {
-                    env.db.fetch_user(user_id)
-                        .map_err(|e| AppError::DatabaseError(e.to_string()))
-                })
-                .map_err(|e| ContextError::new(e).context("fetching user from database"))
-            }
-        }
-    })
-    .and_then(|user| {
-        // Load user's projects
-        IO::read(|env: &amp;AppEnv| {
-            env.db.fetch_user_projects(user.id)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map_err(|e| ContextError::new(e).context("loading user projects"))
-        .map(|projects| (user, projects))
-    })
-    .and_then(|(user, projects)| {
-        // Load user's notifications
-        IO::read(|env: &amp;AppEnv| {
-            env.db.fetch_notifications(user.id)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map_err(|e| ContextError::new(e).context("loading notifications"))
-        .map(|notifications| Dashboard { user, projects, notifications })
-    })
-    .map_err(|e| e.context("building user dashboard"))
+    .use_fn(|handle: &amp;String| {
+        pure::&lt;_, String, ()&gt;(format!("Processed: {handle}"))
+    });
+
+let result = effect.run(&amp;()).await;</code></pre>
+<p>The bracket shape is:</p>
+<ol>
+<li>acquire the resource</li>
+<li>use the resource</li>
+<li>release the resource even if use fails</li>
+</ol>
+<p>The bracketed effect is resource-neutral as a whole: it does not leak its acquired resource through the type signature.</p>
+<h2 id="protocol-enforcement"><a class="header" href="#protocol-enforcement">Protocol Enforcement</a></h2>
+<p>Resource tracking is also useful for protocols such as transactions:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+use stillwater::{pure, Effect};
+
+fn begin_transaction() -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Has&lt;TxRes&gt;,
+    Releases = Empty,
+&gt; {
+    pure::&lt;_, String, ()&gt;("tx_12345".to_string()).acquires::&lt;TxRes&gt;()
 }
 
-// Usage
-match get_user_dashboard(123).run(&amp;env).await {
-    Ok(dashboard) =&gt; println!("Dashboard: {:?}", dashboard),
-    Err(err) =&gt; {
-        eprintln!("{}", err);
-        // Output might be:
-        // Error: Database error: connection timeout
-        //   -&gt; fetching user from database
-        //   -&gt; building user dashboard
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
-<h3 id="add-context-at-boundaries"><a class="header" href="#add-context-at-boundaries">Add Context at Boundaries</a></h3>
-<p>Don’t add context to every function. Add it at major operation boundaries:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Too much context
-fn validate_email(email: &amp;str) -&gt; Result&lt;Email, ContextError&lt;Error&gt;&gt; {
-    check_format(email)
-        .context("checking email format")?;  // Too granular
-    check_domain(email)
-        .context("checking email domain")?;   // Too granular
-    Ok(Email(email))
+fn commit_transaction(tx: String) -&gt; impl ResourceEffect&lt;
+    Output = (),
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Has&lt;TxRes&gt;,
+&gt; {
+    let _ = tx;
+    pure::&lt;_, String, ()&gt;(()).releases::&lt;TxRes&gt;()
 }
 
-// ✓ Context at boundaries
-fn register_user(input: UserInput) -&gt; Effect&lt;User, ContextError&lt;Error&gt;, Env&gt; {
-    validate_user(input)
-        .context("validating user input")  // Good
-        .and_then(|valid| {
-            save_to_database(valid)
-                .context("saving user to database")  // Good
-        })
-}
-<span class="boring">}</span></code></pre>
-<h3 id="be-specific-but-concise"><a class="header" href="#be-specific-but-concise">Be Specific but Concise</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Too vague
-.context("error occurred")
+fn run_in_transaction() -&gt; impl ResourceEffect&lt;
+    Output = String,
+    Error = String,
+    Env = (),
+    Acquires = Empty,
+    Releases = Empty,
+&gt; {
+    bracket::&lt;TxRes&gt;()
+        .acquire(begin_transaction())
+        .release(|tx| async move { commit_transaction(tx).run(&amp;()).await })
+        .use_fn(|tx| pure::&lt;_, String, ()&gt;(format!("used {tx}")))
+}</code></pre>
+<p>The return type says <code>run_in_transaction</code> is neutral: it begins and ends the transaction internally.</p>
+<h2 id="compile-time-neutrality-checks"><a class="header" href="#compile-time-neutrality-checks">Compile-Time Neutrality Checks</a></h2>
+<p>Use <code>assert_resource_neutral</code> when an API must not expose outstanding resources:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
 
-// ❌ Too verbose
-.context("An error occurred while attempting to read the user configuration file from disk")
+fn must_be_neutral&lt;E&gt;(effect: E) -&gt; E
+where
+    E: ResourceEffect&lt;Acquires = Empty, Releases = Empty&gt;,
+{
+    assert_resource_neutral(effect)
+}</code></pre>
+<p>If the effect still acquires or releases a resource, the code will fail to compile.</p>
+<h2 id="custom-resource-markers"><a class="header" href="#custom-resource-markers">Custom Resource Markers</a></h2>
+<p>Define a marker when the built-in resource kinds do not fit your domain:</p>
+<pre><code class="language-rust ignore">use stillwater::effect::resource::ResourceKind;
 
-// ✓ Just right
-.context("reading user config file")
-<span class="boring">}</span></code></pre>
-<h3 id="include-relevant-identifiers"><a class="header" href="#include-relevant-identifiers">Include Relevant Identifiers</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✓ Include user ID for debugging
-.context(format!("loading profile for user {}", user_id))
+pub struct PoolCheckout;
 
-// ✓ Include file path
-.context(format!("reading config from {}", path.display()))
-<span class="boring">}</span></code></pre>
-<h2 id="when-to-use-contexterror"><a class="header" href="#when-to-use-contexterror">When to Use ContextError</a></h2>
-<p><strong>Use ContextError when</strong>:</p>
-<ul>
-<li>Debugging production issues</li>
-<li>Errors cross multiple layers</li>
-<li>You need to understand call paths</li>
-<li>Building user-facing error messages</li>
-</ul>
-<p><strong>Don’t use when</strong>:</p>
-<ul>
-<li>Performance is critical (hot loops)</li>
-<li>Error types already have good messages</li>
-<li>Single-layer operations</li>
-</ul>
-<h2 id="display-format"><a class="header" href="#display-format">Display Format</a></h2>
-<p>ContextError formats nicely for logging:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
-
-let err = ContextError::new("connection timeout")
-    .context("querying database")
-    .context("loading user profile")
-    .context("rendering dashboard");
-
-println!("{}", err);
-// Output:
-// Error: connection timeout
-//   -&gt; querying database
-//   -&gt; loading user profile
-//   -&gt; rendering dashboard
-<span class="boring">}</span></code></pre>
-<p>The indentation makes the error trail clear and readable.</p>
-<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
-<p>Test error context accumulation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_error_context() {
-        let env = MockEnv::with_error();
-
-        let result = load_user_dashboard(123).run(&amp;env).await;
-
-        match result {
-            Err(err) =&gt; {
-                // Check inner error
-                assert_eq!(
-                    err.inner().to_string(),
-                    "Database error: connection failed"
-                );
-
-                // Check context trail
-                let trail = err.context_trail();
-                assert!(trail.contains(&amp;"fetching user from database".to_string()));
-                assert!(trail.contains(&amp;"building user dashboard".to_string()));
-            }
-            Ok(_) =&gt; panic!("Expected error"),
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="integration-with-other-error-crates"><a class="header" href="#integration-with-other-error-crates">Integration with Other Error Crates</a></h2>
-<p>ContextError implements <code>std::error::Error</code>, so it works with libraries like anyhow:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use anyhow::Result;
-use stillwater::ContextError;
-
-fn example() -&gt; Result&lt;()&gt; {
-    let ctx_err = ContextError::new("base error")
-        .context("operation failed");
-
-    Err(ctx_err)?  // Converts to anyhow::Error
-}
-<span class="boring">}</span></code></pre>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<p>ContextError has minimal overhead:</p>
-<ul>
-<li>Small allocation for context Vec</li>
-<li>String allocations for messages</li>
-<li>No runtime cost if not used</li>
-</ul>
-<p>The benefits for debugging usually outweigh the costs.</p>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<ul>
-<li><strong>ContextError</strong> accumulates context as errors propagate</li>
-<li><strong>Context trail</strong> shows the call path</li>
-<li><strong>Effect.context()</strong> makes adding context ergonomic</li>
-<li><strong>Add context at boundaries</strong>, not everywhere</li>
-<li><strong>Display format</strong> is clean and readable</li>
-</ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Learn about the <a href="05-io-module.html">IO Module</a></li>
-<li>See <a href="https://github.com/iepathos/stillwater/blob/master/examples/error_context.rs">error_context example</a></li>
-<li>Read about <a href="06-helper-combinators.html">Helper Combinators</a></li>
-</ul>
+impl ResourceKind for PoolCheckout {
+    const NAME: &amp;'static str = "PoolCheckout";
+}</code></pre>
+<p>You can then use <code>.acquires::&lt;PoolCheckout&gt;()</code>, <code>.releases::&lt;PoolCheckout&gt;()</code>, and <code>bracket::&lt;PoolCheckout&gt;()</code> the same way as built-in markers.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<p>Run the full example:</p>
+<pre><code class="language-bash">cargo run --example resource_tracking
+</code></pre>
+<p>The example covers basic annotations, bracket usage, transaction protocol enforcement, multiple resource types, custom resource markers, and compile-time neutrality assertions.</p>
+<p>For API-level details, see <code>stillwater::effect::resource</code>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guide/03-effects.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guide/15-testing.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../guide/05-io-module.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../PATTERNS.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -545,11 +362,11 @@ fn example() -&gt; Result&lt;()&gt; {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guide/03-effects.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guide/15-testing.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../guide/05-io-module.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../PATTERNS.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
