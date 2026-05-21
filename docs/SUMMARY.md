@@ -31,6 +31,10 @@
 
 - [Testing](guide/15-testing.md)
 
+# Advanced Topics
+
+- [Compile-Time Resource Tracking](guide/16-resource-tracking.md)
+
 # Reference
 
 - [Patterns](PATTERNS.md)

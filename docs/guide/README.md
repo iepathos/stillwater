@@ -111,13 +111,12 @@ This guide is organized into progressive chapters, each building on the previous
 
 ### Additional Advanced Topics
 
-**Compile-Time Resource Tracking** - Type-level resource safety
-- Resource markers (FileRes, DbRes, TxRes, etc.)
-- ResourceEffect trait with Acquires/Releases tracking
-- Extension methods: `.acquires()`, `.releases()`, `.neutral()`
-- resource_bracket for guaranteed cleanup
-- Zero runtime overhead - purely type-level
-- See `src/effect/resource/mod.rs` for full documentation
+16. **[Compile-Time Resource Tracking](16-resource-tracking.md)** - Type-level resource safety
+   - Resource markers (FileRes, DbRes, TxRes, etc.)
+   - ResourceEffect trait with Acquires/Releases tracking
+   - Extension methods: `.acquires()`, `.releases()`, `.neutral()`
+   - resource_bracket for guaranteed cleanup
+   - Zero runtime overhead - purely type-level
 
 ## How to Use This Guide
 
@@ -140,6 +139,7 @@ cargo run --example monoid
 cargo run --example form_validation
 cargo run --example recover_patterns
 cargo run --example retry_patterns
+cargo run --example resource_tracking
 ```
 
 ## Quick Reference
