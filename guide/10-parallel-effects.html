@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Traverse Patterns - Stillwater Documentation</title>
+        <title>Parallel Effects - Stillwater Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b3a5f54.js";
+            window.path_to_searchindex_js = "../searchindex-04df59bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-be49391b.js"></script>
+        <script src="../toc-0f4dd888.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -146,7 +146,7 @@
                         <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/12-traverse-patterns.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/10-parallel-effects.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,577 +180,484 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="traverse-and-sequence-patterns"><a class="header" href="#traverse-and-sequence-patterns">Traverse and Sequence Patterns</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>When working with collections of data that need validation or effectful processing, you often face a choice:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Option 1: Process one at a time, manually accumulating
-let mut results = Vec::new();
-let mut errors = Vec::new();
-for item in items {
-    match validate(item) {
-        Validation::Success(val) =&gt; results.push(val),
-        Validation::Failure(err) =&gt; errors.extend(err),
-    }
-}
-// Now what? How do we combine results and errors?
-
-// Option 2: Use map and somehow convert Vec&lt;Validation&lt;T, E&gt;&gt; to Validation&lt;Vec&lt;T&gt;, E&gt;
-let validations: Vec&lt;Validation&lt;_, _&gt;&gt; = items.iter().map(validate).collect();
-// But how do we turn this into a single Validation?
-<span class="boring">}</span></code></pre>
-<p>Both approaches are cumbersome and error-prone. This is where <strong>traverse</strong> and <strong>sequence</strong> come in.</p>
-<h2 id="the-solution-traverse-and-sequence"><a class="header" href="#the-solution-traverse-and-sequence">The Solution: Traverse and Sequence</a></h2>
-<p>Stillwater provides two fundamental operations for working with collections of effects:</p>
+                        <h1 id="parallel-effect-execution"><a class="header" href="#parallel-effect-execution">Parallel Effect Execution</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Stillwater provides free functions for running independent effects concurrently while preserving the same environment and error model used by sequential effects.</p>
+<p>There are two families of parallel helpers:</p>
 <ul>
-<li>
-<p><strong><code>sequence</code></strong>: Converts a collection of effects into an effect of a collection</p>
+<li>Fixed-arity helpers: <code>par2</code>, <code>par3</code>, and <code>par4</code> for heterogeneous effects without boxing.</li>
+<li>Collection helpers: <code>par_all</code>, <code>par_try_all</code>, <code>race</code>, and <code>par_all_limit</code> for homogeneous <code>Vec&lt;BoxedEffect&lt;...&gt;&gt;</code> batches.</li>
+</ul>
+<p>This guide focuses on when to use each helper and how to structure real application code around them.</p>
+<h2 id="why-parallel-effects"><a class="header" href="#why-parallel-effects">Why Parallel Effects?</a></h2>
+<p>Many real-world operations are independent and can run concurrently:</p>
 <ul>
-<li><code>Vec&lt;Validation&lt;T, E&gt;&gt;</code> → <code>Validation&lt;Vec&lt;T&gt;, E&gt;</code></li>
-<li><code>Vec&lt;Effect&lt;T, E, Env&gt;&gt;</code> → <code>Effect&lt;Vec&lt;T&gt;, E, Env&gt;</code></li>
+<li>Fetching multiple records from a database</li>
+<li>Making several API calls at once</li>
+<li>Loading independent configuration sources</li>
+<li>Validating independent inputs</li>
+<li>Processing batches with a concurrency limit</li>
 </ul>
-</li>
-<li>
-<p><strong><code>traverse</code></strong>: Maps a function over a collection and sequences the results</p>
-<ul>
-<li>Equivalent to <code>map(f).sequence()</code> but more efficient</li>
-</ul>
-</li>
-</ul>
-<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
-<h3 id="sequence"><a class="header" href="#sequence">Sequence</a></h3>
-<p><strong>Sequence</strong> inverts the structure of nested types:</p>
+<p>Sequential execution waits for each operation before starting the next:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
+</span>let user = fetch_user(id).run(&amp;env).await?;
+let settings = fetch_settings(id).run(&amp;env).await?;
+let preferences = fetch_preferences(id).run(&amp;env).await?;
+<span class="boring">}</span></code></pre>
+<p>Parallel execution starts independent work together:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
 
-// We have: Vec&lt;Validation&lt;T, E&gt;&gt;
-let validations = vec![
-    Validation::success(1),
-    Validation::success(2),
-    Validation::success(3),
+let (user, settings, preferences) = par3(
+    fetch_user(id),
+    fetch_settings(id),
+    fetch_preferences(id),
+    &amp;env,
+).await;
+
+let profile = UserProfile {
+    user: user?,
+    settings: settings?,
+    preferences: preferences?,
+};
+<span class="boring">}</span></code></pre>
+<h2 id="choosing-a-helper"><a class="header" href="#choosing-a-helper">Choosing A Helper</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Need</th><th>Helper</th><th>Shape</th></tr>
+</thead>
+<tbody>
+<tr><td>2-4 effects with different output types</td><td><code>par2</code>, <code>par3</code>, <code>par4</code></td><td>Returns a tuple of <code>Result</code>s</td></tr>
+<tr><td>A batch where all errors should be reported</td><td><code>par_all</code></td><td><code>Result&lt;Vec&lt;T&gt;, Vec&lt;E&gt;&gt;</code></td></tr>
+<tr><td>A batch where one error is enough</td><td><code>par_try_all</code></td><td><code>Result&lt;Vec&lt;T&gt;, E&gt;</code></td></tr>
+<tr><td>The first completed result should decide</td><td><code>race</code></td><td><code>Result&lt;T, E&gt;</code></td></tr>
+<tr><td>A large batch needs bounded concurrency</td><td><code>par_all_limit</code></td><td><code>Result&lt;Vec&lt;T&gt;, Vec&lt;E&gt;&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Collection helpers require boxed effects because a <code>Vec</code> needs one concrete item type:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+let effects: Vec&lt;BoxedEffect&lt;User, DbError, AppEnv&gt;&gt; = user_ids
+    .into_iter()
+    .map(|id| fetch_user(id).boxed())
+    .collect();
+
+let users = par_all(effects, &amp;env).await?;
+<span class="boring">}</span></code></pre>
+<h2 id="heterogeneous-parallel-effects"><a class="header" href="#heterogeneous-parallel-effects">Heterogeneous Parallel Effects</a></h2>
+<p>Use <code>par2</code>, <code>par3</code>, or <code>par4</code> when effects have different output types, or when you want to avoid boxing.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+let (price, inventory, shipping) = par3(
+    fetch_price(item_id),
+    fetch_inventory(item_id),
+    fetch_shipping_options(item_id),
+    &amp;env,
+).await;
+
+let quote = Quote {
+    price: price?,
+    inventory: inventory?,
+    shipping: shipping?,
+};
+<span class="boring">}</span></code></pre>
+<p>These helpers return a tuple of results instead of short-circuiting. That makes each outcome explicit:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let (database, cache) = par2(check_database(), check_cache(), &amp;env).await;
+
+match (database, cache) {
+    (Ok(db), Ok(cache)) =&gt; Health::healthy(db, cache),
+    (db_result, cache_result) =&gt; Health::degraded(db_result.err(), cache_result.err()),
+}
+<span class="boring">}</span></code></pre>
+<p>This is useful for diagnostics and health checks where you want to inspect every independent subsystem.</p>
+<h2 id="par_all---collect-all-results-or-all-errors"><a class="header" href="#par_all---collect-all-results-or-all-errors"><code>par_all</code> - Collect All Results Or All Errors</a></h2>
+<p>Use <code>par_all</code> when every operation should run to completion and callers benefit from a complete error report.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+async fn validate_import(records: Vec&lt;Record&gt;, env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;ValidRecord&gt;, Vec&lt;ValidationError&gt;&gt; {
+    let effects: Vec&lt;BoxedEffect&lt;ValidRecord, ValidationError, AppEnv&gt;&gt; = records
+        .into_iter()
+        .map(|record| validate_record(record).boxed())
+        .collect();
+
+    par_all(effects, env).await
+}
+<span class="boring">}</span></code></pre>
+<p>If any effect fails, <code>par_all</code> returns all failures:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+    pure(1).boxed(),
+    fail("bad input".to_string()).boxed(),
+    fail("missing field".to_string()).boxed(),
 ];
 
-// We want: Validation&lt;Vec&lt;T&gt;, E&gt;
-let result = sequence(validations);
-assert_eq!(result, Validation::Success(vec![1, 2, 3]));
+let result = par_all(effects, &amp;()).await;
+assert_eq!(
+    result,
+    Err(vec!["bad input".to_string(), "missing field".to_string()])
+);
 <span class="boring">}</span></code></pre>
-<p>If any validation fails, all errors are accumulated:</p>
+<p>This is the right choice for form validation, import validation, batch reporting, and admin tools where users need a full list of failures.</p>
+<h2 id="par_try_all---return-a-single-error"><a class="header" href="#par_try_all---return-a-single-error"><code>par_try_all</code> - Return A Single Error</a></h2>
+<p>Use <code>par_try_all</code> when one error is enough for the caller.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
+</span>use stillwater::effect::prelude::*;
 
-let validations = vec![
-    Validation::&lt;i32, _&gt;::failure(vec!["error 1"]),
-    Validation::success(2),
-    Validation::failure(vec!["error 2"]),
+async fn load_required_services(env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;ServiceStatus&gt;, ServiceError&gt; {
+    let checks: Vec&lt;BoxedEffect&lt;ServiceStatus, ServiceError, AppEnv&gt;&gt; = vec![
+        check_database().boxed(),
+        check_cache().boxed(),
+        check_queue().boxed(),
+    ];
+
+    par_try_all(checks, env).await
+}
+<span class="boring">}</span></code></pre>
+<p><code>par_try_all</code> awaits the batch and then collects with normal <code>Result</code> semantics, returning the first error in result order. It is not a cancellation primitive.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+    pure(1).boxed(),
+    fail("first error".to_string()).boxed(),
+    fail("second error".to_string()).boxed(),
 ];
 
-let result = sequence(validations);
-match result {
-    Validation::Failure(errors) =&gt; {
-        assert_eq!(errors, vec!["error 1", "error 2"]);
-    }
-    _ =&gt; panic!("Expected failure"),
-}
+let result = par_try_all(effects, &amp;()).await;
+assert_eq!(result, Err("first error".to_string()));
 <span class="boring">}</span></code></pre>
-<h3 id="traverse"><a class="header" href="#traverse">Traverse</a></h3>
-<p><strong>Traverse</strong> combines mapping and sequencing in one operation:</p>
+<p>Use <code>par_all</code> when you need every error. Use <code>par_try_all</code> when the caller only needs to know that the batch failed.</p>
+<h2 id="race---first-completed-result"><a class="header" href="#race---first-completed-result"><code>race</code> - First Completed Result</a></h2>
+<p>Use <code>race</code> when the first completed result should decide the outcome.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+</span>use stillwater::effect::prelude::*;
 
-fn parse_number(s: &amp;str) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
-    s.parse()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
-}
+async fn fetch_from_fastest_replica(key: String, env: &amp;AppEnv) -&gt; Result&lt;Data, FetchError&gt; {
+    let effects: Vec&lt;BoxedEffect&lt;Data, FetchError, AppEnv&gt;&gt; = vec![
+        fetch_from_replica_a(key.clone()).boxed(),
+        fetch_from_replica_b(key.clone()).boxed(),
+        fetch_from_replica_c(key).boxed(),
+    ];
 
-// Instead of: items.iter().map(parse_number).collect() then sequence
-let result = traverse(vec!["1", "2", "3"], parse_number);
-assert_eq!(result, Validation::Success(vec![1, 2, 3]));
-<span class="boring">}</span></code></pre>
-<h2 id="validation-examples"><a class="header" href="#validation-examples">Validation Examples</a></h2>
-<h3 id="validating-user-input-collections"><a class="header" href="#validating-user-input-collections">Validating User Input Collections</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-#[derive(Debug, PartialEq)]
-struct Email(String);
-
-#[derive(Debug)]
-enum ValidationError {
-    InvalidEmail(String),
-}
-
-fn validate_email(raw: &amp;str) -&gt; Validation&lt;Email, Vec&lt;ValidationError&gt;&gt; {
-    if raw.contains('@') &amp;&amp; raw.contains('.') {
-        Validation::success(Email(raw.to_string()))
-    } else {
-        Validation::failure(vec![ValidationError::InvalidEmail(raw.to_string())])
-    }
-}
-
-// Validate a list of email addresses
-let emails = vec!["alice@example.com", "bob@example.com", "invalid"];
-let result = traverse(emails, validate_email);
-
-match result {
-    Validation::Success(valid_emails) =&gt; {
-        println!("All valid: {:?}", valid_emails);
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("Found {} invalid emails:", errors.len());
-        for err in errors {
-            println!("  {:?}", err);
-        }
-    }
+    race(effects, env).await
 }
 <span class="boring">}</span></code></pre>
-<h3 id="validating-nested-data"><a class="header" href="#validating-nested-data">Validating Nested Data</a></h3>
+<p><code>race</code> returns the first completed result, whether success or error. It does not wait to find the first success.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-#[derive(Debug)]
-struct User {
-    name: String,
-    age: u8,
-}
-
-fn validate_user(name: &amp;str, age: u8) -&gt; Validation&lt;User, Vec&lt;String&gt;&gt; {
-    let name_check = if name.is_empty() {
-        Validation::failure(vec!["Name cannot be empty".to_string()])
-    } else {
-        Validation::success(name.to_string())
-    };
-
-    let age_check = if age &gt;= 18 {
-        Validation::success(age)
-    } else {
-        Validation::failure(vec![format!("Age {} too young", age)])
-    };
-
-    Validation::all((name_check, age_check))
-        .map(|(name, age)| User { name, age })
-}
-
-// Validate a batch of user registrations
-let registrations = vec![
-    ("Alice", 25),
-    ("Bob", 16),
-    ("", 30),
+</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+    fail("fast failure".to_string()).boxed(),
+    pure(42).boxed(),
 ];
 
-let result = traverse(registrations, |(name, age)| validate_user(name, age));
-
-match result {
-    Validation::Success(users) =&gt; {
-        println!("All valid: {} users registered", users.len());
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("Validation errors:");
-        for err in errors {
-            println!("  - {}", err);
-        }
-    }
-}
+let result = race(effects, &amp;()).await;
+assert_eq!(result, Err("fast failure".to_string()));
 <span class="boring">}</span></code></pre>
-<h3 id="csv-parsing-with-error-accumulation"><a class="header" href="#csv-parsing-with-error-accumulation">CSV Parsing with Error Accumulation</a></h3>
+<p>This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with <code>or_else</code>, <code>fallback_to</code>, or explicit retry/fallback logic instead of <code>race</code>.</p>
+<h2 id="par_all_limit---bounded-concurrency"><a class="header" href="#par_all_limit---bounded-concurrency"><code>par_all_limit</code> - Bounded Concurrency</a></h2>
+<p>Use <code>par_all_limit</code> for large batches or limited resources such as connection pools, file descriptors, or API rate limits.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+</span>use stillwater::effect::prelude::*;
 
-#[derive(Debug)]
-struct Record {
-    id: i32,
-    name: String,
-    score: f64,
-}
+async fn process_queue(
+    queue: Vec&lt;WorkItem&gt;,
+    max_concurrent: usize,
+    env: &amp;AppEnv,
+) -&gt; Result&lt;Vec&lt;ProcessedItem&gt;, Vec&lt;ProcessingError&gt;&gt; {
+    let effects: Vec&lt;BoxedEffect&lt;ProcessedItem, ProcessingError, AppEnv&gt;&gt; = queue
+        .into_iter()
+        .map(|item| process_item(item).boxed())
+        .collect();
 
-fn parse_record(line: &amp;str) -&gt; Validation&lt;Record, Vec&lt;String&gt;&gt; {
-    let parts: Vec&lt;_&gt; = line.split(',').collect();
-
-    if parts.len() != 3 {
-        return Validation::failure(vec![
-            format!("Expected 3 fields, got {}", parts.len())
-        ]);
-    }
-
-    let id_check = parts[0].parse::&lt;i32&gt;()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![
-            format!("Invalid ID: {}", parts[0])
-        ]));
-
-    let name_check = if parts[1].is_empty() {
-        Validation::failure(vec!["Name cannot be empty".to_string()])
-    } else {
-        Validation::success(parts[1].to_string())
-    };
-
-    let score_check = parts[2].parse::&lt;f64&gt;()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![
-            format!("Invalid score: {}", parts[2])
-        ]));
-
-    Validation::all((id_check, name_check, score_check))
-        .map(|(id, name, score)| Record { id, name, score })
-}
-
-let csv_lines = vec![
-    "1,Alice,95.5",
-    "2,Bob,invalid",
-    "3,,88.0",
-    "bad,line",
-];
-
-let result = traverse(csv_lines, parse_record);
-
-match result {
-    Validation::Success(records) =&gt; {
-        println!("Parsed {} records", records.len());
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("CSV parsing errors:");
-        for err in errors {
-            println!("  - {}", err);
-        }
-    }
+    par_all_limit(effects, max_concurrent, env).await
 }
 <span class="boring">}</span></code></pre>
-<h2 id="effect-examples"><a class="header" href="#effect-examples">Effect Examples</a></h2>
-<h3 id="batch-file-processing"><a class="header" href="#batch-file-processing">Batch File Processing</a></h3>
+<p>The function still runs every effect and collects all errors, but it only keeps <code>limit</code> futures in flight at once.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
+</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = (1..=10)
+    .map(|n| pure(n).boxed())
+    .collect();
 
-fn process_file(path: &amp;str) -&gt; Effect&lt;String, String, ()&gt; {
-    Effect::of(move |_env| {
-        Box::pin(async move {
-            // Simulate file reading
-            Ok(format!("Contents of {}", path))
-        })
+let result = par_all_limit(effects, 3, &amp;()).await;
+assert_eq!(result.as_ref().map(|values| values.len()), Ok(10));
+<span class="boring">}</span></code></pre>
+<h2 id="environment-access"><a class="header" href="#environment-access">Environment Access</a></h2>
+<p>Parallel helpers receive a shared <code>&amp;Env</code>. Boxed collection helpers require <code>Env: Clone + Send + Sync + 'static</code>, so application environments usually store services in cheap-to-clone handles:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+
+#[derive(Clone)]
+struct AppEnv {
+    config: Arc&lt;Config&gt;,
+    db: Arc&lt;DatabasePool&gt;,
+    http: Arc&lt;HttpClient&gt;,
+}
+<span class="boring">}</span></code></pre>
+<p>Each effect still controls how it uses the environment:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
+    from_async(move |env: &amp;AppEnv| {
+        let db = env.db.clone();
+        async move { db.fetch_user(id).await }
     })
 }
-
-let files = vec!["file1.txt", "file2.txt", "file3.txt"];
-let effect = traverse_effect(files, |path| process_file(path));
-
-// Run the effect
-tokio_test::block_on(async {
-    match effect.run_standalone().await {
-        Ok(contents) =&gt; {
-            for content in contents {
-                println!("{}", content);
-            }
-        }
-        Err(e) =&gt; eprintln!("Error: {}", e),
-    }
-});
 <span class="boring">}</span></code></pre>
-<h3 id="database-batch-operations"><a class="header" href="#database-batch-operations">Database Batch Operations</a></h3>
+<h2 id="composing-parallel-and-sequential-work"><a class="header" href="#composing-parallel-and-sequential-work">Composing Parallel And Sequential Work</a></h2>
+<p>Parallel work often appears inside a larger sequential workflow. Use normal Rust control flow around the async helper calls:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
+</span>use stillwater::effect::prelude::*;
 
-struct Database {
-    // Database connection details
-}
+async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dashboard, AppError&gt; {
+    let user = fetch_user(user_id).run(env).await?;
 
-fn save_user(db: &amp;Database, user: User) -&gt; Effect&lt;i64, String, Database&gt; {
-    Effect::of(|db| {
-        Box::pin(async move {
-            // Simulate database save
-            Ok(42) // user ID
-        })
+    let (activity, recommendations, alerts) = par3(
+        fetch_activity(user.id),
+        fetch_recommendations(user.id),
+        fetch_alerts(user.id),
+        env,
+    ).await;
+
+    Ok(Dashboard {
+        user,
+        activity: activity?,
+        recommendations: recommendations?,
+        alerts: alerts?,
     })
 }
-
-let users = vec![
-    User { name: "Alice".to_string(), age: 25 },
-    User { name: "Bob".to_string(), age: 30 },
-];
-
-let db = Database {};
-let effect = traverse_effect(users, |user| save_user(&amp;db, user));
-
-// Run the effect
-tokio_test::block_on(async {
-    match effect.run(&amp;db).await {
-        Ok(ids) =&gt; {
-            println!("Saved {} users with IDs: {:?}", ids.len(), ids);
-        }
-        Err(e) =&gt; eprintln!("Database error: {}", e),
-    }
-});
 <span class="boring">}</span></code></pre>
-<h3 id="parallel-api-calls"><a class="header" href="#parallel-api-calls">Parallel API Calls</a></h3>
+<p>For a second parallel phase, build another effect collection after the first phase succeeds:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
+</span>async fn load_and_save(ids: Vec&lt;UserId&gt;, env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;Receipt&gt;, Vec&lt;AppError&gt;&gt; {
+    let load_effects: Vec&lt;BoxedEffect&lt;User, AppError, AppEnv&gt;&gt; = ids
+        .into_iter()
+        .map(|id| fetch_user(id).boxed())
+        .collect();
 
-fn fetch_user(id: i32) -&gt; Effect&lt;String, String, ()&gt; {
-    Effect::of(move |_env| {
-        Box::pin(async move {
-            // Simulate API call
-            Ok(format!("User {}", id))
-        })
-    })
+    let users = par_all(load_effects, env).await?;
+
+    let save_effects: Vec&lt;BoxedEffect&lt;Receipt, AppError, AppEnv&gt;&gt; = users
+        .into_iter()
+        .map(|user| save_user_snapshot(user).boxed())
+        .collect();
+
+    par_all(save_effects, env).await
 }
-
-let user_ids = vec![1, 2, 3, 4, 5];
-let effect = traverse_effect(user_ids, fetch_user);
-
-// Effects run in parallel
-tokio_test::block_on(async {
-    match effect.run_standalone().await {
-        Ok(users) =&gt; {
-            println!("Fetched {} users", users.len());
-        }
-        Err(e) =&gt; eprintln!("API error: {}", e),
-    }
-});
-<span class="boring">}</span></code></pre>
-<h2 id="sequence-examples"><a class="header" href="#sequence-examples">Sequence Examples</a></h2>
-<h3 id="sequencing-pre-computed-validations"><a class="header" href="#sequencing-pre-computed-validations">Sequencing Pre-computed Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
-
-// When you already have validations (perhaps from different sources)
-let validations = vec![
-    validate_field_1(),
-    validate_field_2(),
-    validate_field_3(),
-];
-
-let result = sequence(validations);
-<span class="boring">}</span></code></pre>
-<h3 id="sequencing-effects"><a class="header" href="#sequencing-effects">Sequencing Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::sequence_effect};
-
-// When you have a collection of effects to run
-let effects = vec![
-    Effect::pure(1),
-    Effect::pure(2),
-    Effect::pure(3),
-];
-
-let combined = sequence_effect(effects);
-
-tokio_test::block_on(async {
-    let result = combined.run_standalone().await;
-    assert_eq!(result, Ok(vec![1, 2, 3]));
-});
 <span class="boring">}</span></code></pre>
 <h2 id="practical-patterns"><a class="header" href="#practical-patterns">Practical Patterns</a></h2>
-<h3 id="pattern-1-validate-then-process"><a class="header" href="#pattern-1-validate-then-process">Pattern 1: Validate Then Process</a></h3>
+<h3 id="parallel-validation"><a class="header" href="#parallel-validation">Parallel Validation</a></h3>
+<p>Use <code>par_all</code> when expensive validation checks can run independently and the user should see all failures:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, Effect, traverse::traverse};
+</span>async fn validate_signup(data: SignupData, env: &amp;AppEnv) -&gt; Result&lt;ValidSignup, Vec&lt;SignupError&gt;&gt; {
+    let effects: Vec&lt;BoxedEffect&lt;FieldCheck, SignupError, AppEnv&gt;&gt; = vec![
+        validate_email(data.email).boxed(),
+        validate_username(data.username).boxed(),
+        validate_password(data.password).boxed(),
+    ];
 
-// First validate all inputs
-let validation = traverse(inputs, validate_input);
-
-// Then convert to effect and process
-let effect = Effect::from_validation(validation)
-    .and_then(|valid_inputs| process_batch(valid_inputs));
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-2-fail-fast-vs-accumulate"><a class="header" href="#pattern-2-fail-fast-vs-accumulate">Pattern 2: Fail Fast vs Accumulate</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-// Accumulate all validation errors
-fn validate_all(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;Valid&gt;, Vec&lt;Error&gt;&gt; {
-    traverse(items, validate_item)
-}
-
-// Fail on first error (use Effect instead)
-fn process_all(items: Vec&lt;Item&gt;) -&gt; Effect&lt;Vec&lt;Result&gt;, Error, Env&gt; {
-    traverse_effect(items, process_item)
+    let checks = par_all(effects, env).await?;
+    Ok(ValidSignup::from_checks(checks))
 }
 <span class="boring">}</span></code></pre>
-<h3 id="pattern-3-filtering-with-validation"><a class="header" href="#pattern-3-filtering-with-validation">Pattern 3: Filtering with Validation</a></h3>
+<h3 id="health-checks"><a class="header" href="#health-checks">Health Checks</a></h3>
+<p>Use fixed-arity helpers when each subsystem has a distinct result:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+</span>async fn health(env: &amp;AppEnv) -&gt; HealthReport {
+    let (database, cache, queue) = par3(
+        check_database(),
+        check_cache(),
+        check_queue(),
+        env,
+    ).await;
 
-fn validate_and_filter(items: Vec&lt;String&gt;) -&gt; Validation&lt;Vec&lt;i32&gt;, Vec&lt;String&gt;&gt; {
-    let parsed = traverse(items, |s| {
-        s.parse::&lt;i32&gt;()
-            .map(Validation::success)
-            .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
-    });
-
-    parsed
+    HealthReport {
+        database,
+        cache,
+        queue,
+    }
 }
 <span class="boring">}</span></code></pre>
-<h3 id="pattern-4-transform-with-environment"><a class="header" href="#pattern-4-transform-with-environment">Pattern 4: Transform with Environment</a></h3>
+<h3 id="rate-limited-api-imports"><a class="header" href="#rate-limited-api-imports">Rate-Limited API Imports</a></h3>
+<p>Use <code>par_all_limit</code> when the remote system enforces a concurrency cap:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
+</span>async fn import_customers(customers: Vec&lt;Customer&gt;, env: &amp;AppEnv) -&gt; ImportSummary {
+    let effects: Vec&lt;BoxedEffect&lt;ImportReceipt, ImportError, AppEnv&gt;&gt; = customers
+        .into_iter()
+        .map(|customer| send_customer(customer).boxed())
+        .collect();
 
-struct Config {
-    api_key: String,
+    match par_all_limit(effects, 10, env).await {
+        Ok(receipts) =&gt; ImportSummary::success(receipts),
+        Err(errors) =&gt; ImportSummary::failure(errors),
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="fastest-completed-source"><a class="header" href="#fastest-completed-source">Fastest Completed Source</a></h3>
+<p>Use <code>race</code> only when “first completed” is the desired behavior:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn query_fastest_index(term: SearchTerm, env: &amp;AppEnv) -&gt; Result&lt;SearchResults, SearchError&gt; {
+    let effects: Vec&lt;BoxedEffect&lt;SearchResults, SearchError, AppEnv&gt;&gt; = vec![
+        query_primary_index(term.clone()).boxed(),
+        query_replica_index(term).boxed(),
+    ];
+
+    race(effects, env).await
+}
+<span class="boring">}</span></code></pre>
+<p>If a fast failure should not win, use a fallback chain:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn query_with_fallback(term: SearchTerm) -&gt; impl Effect&lt;Output = SearchResults, Error = SearchError, Env = AppEnv&gt; {
+    query_primary_index(term.clone())
+        .fallback_to(query_replica_index(term))
+}
+<span class="boring">}</span></code></pre>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="actual-concurrency"><a class="header" href="#actual-concurrency">Actual Concurrency</a></h3>
+<p>The parallel helpers use async concurrency. They do not spawn OS threads by themselves; each effect must be asynchronous or otherwise yield for concurrency to matter.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use std::time::{Duration, Instant};
+
+let start = Instant::now();
+
+let effects: Vec&lt;BoxedEffect&lt;(), String, ()&gt;&gt; = (0..3)
+    .map(|_| {
+        from_async(|_: &amp;()| async {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            Ok::&lt;_, String&gt;(())
+        })
+        .boxed()
+    })
+    .collect();
+
+par_all(effects, &amp;()).await.unwrap();
+
+let elapsed = start.elapsed();
+assert!(elapsed &lt; Duration::from_millis(200));
+<span class="boring">}</span></code></pre>
+<h3 id="boxing-cost"><a class="header" href="#boxing-cost">Boxing Cost</a></h3>
+<p>Fixed-arity helpers avoid boxing and are the best fit for small, known sets of independent effects.</p>
+<p>Collection helpers require boxing because a vector needs one concrete type. Prefer collection helpers for dynamic or large batches where the allocation cost is dominated by I/O.</p>
+<h3 id="memory-usage"><a class="header" href="#memory-usage">Memory Usage</a></h3>
+<ul>
+<li><code>par_all</code> and <code>par_try_all</code> keep the whole batch in flight.</li>
+<li><code>race</code> keeps the whole batch in flight until the first result completes.</li>
+<li><code>par_all_limit</code> keeps at most <code>limit</code> effects in flight and is the safer default for large batches.</li>
+</ul>
+<h2 id="testing-parallel-effects"><a class="header" href="#testing-parallel-effects">Testing Parallel Effects</a></h2>
+<p>Parallel effects use the same environment pattern as sequential effects:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[tokio::test]
+async fn loads_users_in_parallel() {
+    let env = TestEnv::with_users(vec![
+        User::new(1),
+        User::new(2),
+        User::new(3),
+    ]);
+
+    let effects: Vec&lt;BoxedEffect&lt;User, TestError, TestEnv&gt;&gt; = vec![
+        fetch_user(1).boxed(),
+        fetch_user(2).boxed(),
+        fetch_user(3).boxed(),
+    ];
+
+    let users = par_all(effects, &amp;env).await.unwrap();
+    assert_eq!(users.len(), 3);
+}
+<span class="boring">}</span></code></pre>
+<p>For timing-sensitive tests, keep assertions loose enough to avoid flakes. Prefer testing result shape and concurrency limits over exact elapsed time.</p>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="do-not-parallelize-dependent-operations"><a class="header" href="#do-not-parallelize-dependent-operations">Do Not Parallelize Dependent Operations</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Wrong: sending the email needs the user returned by create_user.
+let effects: Vec&lt;BoxedEffect&lt;(), AppError, AppEnv&gt;&gt; = vec![
+    create_user(data).map(|_| ()).boxed(),
+    send_welcome_email(user_id).boxed(),
+];
+
+// Right: compose dependent work sequentially.
+create_user(data)
+    .and_then(|user| send_welcome_email(user.id))
+<span class="boring">}</span></code></pre>
+<h3 id="do-not-use-race-for-first-success"><a class="header" href="#do-not-use-race-for-first-success">Do Not Use <code>race</code> For “First Success”</a></h3>
+<p><code>race</code> returns the first completed result. A fast error wins over a slower success. If you need “try primary, then backup,” use <code>fallback_to</code> or <code>or_else</code>.</p>
+<h3 id="use-arc-not-rc-in-shared-environments"><a class="header" href="#use-arc-not-rc-in-shared-environments">Use <code>Arc</code>, Not <code>Rc</code>, In Shared Environments</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Wrong: Rc is not Send + Sync.
+struct AppEnv {
+    db: Rc&lt;DatabasePool&gt;,
 }
 
-fn fetch_with_auth(id: i32) -&gt; Effect&lt;Data, Error, Config&gt; {
-    Effect::asks(move |config: &amp;Config| {
-        // Use config.api_key in request
-        Data { id }
+// Right: Arc works in async shared environments.
+#[derive(Clone)]
+struct AppEnv {
+    db: Arc&lt;DatabasePool&gt;,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="box-at-collection-boundaries"><a class="header" href="#box-at-collection-boundaries">Box At Collection Boundaries</a></h3>
+<p>Keep individual effect builders zero-cost, and box only when placing them into a homogeneous collection:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
+    from_async(move |env: &amp;AppEnv| {
+        let db = env.db.clone();
+        async move { db.fetch_user(id).await }
     })
 }
 
-let config = Config { api_key: "secret".to_string() };
-let effect = traverse_effect(vec![1, 2, 3], fetch_with_auth);
-
-// All requests share the same config
-tokio_test::block_on(async {
-    let result = effect.run(&amp;config).await;
-});
-<span class="boring">}</span></code></pre>
-<h2 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h2>
-<h3 id="use-traverse-when"><a class="header" href="#use-traverse-when">Use <code>traverse</code> when:</a></h3>
-<ul>
-<li>You have a collection and a function to apply to each element</li>
-<li>The function returns a Validation or Effect</li>
-<li>You want a single result aggregating all outcomes</li>
-</ul>
-<h3 id="use-sequence-when"><a class="header" href="#use-sequence-when">Use <code>sequence</code> when:</a></h3>
-<ul>
-<li>You already have a collection of Validations or Effects</li>
-<li>You need to invert the structure (Vec of Validations → Validation of Vec)</li>
-</ul>
-<h3 id="use-validationall-when"><a class="header" href="#use-validationall-when">Use <code>Validation::all()</code> when:</a></h3>
-<ul>
-<li>You have a fixed number of validations (tuple)</li>
-<li>The validations are different types</li>
-<li>You want to combine them all</li>
-</ul>
-<h3 id="use-traverse-vs-manual-loop-when"><a class="header" href="#use-traverse-vs-manual-loop-when">Use <code>traverse</code> vs manual loop when:</a></h3>
-<ul>
-<li><strong>traverse</strong>: Pure transformation, all errors matter</li>
-<li><strong>manual loop</strong>: Need early exit, complex control flow</li>
-</ul>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<h3 id="memory-efficiency"><a class="header" href="#memory-efficiency">Memory Efficiency</a></h3>
-<ul>
-<li><code>traverse</code> is more efficient than <code>map().sequence()</code> because it only creates one collection</li>
-<li>For large collections, consider streaming or chunking</li>
-</ul>
-<h3 id="parallel-vs-sequential"><a class="header" href="#parallel-vs-sequential">Parallel vs Sequential</a></h3>
-<ul>
-<li><code>traverse_effect</code> runs effects in parallel by default</li>
-<li>For CPU-bound work, this is optimal</li>
-<li>For I/O-bound work with rate limits, consider sequential processing</li>
-</ul>
-<h3 id="early-termination"><a class="header" href="#early-termination">Early Termination</a></h3>
-<ul>
-<li>Validation accumulates ALL errors (no early exit)</li>
-<li>Effect stops at first error (fail-fast)</li>
-<li>Choose based on your error handling needs</li>
-</ul>
-<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
-<h3 id="pitfall-1-not-handling-empty-collections"><a class="header" href="#pitfall-1-not-handling-empty-collections">Pitfall 1: Not handling empty collections</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Empty collections return success with empty vec
-let result = traverse(Vec::&lt;i32&gt;::new(), validate);
-assert_eq!(result, Validation::Success(vec![]));
-
-// Make sure this is the behavior you want!
-<span class="boring">}</span></code></pre>
-<h3 id="pitfall-2-mixing-traverse-and-for-loops"><a class="header" href="#pitfall-2-mixing-traverse-and-for-loops">Pitfall 2: Mixing traverse and for loops</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Bad: Manual loop loses error accumulation
-for item in items {
-    validate(item)?; // Stops at first error!
-}
-
-// Good: Use traverse
-traverse(items, validate)
-<span class="boring">}</span></code></pre>
-<h3 id="pitfall-3-forgetting-to-map-after-traverse"><a class="header" href="#pitfall-3-forgetting-to-map-after-traverse">Pitfall 3: Forgetting to map after traverse</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Returns Validation&lt;Vec&lt;(String, i32)&gt;, E&gt;
-traverse(items, |item| {
-    Validation::all((validate_name(item.name), validate_age(item.age)))
-})
-
-// Better: Map to User
-traverse(items, |item| {
-    Validation::all((validate_name(item.name), validate_age(item.age)))
-        .map(|(name, age)| User { name, age })
-})
-<span class="boring">}</span></code></pre>
-<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
-<p>Testing traverse operations is straightforward:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-    use stillwater::{Validation, traverse::traverse};
-
-    #[test]
-    fn test_traverse_all_valid() {
-        let result = traverse(vec![1, 2, 3], validate_positive);
-        assert!(result.is_success());
-    }
-
-    #[test]
-    fn test_traverse_accumulates_errors() {
-        let result = traverse(vec![1, -2, -3], validate_positive);
-
-        match result {
-            Validation::Failure(errors) =&gt; {
-                assert_eq!(errors.len(), 2); // Two negative numbers
-            }
-            _ =&gt; panic!("Expected failure"),
-        }
-    }
-
-    #[test]
-    fn test_traverse_empty() {
-        let result = traverse(Vec::&lt;i32&gt;::new(), validate_positive);
-        assert_eq!(result, Validation::Success(vec![]));
-    }
-}
+let effects: Vec&lt;BoxedEffect&lt;User, DbError, AppEnv&gt;&gt; = ids
+    .into_iter()
+    .map(|id| fetch_user(id).boxed())
+    .collect();
 <span class="boring">}</span></code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
-<li><strong>traverse</strong> and <strong>sequence</strong> invert collection structures</li>
-<li>Use <strong>traverse</strong> for Validation to accumulate ALL errors</li>
-<li>Use <strong>traverse_effect</strong> for parallel Effect execution</li>
-<li>Choose based on error handling needs: accumulate vs fail-fast</li>
-<li>Test thoroughly, especially edge cases like empty collections</li>
-</ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Review <a href="02-validation.html">Validation guide</a> for error accumulation</li>
-<li>See <a href="03-effects.html">Effects guide</a> for async processing</li>
-<li>Check <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> for complete examples</li>
-<li>Read the <a href="https://docs.rs/stillwater">API docs</a> for full details</li>
+<li>Use <code>par2</code>, <code>par3</code>, and <code>par4</code> for small heterogeneous sets without boxing.</li>
+<li>Use <code>par_all</code> when all errors should be reported.</li>
+<li>Use <code>par_try_all</code> when one error is enough, but do not treat it as cancellation.</li>
+<li>Use <code>race</code> when the first completed result should decide the outcome.</li>
+<li>Use <code>par_all_limit</code> to protect connection pools, memory, rate limits, and other bounded resources.</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guide/11-parallel-effects.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guide/09-reader-pattern.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../guide/15-retry.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guide/11-traverse-patterns.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -760,11 +667,11 @@ mod tests {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guide/11-parallel-effects.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guide/09-reader-pattern.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../guide/15-retry.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guide/11-traverse-patterns.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

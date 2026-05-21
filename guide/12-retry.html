@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Refined Types - Stillwater Documentation</title>
+        <title>Retry and Resilience - Stillwater Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b3a5f54.js";
+            window.path_to_searchindex_js = "../searchindex-04df59bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-be49391b.js"></script>
+        <script src="../toc-0f4dd888.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -146,7 +146,7 @@
                         <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/16-refined-types.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/12-retry.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,450 +180,397 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="refined-types-parse-dont-validate"><a class="header" href="#refined-types-parse-dont-validate">Refined Types: Parse, Don’t Validate</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Validation checks are often scattered throughout codebases:</p>
+                        <h1 id="retry-and-resilience-patterns"><a class="header" href="#retry-and-resilience-patterns">Retry and Resilience Patterns</a></h1>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Stillwater provides retry helpers for Effect-based computations. Retry policies are pure data structures, and retry execution happens at the effect boundary through free functions in <code>stillwater::effect::retry</code> or the effect prelude when the <code>async</code> feature is enabled.</p>
+<h2 id="why-retry-patterns"><a class="header" href="#why-retry-patterns">Why Retry Patterns?</a></h2>
+<p>Network requests fail. Databases have hiccups. External APIs rate-limit you. Robust applications need to handle transient failures gracefully:</p>
+<p>Without retry:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn process_user(name: String, age: i32) -&gt; Result&lt;User, Error&gt; {
-    if name.is_empty() {
-        return Err(Error::EmptyName);
-    }
-    if age &lt;= 0 {
-        return Err(Error::InvalidAge);
-    }
-
-    // What if we call another function?
-    // Does it also need to check name and age?
-    save_user(&amp;name, age)?;
-
-    Ok(User { name, age })
-}
-
-fn save_user(name: &amp;str, age: i32) -&gt; Result&lt;(), Error&gt; {
-    // Do we need to validate again? Maybe...
-    // The type system doesn't tell us if name is valid
-    db.insert(name, age)
-}
+</span>let data = fetch_data().run(&amp;env).await?;
 <span class="boring">}</span></code></pre>
-<p>This leads to:</p>
-<ul>
-<li>Redundant validation checks</li>
-<li>Uncertainty about whether data is valid</li>
-<li>Runtime errors when validation is forgotten</li>
-<li>No compiler help to catch missing checks</li>
-</ul>
-<h2 id="the-solution-refined-types"><a class="header" href="#the-solution-refined-types">The Solution: Refined Types</a></h2>
-<p>Refined types encode invariants in the type system. Once validated at the boundary, the type <em>guarantees</em> validity:</p>
+<p>With retry:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Positive};
+</span>use stillwater::effect::retry::retry;
+use stillwater::RetryPolicy;
+use std::time::Duration;
 
-type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-fn process_user(name: NonEmptyString, age: PositiveI32) -&gt; User {
-    // name is GUARANTEED non-empty by construction
-    // age is GUARANTEED positive by construction
-    // No runtime checks needed!
-    save_user(&amp;name, age)
-}
-
-fn save_user(name: &amp;NonEmptyString, age: &amp;PositiveI32) {
-    // Types guarantee validity - impossible to have invalid data here
-    db.insert(name.get(), *age.get())
-}
+let data = retry(
+    || fetch_data(),
+    RetryPolicy::exponential(Duration::from_millis(100))
+        .with_max_retries(3),
+)
+.run(&amp;env)
+.await?
+.into_value();
 <span class="boring">}</span></code></pre>
-<h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
-<h3 id="creating-refined-values"><a class="header" href="#creating-refined-values">Creating Refined Values</a></h3>
+<h2 id="retrypolicy"><a class="header" href="#retrypolicy">RetryPolicy</a></h2>
+<p><code>RetryPolicy</code> is a pure data structure describing retry behavior. It is composable and testable without executing any effects.</p>
+<h3 id="creating-policies"><a class="header" href="#creating-policies">Creating Policies</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Positive};
+</span>use stillwater::RetryPolicy;
+use std::time::Duration;
 
-type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
+let constant = RetryPolicy::constant(Duration::from_millis(100))
+    .with_max_retries(5);
 
-// Validate at the boundary
-let name = NonEmptyString::new("Alice".to_string());
-assert!(name.is_ok());
+let linear = RetryPolicy::linear(Duration::from_millis(100))
+    .with_max_retries(5);
 
-let empty = NonEmptyString::new("".to_string());
-assert!(empty.is_err());
+let exponential = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(5);
 
-// Access the inner value (zero-cost)
-let name = NonEmptyString::new("Alice".to_string()).unwrap();
-println!("Name: {}", name.get());      // Reference
-println!("Length: {}", name.len());    // Deref allows direct access
-
-// Consume the wrapper
-let inner: String = name.into_inner();
+let fibonacci = RetryPolicy::fibonacci(Duration::from_millis(100))
+    .with_max_retries(5);
 <span class="boring">}</span></code></pre>
-<h3 id="transforming-refined-values"><a class="header" href="#transforming-refined-values">Transforming Refined Values</a></h3>
+<h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+</span>use stillwater::RetryPolicy;
+use std::time::Duration;
 
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-let n = PositiveI32::new(42).unwrap();
-
-// try_map re-checks the predicate after transformation
-let doubled = n.try_map(|x| x * 2);
-assert!(doubled.is_ok());
-
-let negated = PositiveI32::new(5).unwrap().try_map(|x| -x);
-assert!(negated.is_err()); // -5 is not positive
+let policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(5)
+    .with_max_delay(Duration::from_secs(30));
 <span class="boring">}</span></code></pre>
-<h3 id="unsafe-construction-use-with-care"><a class="header" href="#unsafe-construction-use-with-care">Unsafe Construction (Use with Care)</a></h3>
+<h3 id="jitter-support"><a class="header" href="#jitter-support">Jitter Support</a></h3>
+<p>Jitter adds randomness to delays, preventing the “thundering herd” problem when many clients retry simultaneously. Enable it with the <code>jitter</code> feature:</p>
+<pre><code class="language-toml">stillwater = { version = "1.0", features = ["jitter"] }
+</code></pre>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+</span>use stillwater::RetryPolicy;
+use std::time::Duration;
 
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-// Only use when you KNOW the value is valid
-// No predicate check is performed!
-let n = PositiveI32::new_unchecked(42);
+let policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_jitter(0.25)
+    .with_max_retries(5);
 <span class="boring">}</span></code></pre>
-<h2 id="built-in-predicates"><a class="header" href="#built-in-predicates">Built-in Predicates</a></h2>
-<h3 id="numeric-predicates"><a class="header" href="#numeric-predicates">Numeric Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive, NonNegative, Negative, NonZero, InRange};
-
-// Positive: value &gt; 0
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-assert!(PositiveI32::new(1).is_ok());
-assert!(PositiveI32::new(0).is_err());
-
-// NonNegative: value &gt;= 0
-type NonNegativeI32 = Refined&lt;i32, NonNegative&gt;;
-assert!(NonNegativeI32::new(0).is_ok());
-assert!(NonNegativeI32::new(-1).is_err());
-
-// Negative: value &lt; 0
-type NegativeI32 = Refined&lt;i32, Negative&gt;;
-assert!(NegativeI32::new(-1).is_ok());
-assert!(NegativeI32::new(0).is_err());
-
-// NonZero: value != 0
-type NonZeroI32 = Refined&lt;i32, NonZero&gt;;
-assert!(NonZeroI32::new(1).is_ok());
-assert!(NonZeroI32::new(-1).is_ok());
-assert!(NonZeroI32::new(0).is_err());
-
-// InRange: MIN &lt;= value &lt;= MAX
-type Percentage = Refined&lt;i32, InRange&lt;0, 100&gt;&gt;;
-assert!(Percentage::new(50).is_ok());
-assert!(Percentage::new(101).is_err());
-<span class="boring">}</span></code></pre>
-<h3 id="string-predicates"><a class="header" href="#string-predicates">String Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Trimmed, MaxLength, MinLength};
-
-// NonEmpty: string is not empty
-type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
-assert!(NonEmptyString::new("hello".to_string()).is_ok());
-assert!(NonEmptyString::new("".to_string()).is_err());
-
-// Trimmed: no leading/trailing whitespace
-type TrimmedString = Refined&lt;String, Trimmed&gt;;
-assert!(TrimmedString::new("hello".to_string()).is_ok());
-assert!(TrimmedString::new("  hello  ".to_string()).is_err());
-
-// MaxLength&lt;N&gt;: length &lt;= N
-type ShortString = Refined&lt;String, MaxLength&lt;10&gt;&gt;;
-assert!(ShortString::new("hello".to_string()).is_ok());
-assert!(ShortString::new("this is too long".to_string()).is_err());
-
-// MinLength&lt;N&gt;: length &gt;= N
-type Password = Refined&lt;String, MinLength&lt;8&gt;&gt;;
-assert!(Password::new("secure_password".to_string()).is_ok());
-assert!(Password::new("short".to_string()).is_err());
-<span class="boring">}</span></code></pre>
-<h3 id="collection-predicates"><a class="header" href="#collection-predicates">Collection Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, MaxSize, MinSize};
-
-// NonEmpty for Vec
-type NonEmptyList = Refined&lt;Vec&lt;i32&gt;, NonEmpty&gt;;
-assert!(NonEmptyList::new(vec![1, 2, 3]).is_ok());
-assert!(NonEmptyList::new(vec![]).is_err());
-
-// MaxSize&lt;N&gt;: size &lt;= N
-type SmallVec = Refined&lt;Vec&lt;i32&gt;, MaxSize&lt;5&gt;&gt;;
-assert!(SmallVec::new(vec![1, 2, 3]).is_ok());
-assert!(SmallVec::new(vec![1, 2, 3, 4, 5, 6]).is_err());
-
-// MinSize&lt;N&gt;: size &gt;= N
-type AtLeastTwo = Refined&lt;Vec&lt;i32&gt;, MinSize&lt;2&gt;&gt;;
-assert!(AtLeastTwo::new(vec![1, 2]).is_ok());
-assert!(AtLeastTwo::new(vec![1]).is_err());
-<span class="boring">}</span></code></pre>
-<h2 id="predicate-combinators"><a class="header" href="#predicate-combinators">Predicate Combinators</a></h2>
-<h3 id="and-both-must-hold"><a class="header" href="#and-both-must-hold">And: Both Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, And, NonEmpty, Trimmed, MaxLength};
-
-// String must be non-empty AND trimmed
-type CleanString = Refined&lt;String, And&lt;NonEmpty, Trimmed&gt;&gt;;
-assert!(CleanString::new("hello".to_string()).is_ok());
-assert!(CleanString::new("".to_string()).is_err());
-assert!(CleanString::new("  hello  ".to_string()).is_err());
-
-// Chain multiple with nested And
-type ValidUsername = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;20&gt;&gt;&gt;;
-<span class="boring">}</span></code></pre>
-<h3 id="or-at-least-one-must-hold"><a class="header" href="#or-at-least-one-must-hold">Or: At Least One Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Or, Positive, Negative};
-
-// Value must be positive OR negative (i.e., non-zero)
-type NonZeroAlt = Refined&lt;i32, Or&lt;Positive, Negative&gt;&gt;;
-assert!(NonZeroAlt::new(5).is_ok());
-assert!(NonZeroAlt::new(-5).is_ok());
-assert!(NonZeroAlt::new(0).is_err());
-<span class="boring">}</span></code></pre>
-<h3 id="not-must-not-hold"><a class="header" href="#not-must-not-hold">Not: Must NOT Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Not, Positive};
-
-// Value must NOT be positive (i.e., &lt;= 0)
-type NotPositive = Refined&lt;i32, Not&lt;Positive&gt;&gt;;
-assert!(NotPositive::new(0).is_ok());
-assert!(NotPositive::new(-5).is_ok());
-assert!(NotPositive::new(5).is_err());
-<span class="boring">}</span></code></pre>
-<h2 id="custom-predicates"><a class="header" href="#custom-predicates">Custom Predicates</a></h2>
-<p>Define your own predicates by implementing the <code>Predicate</code> trait:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Predicate};
-
-// Custom predicate for even numbers
-pub struct Even;
-
-impl Predicate&lt;i32&gt; for Even {
-    type Error = &amp;'static str;
-
-    fn check(value: &amp;i32) -&gt; Result&lt;(), Self::Error&gt; {
-        if value % 2 == 0 {
-            Ok(())
-        } else {
-            Err("value must be even")
-        }
-    }
-
-    fn description() -&gt; &amp;'static str {
-        "even number"
-    }
-}
-
-type EvenI32 = Refined&lt;i32, Even&gt;;
-assert!(EvenI32::new(42).is_ok());
-assert!(EvenI32::new(41).is_err());
-<span class="boring">}</span></code></pre>
-<h2 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h2>
-<p>Stillwater provides convenient aliases for common patterns:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{
-    NonEmptyString, TrimmedString, NonEmptyTrimmedString,
-    PositiveI32, NonNegativeI64, NonZeroU32,
-    Port, Percentage,
-    BoundedString, BoundedVec,
-};
-
-// String aliases
-let name = NonEmptyString::new("Alice".to_string()).unwrap();
-let clean = NonEmptyTrimmedString::new("hello".to_string()).unwrap();
-
-// Numeric aliases
-let age = PositiveI32::new(25).unwrap();
-let count = NonZeroU32::new(100).unwrap();
-
-// Domain-specific aliases
-let port = Port::new(443).unwrap();           // 1-65535
-let progress = Percentage::new(75).unwrap();  // 0-100
-
-// Bounded types with const generics
-type Username = BoundedString&lt;20&gt;;
-type SmallList = BoundedVec&lt;i32, 10&gt;;
-<span class="boring">}</span></code></pre>
-<h2 id="validation-integration"><a class="header" href="#validation-integration">Validation Integration</a></h2>
-<h3 id="single-validation"><a class="header" href="#single-validation">Single Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
-use stillwater::Validation;
-
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-// Returns Validation&lt;PositiveI32, &amp;'static str&gt;
-let result = PositiveI32::validate(42);
-assert!(result.is_success());
-
-let result = PositiveI32::validate(-5);
-assert!(result.is_failure());
-<span class="boring">}</span></code></pre>
-<h3 id="error-accumulation"><a class="header" href="#error-accumulation">Error Accumulation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, PositiveI32};
-use stillwater::Validation;
-
-fn validate_user(
-    name: String,
-    age: i32,
-) -&gt; Validation&lt;(NonEmptyString, PositiveI32), Vec&lt;&amp;'static str&gt;&gt; {
-    let v1 = NonEmptyString::validate_vec(name);
-    let v2 = PositiveI32::validate_vec(age);
-    v1.and(v2)
-}
-
-// All errors collected
-let result = validate_user("".to_string(), -5);
-match result {
-    Validation::Failure(errors) =&gt; {
-        assert_eq!(errors.len(), 2); // Both errors collected
-    }
-    _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
-<h3 id="field-context"><a class="header" href="#field-context">Field Context</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, FieldError, ValidationFieldExt};
-use stillwater::Validation;
-
-// Add field context to errors
-let result = NonEmptyString::validate("".to_string())
-    .with_field("username");
-
-match result {
-    Validation::Failure(err) =&gt; {
-        assert_eq!(err.field, "username");
-        println!("{}", err); // "username: string cannot be empty"
-    }
-    _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
-<h2 id="effect-integration"><a class="header" href="#effect-integration">Effect Integration</a></h2>
-<p>Use refined types in effect chains:</p>
+<h2 id="retry-functions"><a class="header" href="#retry-functions">Retry Functions</a></h2>
+<h3 id="retry---basic-retry"><a class="header" href="#retry---basic-retry"><code>retry</code> - Basic Retry</a></h3>
+<p>Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use stillwater::effect::prelude::*;
-use stillwater::refined::{refine, NonEmpty, Refined};
+use stillwater::RetryPolicy;
+use std::time::Duration;
 
-type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
+let effect = retry(
+    || pure::&lt;_, String, ()&gt;(42),
+    RetryPolicy::exponential(Duration::from_millis(100))
+        .with_max_retries(3),
+);
 
-// Validate in effect chains
-let effect = pure::&lt;_, &amp;str, ()&gt;("hello".to_string())
-    .and_then(|s| refine::&lt;_, NonEmpty, ()&gt;(s))
-    .map(|refined| refined.get().len());
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Ok(5));
+let success = effect.run(&amp;()).await.unwrap();
+assert_eq!(success.into_value(), 42);
 <span class="boring">}</span></code></pre>
-<h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
+<h3 id="retry_if---conditional-retry"><a class="header" href="#retry_if---conditional-retry"><code>retry_if</code> - Conditional Retry</a></h3>
+<p>Only retries when a predicate returns true for the error. Use this to distinguish transient errors from permanent failures.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::refined::{
-    Refined, And, NonEmpty, Trimmed, MaxLength, MinLength, Port,
-};
-use stillwater::Validation;
+</span>use stillwater::effect::prelude::*;
+use stillwater::RetryPolicy;
+use std::time::Duration;
 
-// Domain types with encoded invariants
-type Username = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;30&gt;&gt;&gt;;
-type Password = Refined&lt;String, And&lt;MinLength&lt;8&gt;, MaxLength&lt;128&gt;&gt;&gt;;
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-// User with guaranteed-valid fields
-struct User {
-    username: Username,
-    password: Password,
-    age: PositiveI32,
-    port: Option&lt;Port&gt;,
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ApiError {
+    Transient,
+    Permanent,
 }
 
-fn validate_registration(
-    username: String,
-    password: String,
-    age: i32,
-    port: Option&lt;u16&gt;,
-) -&gt; Validation&lt;User, Vec&lt;String&gt;&gt; {
-    let v_username = Username::validate(username)
-        .map_err(|e| vec![format!("username: {}", e)]);
-    let v_password = Password::validate(password)
-        .map_err(|e| vec![format!("password: {}", e)]);
-    let v_age = PositiveI32::validate(age)
-        .map_err(|e| vec![format!("age: {}", e)]);
-    let v_port = match port {
-        Some(p) =&gt; Port::validate(p)
-            .map(Some)
-            .map_err(|e| vec![format!("port: {}", e)]),
-        None =&gt; Validation::Success(None),
-    };
+let effect = retry_if(
+    || fail::&lt;(), _, ()&gt;(ApiError::Permanent),
+    RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(3),
+    |err| matches!(err, ApiError::Transient),
+);
 
-    v_username
-        .and(v_password)
-        .and(v_age)
-        .and(v_port)
-        .map(|(((username, password), age), port)| User {
-            username,
-            password,
-            age,
-            port,
-        })
-}
-
-// Functions that work with validated data need no checks
-fn process_user(user: User) {
-    // Types guarantee validity - no runtime checks needed!
-    println!("Processing user: {}", user.username.get());
-}
+assert_eq!(effect.run(&amp;()).await, Err(ApiError::Permanent));
 <span class="boring">}</span></code></pre>
-<h2 id="zero-cost-abstraction"><a class="header" href="#zero-cost-abstraction">Zero-Cost Abstraction</a></h2>
-<p><code>Refined&lt;T, P&gt;</code> has the same memory layout as <code>T</code>. The predicate <code>P</code> exists only at compile time via <code>PhantomData</code>:</p>
+<h3 id="retry_with_hooks---retry-with-observability"><a class="header" href="#retry_with_hooks---retry-with-observability"><code>retry_with_hooks</code> - Retry With Observability</a></h3>
+<p><code>retry_with_hooks</code> invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::mem::size_of;
-use stillwater::refined::{Refined, Positive};
+</span>use stillwater::effect::prelude::*;
+use stillwater::{RetryEvent, RetryPolicy};
+use std::time::Duration;
 
-type PositiveI32 = Refined&lt;i32, Positive&gt;;
-
-// Same size as the wrapped type
-assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());
+let effect = retry_with_hooks(
+    || pure::&lt;_, String, ()&gt;(42),
+    RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3),
+    |event: &amp;RetryEvent&lt;'_, String&gt;| {
+        tracing::warn!(
+            attempt = event.attempt,
+            next_delay = ?event.next_delay,
+            "retrying failed operation"
+        );
+    },
+);
 <span class="boring">}</span></code></pre>
+<p>The <code>RetryEvent</code> contains:</p>
+<ul>
+<li><code>attempt</code> - Which attempt just failed, using 1-based numbering</li>
+<li><code>error</code> - The error that occurred</li>
+<li><code>next_delay</code> - How long until the next retry, or <code>None</code> when exhausted</li>
+<li><code>elapsed</code> - Total time elapsed since the first attempt</li>
+</ul>
+<h2 id="timeout-support"><a class="header" href="#timeout-support">Timeout Support</a></h2>
+<h3 id="with_timeout"><a class="header" href="#with_timeout"><code>with_timeout</code></a></h3>
+<p>Wrap an effect with a timeout:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::TimeoutError;
+use std::time::Duration;
+
+let effect = with_timeout(
+    from_async(|_: &amp;()| async {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        Ok::&lt;_, String&gt;(42)
+    }),
+    Duration::from_millis(1),
+);
+
+match effect.run(&amp;()).await {
+    Err(TimeoutError::Timeout { duration }) =&gt; {
+        assert_eq!(duration, Duration::from_millis(1));
+    }
+    other =&gt; panic!("expected timeout, got {:?}", other),
+}
+<span class="boring">}</span></code></pre>
+<h3 id="combining-retry-with-timeout"><a class="header" href="#combining-retry-with-timeout">Combining Retry With Timeout</a></h3>
+<p>A common pattern is a per-attempt timeout inside a retry factory:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::{RetryPolicy, TimeoutError};
+use std::time::Duration;
+
+let effect = retry(
+    || {
+        with_timeout(fetch_data(), Duration::from_secs(5))
+            .map_err(|err| match err {
+                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
+                TimeoutError::Inner(err) =&gt; err,
+            })
+    },
+    RetryPolicy::exponential(Duration::from_millis(100))
+        .with_max_retries(3),
+);
+<span class="boring">}</span></code></pre>
+<h2 id="result-types"><a class="header" href="#result-types">Result Types</a></h2>
+<h3 id="retryexhaustede"><a class="header" href="#retryexhaustede"><code>RetryExhausted&lt;E&gt;</code></a></h3>
+<p><code>retry</code> and <code>retry_with_hooks</code> return retry metadata on both outcomes:</p>
+<ul>
+<li><code>Ok(RetryExhausted&lt;T&gt;)</code> when an attempt eventually succeeds</li>
+<li><code>Err(RetryExhausted&lt;E&gt;)</code> when retries are exhausted</li>
+</ul>
+<p>The wrapper currently stores the inner value in <code>final_error</code> and exposes <code>into_value()</code> for extraction.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::time::Duration;
+
+pub struct RetryExhausted&lt;E&gt; {
+    pub final_error: E,
+    pub attempts: u32,
+    pub total_duration: Duration,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="timeouterrore"><a class="header" href="#timeouterrore"><code>TimeoutError&lt;E&gt;</code></a></h3>
+<p><code>with_timeout</code> wraps timeout and inner errors:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum TimeoutError&lt;E&gt; {
+    Timeout { duration: Duration },
+    Inner(E),
+}
+<span class="boring">}</span></code></pre>
+<h2 id="real-world-patterns"><a class="header" href="#real-world-patterns">Real-World Patterns</a></h2>
+<h3 id="http-client-with-retry"><a class="header" href="#http-client-with-retry">HTTP Client With Retry</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::RetryPolicy;
+use std::time::Duration;
+
+#[derive(Debug, Clone)]
+enum HttpError {
+    Timeout,
+    ServerError(u16),
+    ClientError(u16),
+}
+
+fn is_retryable(err: &amp;HttpError) -&gt; bool {
+    matches!(err, HttpError::Timeout | HttpError::ServerError(_))
+}
+
+let effect = retry_if(
+    || http_get(url),
+    RetryPolicy::exponential(Duration::from_millis(100))
+        .with_max_retries(5)
+        .with_max_delay(Duration::from_secs(30)),
+    is_retryable,
+);
+<span class="boring">}</span></code></pre>
+<h3 id="database-connection-with-hooks"><a class="header" href="#database-connection-with-hooks">Database Connection With Hooks</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::RetryPolicy;
+use std::time::Duration;
+
+let effect = retry_with_hooks(
+    || connect_to_db(),
+    RetryPolicy::exponential(Duration::from_secs(1))
+        .with_max_retries(10)
+        .with_max_delay(Duration::from_secs(60)),
+    |event| {
+        if event.attempt &gt;= 3 {
+            tracing::error!(attempt = event.attempt, "database connection still failing");
+        }
+    },
+);
+<span class="boring">}</span></code></pre>
+<h3 id="robust-api-call"><a class="header" href="#robust-api-call">Robust API Call</a></h3>
+<p>Combine per-attempt timeout, conditional retry, max delay, jitter, and hooks when calling an unreliable external service:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+use stillwater::{RetryEvent, RetryPolicy, TimeoutError};
+use std::time::Duration;
+
+#[derive(Debug, Clone)]
+enum ApiError {
+    Transient(String),
+    Permanent(String),
+}
+
+fn is_retryable(err: &amp;ApiError) -&gt; bool {
+    matches!(err, ApiError::Transient(_))
+}
+
+let policy = RetryPolicy::exponential(Duration::from_millis(500))
+    .with_max_retries(5)
+    .with_max_delay(Duration::from_secs(30))
+    .with_jitter(0.25);
+
+let effect = retry_with_hooks(
+    || {
+        with_timeout(call_api(), Duration::from_secs(10))
+            .map_err(|err| match err {
+                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
+                TimeoutError::Inner(err) =&gt; err,
+            })
+            .and_then(|response| {
+                if response.status().is_server_error() {
+                    fail(ApiError::Transient(format!("status {}", response.status())))
+                } else if response.status().is_client_error() {
+                    fail(ApiError::Permanent(format!("status {}", response.status())))
+                } else {
+                    pure(response)
+                }
+            })
+    },
+    policy,
+    |event: &amp;RetryEvent&lt;'_, ApiError&gt;| {
+        tracing::warn!(
+            attempt = event.attempt,
+            next_delay = ?event.next_delay,
+            "retrying API call"
+        );
+    },
+);
+<span class="boring">}</span></code></pre>
+<p>For conditional retry without hooks, use <code>retry_if</code> around the same per-attempt effect:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let effect = retry_if(
+    || {
+        with_timeout(call_api(), Duration::from_secs(10))
+            .map_err(|err| match err {
+                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
+                TimeoutError::Inner(err) =&gt; err,
+            })
+    },
+    RetryPolicy::exponential(Duration::from_millis(500)).with_max_retries(5),
+    is_retryable,
+);
+<span class="boring">}</span></code></pre>
+<h3 id="policy-testing"><a class="header" href="#policy-testing">Policy Testing</a></h3>
+<p><code>RetryPolicy</code> is just data, so you can test retry timing without running any effects:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::RetryPolicy;
+use std::time::Duration;
+
+let policy = RetryPolicy::exponential(Duration::from_millis(100))
+    .with_max_retries(3)
+    .with_max_delay(Duration::from_millis(250));
+
+assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
+assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
+assert_eq!(policy.delay_for_attempt(2), Some(Duration::from_millis(250)));
+assert_eq!(policy.delay_for_attempt(3), None);
+<span class="boring">}</span></code></pre>
+<h3 id="circuit-breaker-integration"><a class="header" href="#circuit-breaker-integration">Circuit-Breaker Integration</a></h3>
+<p>Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use <code>from_fn</code> or <code>check</code> before retrying:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::effect::prelude::*;
+
+fn guarded_call() -&gt; impl Effect&lt;Output = ApiResponse, Error = ApiError, Env = AppEnv&gt; {
+    from_fn(|env: &amp;AppEnv| {
+        if env.circuit_breaker.is_open("api") {
+            Err(ApiError::Permanent("circuit open".into()))
+        } else {
+            Ok(())
+        }
+    })
+    .and_then(|_| call_api())
+}
+
+let effect = retry_if(
+    || guarded_call(),
+    RetryPolicy::exponential(Duration::from_millis(250)).with_max_retries(3),
+    |err| matches!(err, ApiError::Transient(_)),
+);
+<span class="boring">}</span></code></pre>
+<h2 id="behavior-notes"><a class="header" href="#behavior-notes">Behavior Notes</a></h2>
+<ul>
+<li><code>retry</code> and <code>retry_with_hooks</code> preserve retry metadata on success and failure.</li>
+<li><code>retry_if</code> returns the original success or error type directly.</li>
+<li>Retry factories should create a fresh effect for each attempt.</li>
+<li>Hooks are synchronous; keep them lightweight and non-blocking.</li>
+<li>Jitter requires the <code>jitter</code> feature.</li>
+<li>Timeout helpers require the <code>async</code> feature.</li>
+</ul>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
-<li><strong>Validate at the boundary</strong>: Parse input into refined types as early as possible</li>
-<li><strong>Use type aliases</strong>: Create domain-specific aliases for readability</li>
-<li><strong>Combine predicates</strong>: Use <code>And</code>, <code>Or</code>, <code>Not</code> for complex constraints</li>
-<li><strong>Accumulate errors</strong>: Use <code>validate_vec()</code> with <code>Validation::and()</code> for all errors</li>
-<li><strong>Add field context</strong>: Use <code>with_field()</code> for user-friendly error messages</li>
+<li>Use exponential backoff for most network and service calls.</li>
+<li>Add jitter when many clients might retry simultaneously.</li>
+<li>Set <code>max_delay</code> to prevent unreasonably long waits.</li>
+<li>Use <code>retry_if</code> to avoid retrying permanent errors such as auth failures.</li>
+<li>Add per-attempt timeouts for operations that might hang.</li>
+<li>Use <code>retry_with_hooks</code> for retry logs and metrics.</li>
 </ol>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
 <ul>
-<li>See <a href="https://github.com/iepathos/stillwater/blob/master/examples/refined.rs">examples/refined.rs</a> for more examples</li>
-<li>See the <a href="02-validation.html">Validation</a> guide for error accumulation patterns</li>
-<li>See the <a href="03-effects.html">Effects</a> guide for effect integration</li>
+<li><a href="https://github.com/iepathos/stillwater/blob/master/examples/retry_patterns.rs">examples/retry_patterns.rs</a> - Comprehensive retry examples</li>
+<li><a href="10-parallel-effects.html">Parallel Effects</a> - Running effects concurrently</li>
+<li><a href="04-error-context.html">Error Context</a> - Adding context to errors</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guide/09-homogeneous-validation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guide/11-traverse-patterns.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../guide/14-testing.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guide/13-homogeneous-validation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -633,11 +580,11 @@ assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guide/09-homogeneous-validation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guide/11-traverse-patterns.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../guide/14-testing.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guide/13-homogeneous-validation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

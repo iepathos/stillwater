@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0b3a5f54.js";
+            window.path_to_searchindex_js = "searchindex-04df59bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-be49391b.js"></script>
+        <script src="toc-0f4dd888.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -237,19 +237,6 @@
 </ul>
 </li>
 <li>
-<p><strong><a href="#monoid-identity-elements-for-composition">Monoid</a></strong> - Identity elements for composition</p>
-<ul>
-<li>What is a Monoid?</li>
-<li>Extending Semigroup with identity</li>
-<li>Numeric monoids (Sum, Product, Max, Min)</li>
-<li>Using fold_all and reduce</li>
-<li>Real-world aggregation patterns</li>
-</ul>
-</li>
-</ol>
-<h3 id="supporting-features"><a class="header" href="#supporting-features">Supporting Features</a></h3>
-<ol start="4">
-<li>
 <p><strong><a href="#error-context-never-lose-the-trail">Error Context</a></strong> - Better debugging</p>
 <ul>
 <li>Adding context to errors</li>
@@ -281,9 +268,66 @@
 <li>Migration path</li>
 </ul>
 </li>
+<li>
+<p><strong><a href="#monoid-identity-elements-for-composition">Monoid</a></strong> - Identity elements for composition</p>
+<ul>
+<li>What is a Monoid?</li>
+<li>Extending Semigroup with identity</li>
+<li>Numeric monoids (Sum, Product, Max, Min)</li>
+<li>Using fold_all and reduce</li>
+<li>Real-world aggregation patterns</li>
+</ul>
+</li>
 </ol>
-<h3 id="advanced-patterns"><a class="header" href="#advanced-patterns">Advanced Patterns</a></h3>
-<ol start="16">
+<h3 id="effect-patterns"><a class="header" href="#effect-patterns">Effect Patterns</a></h3>
+<ol start="9">
+<li>
+<p><strong><a href="#reader-pattern-in-stillwater">Reader Pattern</a></strong> - Dependency injection through environments</p>
+<ul>
+<li>Asking for environment values</li>
+<li>Dependency injection without singletons</li>
+<li>Testing with mock environments</li>
+</ul>
+</li>
+<li>
+<p><strong><a href="#parallel-effect-execution">Parallel Effects</a></strong> - Running independent effects concurrently</p>
+</li>
+</ol>
+<ul>
+<li>Heterogeneous parallel effects</li>
+<li>Homogeneous parallel collections</li>
+<li>Error behavior and environment sharing</li>
+</ul>
+<ol start="11">
+<li><strong><a href="#traverse-and-sequence-patterns">Traverse Patterns</a></strong> - Working with collections</li>
+</ol>
+<ul>
+<li>Collection validation with error accumulation</li>
+<li>Effect processing over collections</li>
+<li>Batch operations</li>
+<li>Traverse vs sequence</li>
+<li>Real-world examples</li>
+</ul>
+<ol start="12">
+<li><strong><a href="#retry-and-resilience-patterns">Retry and Resilience</a></strong> - Handling transient failures</li>
+</ol>
+<ul>
+<li>Retry policies and backoff strategies</li>
+<li>Conditional retry with retry_if</li>
+<li>Observability hooks for logging/metrics</li>
+<li>Timeout support</li>
+<li>Combining retry with timeout</li>
+</ul>
+<h3 id="validation-patterns"><a class="header" href="#validation-patterns">Validation Patterns</a></h3>
+<ol start="13">
+<li><strong><a href="#homogeneous-validation">Homogeneous Validation</a></strong> - Type-consistent error accumulation</li>
+</ol>
+<ul>
+<li>Combining enum variants safely</li>
+<li>Preventing incompatible accumulation</li>
+<li>Validation patterns for homogeneous data</li>
+</ul>
+<ol start="14">
 <li><strong><a href="#refined-types-parse-dont-validate">Refined Types</a></strong> - Parse, don’t validate</li>
 </ol>
 <ul>
@@ -294,39 +338,8 @@
 <li>Validation integration for error accumulation</li>
 <li>Zero-cost: same memory layout as inner type</li>
 </ul>
-<ol start="17">
-<li><strong>Compile-Time Resource Tracking</strong> - Type-level resource safety</li>
-</ol>
-<ul>
-<li>Resource markers (FileRes, DbRes, TxRes, etc.)</li>
-<li>ResourceEffect trait with Acquires/Releases tracking</li>
-<li>Extension methods: <code>.acquires()</code>, <code>.releases()</code>, <code>.neutral()</code></li>
-<li>resource_bracket for guaranteed cleanup</li>
-<li>Zero runtime overhead - purely type-level</li>
-<li>See <code>src/effect/resource/mod.rs</code> for full documentation</li>
-</ul>
-<ol start="12">
-<li><strong><a href="#traverse-and-sequence-patterns">Traverse Patterns</a></strong> - Working with collections</li>
-</ol>
-<ul>
-<li>Collection validation with error accumulation</li>
-<li>Effect processing over collections</li>
-<li>Batch operations</li>
-<li>Traverse vs sequence</li>
-<li>Real-world examples</li>
-</ul>
-<ol start="15">
-<li><strong><a href="#retry-and-resilience-patterns">Retry and Resilience</a></strong> - Handling transient failures</li>
-</ol>
-<ul>
-<li>Retry policies and backoff strategies</li>
-<li>Conditional retry with retry_if</li>
-<li>Observability hooks for logging/metrics</li>
-<li>Timeout support</li>
-<li>Combining retry with timeout</li>
-</ul>
 <h3 id="testing--quality"><a class="header" href="#testing--quality">Testing &amp; Quality</a></h3>
-<ol start="14">
+<ol start="15">
 <li><strong><a href="#testing-with-stillwater">Testing</a></strong> - Testing utilities and patterns</li>
 </ol>
 <ul>
@@ -336,7 +349,16 @@
 <li>Property-based testing with proptest</li>
 <li>Testing best practices</li>
 </ul>
-<p>Note: Chapter 8 (Monoid) is listed under Core Concepts as it’s fundamental to understanding error accumulation and composition patterns.</p>
+<h3 id="additional-advanced-topics"><a class="header" href="#additional-advanced-topics">Additional Advanced Topics</a></h3>
+<p><strong>Compile-Time Resource Tracking</strong> - Type-level resource safety</p>
+<ul>
+<li>Resource markers (FileRes, DbRes, TxRes, etc.)</li>
+<li>ResourceEffect trait with Acquires/Releases tracking</li>
+<li>Extension methods: <code>.acquires()</code>, <code>.releases()</code>, <code>.neutral()</code></li>
+<li>resource_bracket for guaranteed cleanup</li>
+<li>Zero runtime overhead - purely type-level</li>
+<li>See <code>src/effect/resource/mod.rs</code> for full documentation</li>
+</ul>
 <h2 id="how-to-use-this-guide"><a class="header" href="#how-to-use-this-guide">How to Use This Guide</a></h2>
 <h3 id="for-beginners"><a class="header" href="#for-beginners">For Beginners</a></h3>
 <p>Start with chapters 1-3 in order. These cover the core concepts you need to be productive with Stillwater.</p>
@@ -6769,7 +6791,7 @@ mod tests {
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="common-patterns-and-recipes"><a class="header" href="#common-patterns-and-recipes">Common Patterns and Recipes</a></h1>
 <p>This document collects common patterns and recipes for using Stillwater effectively.</p>
-<h2 id="validation-patterns"><a class="header" href="#validation-patterns">Validation Patterns</a></h2>
+<h2 id="validation-patterns-1"><a class="header" href="#validation-patterns-1">Validation Patterns</a></h2>
 <h3 id="pattern-1-independent-field-validation"><a class="header" href="#pattern-1-independent-field-validation">Pattern 1: Independent Field Validation</a></h3>
 <p>When validating multiple independent fields:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -6840,7 +6862,7 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&l
     }
 }
 <span class="boring">}</span></code></pre>
-<h2 id="effect-patterns"><a class="header" href="#effect-patterns">Effect Patterns</a></h2>
+<h2 id="effect-patterns-1"><a class="header" href="#effect-patterns-1">Effect Patterns</a></h2>
 <p>All Effect patterns use the free function style with the prelude import:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -7454,12 +7476,13 @@ fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
 <li>Performance improvements</li>
 </ul>
 <h3 id="whats-the-roadmap"><a class="header" href="#whats-the-roadmap">What’s the roadmap?</a></h3>
-<p>See specs in <a href="https://github.com/iepathos/stillwater/tree/master/specs">specs/</a> directory for planned features. Major upcoming features:</p>
+<p>See specs in the <a href="https://github.com/iepathos/stillwater/tree/master/specs">specs/</a> directory for planned features. Current areas under consideration include:</p>
 <ul>
-<li>Parallel effect execution</li>
-<li>More combinators</li>
-<li>Additional examples</li>
-<li>Performance optimizations</li>
+<li>Saga-style compensation for multi-step workflows</li>
+<li>Serde and framework integration</li>
+<li>Benchmarks and performance validation</li>
+<li>Circuit breaker support</li>
+<li>Additional Result and tuple combinator ergonomics</li>
 </ul>
 <h3 id="is-this-production-ready"><a class="header" href="#is-this-production-ready">Is this production-ready?</a></h3>
 <p>Yes. Stillwater 1.0 is stable with comprehensive unit, integration, and documentation tests.</p>

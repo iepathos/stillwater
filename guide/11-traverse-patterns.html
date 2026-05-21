@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Retry and Resilience - Stillwater Documentation</title>
+        <title>Traverse Patterns - Stillwater Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0b3a5f54.js";
+            window.path_to_searchindex_js = "../searchindex-04df59bc.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-be49391b.js"></script>
+        <script src="../toc-0f4dd888.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -146,7 +146,7 @@
                         <a href="https://github.com/iepathos/stillwater" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/15-retry.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/iepathos/stillwater/edit/master/docs/../docs/guide/11-traverse-patterns.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,397 +180,577 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="retry-and-resilience-patterns"><a class="header" href="#retry-and-resilience-patterns">Retry and Resilience Patterns</a></h1>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>Stillwater provides retry helpers for Effect-based computations. Retry policies are pure data structures, and retry execution happens at the effect boundary through free functions in <code>stillwater::effect::retry</code> or the effect prelude when the <code>async</code> feature is enabled.</p>
-<h2 id="why-retry-patterns"><a class="header" href="#why-retry-patterns">Why Retry Patterns?</a></h2>
-<p>Network requests fail. Databases have hiccups. External APIs rate-limit you. Robust applications need to handle transient failures gracefully:</p>
-<p>Without retry:</p>
+                        <h1 id="traverse-and-sequence-patterns"><a class="header" href="#traverse-and-sequence-patterns">Traverse and Sequence Patterns</a></h1>
+<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
+<p>When working with collections of data that need validation or effectful processing, you often face a choice:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let data = fetch_data().run(&amp;env).await?;
-<span class="boring">}</span></code></pre>
-<p>With retry:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::retry::retry;
-use stillwater::RetryPolicy;
-use std::time::Duration;
-
-let data = retry(
-    || fetch_data(),
-    RetryPolicy::exponential(Duration::from_millis(100))
-        .with_max_retries(3),
-)
-.run(&amp;env)
-.await?
-.into_value();
-<span class="boring">}</span></code></pre>
-<h2 id="retrypolicy"><a class="header" href="#retrypolicy">RetryPolicy</a></h2>
-<p><code>RetryPolicy</code> is a pure data structure describing retry behavior. It is composable and testable without executing any effects.</p>
-<h3 id="creating-policies"><a class="header" href="#creating-policies">Creating Policies</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
-use std::time::Duration;
-
-let constant = RetryPolicy::constant(Duration::from_millis(100))
-    .with_max_retries(5);
-
-let linear = RetryPolicy::linear(Duration::from_millis(100))
-    .with_max_retries(5);
-
-let exponential = RetryPolicy::exponential(Duration::from_millis(100))
-    .with_max_retries(5);
-
-let fibonacci = RetryPolicy::fibonacci(Duration::from_millis(100))
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
-<h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
-use std::time::Duration;
-
-let policy = RetryPolicy::exponential(Duration::from_millis(100))
-    .with_max_retries(5)
-    .with_max_delay(Duration::from_secs(30));
-<span class="boring">}</span></code></pre>
-<h3 id="jitter-support"><a class="header" href="#jitter-support">Jitter Support</a></h3>
-<p>Jitter adds randomness to delays, preventing the “thundering herd” problem when many clients retry simultaneously. Enable it with the <code>jitter</code> feature:</p>
-<pre><code class="language-toml">stillwater = { version = "1.0", features = ["jitter"] }
-</code></pre>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
-use std::time::Duration;
-
-let policy = RetryPolicy::exponential(Duration::from_millis(100))
-    .with_jitter(0.25)
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
-<h2 id="retry-functions"><a class="header" href="#retry-functions">Retry Functions</a></h2>
-<h3 id="retry---basic-retry"><a class="header" href="#retry---basic-retry"><code>retry</code> - Basic Retry</a></h3>
-<p>Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::RetryPolicy;
-use std::time::Duration;
-
-let effect = retry(
-    || pure::&lt;_, String, ()&gt;(42),
-    RetryPolicy::exponential(Duration::from_millis(100))
-        .with_max_retries(3),
-);
-
-let success = effect.run(&amp;()).await.unwrap();
-assert_eq!(success.into_value(), 42);
-<span class="boring">}</span></code></pre>
-<h3 id="retry_if---conditional-retry"><a class="header" href="#retry_if---conditional-retry"><code>retry_if</code> - Conditional Retry</a></h3>
-<p>Only retries when a predicate returns true for the error. Use this to distinguish transient errors from permanent failures.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::RetryPolicy;
-use std::time::Duration;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum ApiError {
-    Transient,
-    Permanent,
-}
-
-let effect = retry_if(
-    || fail::&lt;(), _, ()&gt;(ApiError::Permanent),
-    RetryPolicy::constant(Duration::from_millis(10)).with_max_retries(3),
-    |err| matches!(err, ApiError::Transient),
-);
-
-assert_eq!(effect.run(&amp;()).await, Err(ApiError::Permanent));
-<span class="boring">}</span></code></pre>
-<h3 id="retry_with_hooks---retry-with-observability"><a class="header" href="#retry_with_hooks---retry-with-observability"><code>retry_with_hooks</code> - Retry With Observability</a></h3>
-<p><code>retry_with_hooks</code> invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::{RetryEvent, RetryPolicy};
-use std::time::Duration;
-
-let effect = retry_with_hooks(
-    || pure::&lt;_, String, ()&gt;(42),
-    RetryPolicy::exponential(Duration::from_millis(100)).with_max_retries(3),
-    |event: &amp;RetryEvent&lt;'_, String&gt;| {
-        tracing::warn!(
-            attempt = event.attempt,
-            next_delay = ?event.next_delay,
-            "retrying failed operation"
-        );
-    },
-);
-<span class="boring">}</span></code></pre>
-<p>The <code>RetryEvent</code> contains:</p>
-<ul>
-<li><code>attempt</code> - Which attempt just failed, using 1-based numbering</li>
-<li><code>error</code> - The error that occurred</li>
-<li><code>next_delay</code> - How long until the next retry, or <code>None</code> when exhausted</li>
-<li><code>elapsed</code> - Total time elapsed since the first attempt</li>
-</ul>
-<h2 id="timeout-support"><a class="header" href="#timeout-support">Timeout Support</a></h2>
-<h3 id="with_timeout"><a class="header" href="#with_timeout"><code>with_timeout</code></a></h3>
-<p>Wrap an effect with a timeout:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::TimeoutError;
-use std::time::Duration;
-
-let effect = with_timeout(
-    from_async(|_: &amp;()| async {
-        tokio::time::sleep(Duration::from_millis(50)).await;
-        Ok::&lt;_, String&gt;(42)
-    }),
-    Duration::from_millis(1),
-);
-
-match effect.run(&amp;()).await {
-    Err(TimeoutError::Timeout { duration }) =&gt; {
-        assert_eq!(duration, Duration::from_millis(1));
+</span>// Option 1: Process one at a time, manually accumulating
+let mut results = Vec::new();
+let mut errors = Vec::new();
+for item in items {
+    match validate(item) {
+        Validation::Success(val) =&gt; results.push(val),
+        Validation::Failure(err) =&gt; errors.extend(err),
     }
-    other =&gt; panic!("expected timeout, got {:?}", other),
 }
-<span class="boring">}</span></code></pre>
-<h3 id="combining-retry-with-timeout"><a class="header" href="#combining-retry-with-timeout">Combining Retry With Timeout</a></h3>
-<p>A common pattern is a per-attempt timeout inside a retry factory:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::{RetryPolicy, TimeoutError};
-use std::time::Duration;
+// Now what? How do we combine results and errors?
 
-let effect = retry(
-    || {
-        with_timeout(fetch_data(), Duration::from_secs(5))
-            .map_err(|err| match err {
-                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
-                TimeoutError::Inner(err) =&gt; err,
-            })
-    },
-    RetryPolicy::exponential(Duration::from_millis(100))
-        .with_max_retries(3),
-);
+// Option 2: Use map and somehow convert Vec&lt;Validation&lt;T, E&gt;&gt; to Validation&lt;Vec&lt;T&gt;, E&gt;
+let validations: Vec&lt;Validation&lt;_, _&gt;&gt; = items.iter().map(validate).collect();
+// But how do we turn this into a single Validation?
 <span class="boring">}</span></code></pre>
-<h2 id="result-types"><a class="header" href="#result-types">Result Types</a></h2>
-<h3 id="retryexhaustede"><a class="header" href="#retryexhaustede"><code>RetryExhausted&lt;E&gt;</code></a></h3>
-<p><code>retry</code> and <code>retry_with_hooks</code> return retry metadata on both outcomes:</p>
+<p>Both approaches are cumbersome and error-prone. This is where <strong>traverse</strong> and <strong>sequence</strong> come in.</p>
+<h2 id="the-solution-traverse-and-sequence"><a class="header" href="#the-solution-traverse-and-sequence">The Solution: Traverse and Sequence</a></h2>
+<p>Stillwater provides two fundamental operations for working with collections of effects:</p>
 <ul>
-<li><code>Ok(RetryExhausted&lt;T&gt;)</code> when an attempt eventually succeeds</li>
-<li><code>Err(RetryExhausted&lt;E&gt;)</code> when retries are exhausted</li>
+<li>
+<p><strong><code>sequence</code></strong>: Converts a collection of effects into an effect of a collection</p>
+<ul>
+<li><code>Vec&lt;Validation&lt;T, E&gt;&gt;</code> → <code>Validation&lt;Vec&lt;T&gt;, E&gt;</code></li>
+<li><code>Vec&lt;Effect&lt;T, E, Env&gt;&gt;</code> → <code>Effect&lt;Vec&lt;T&gt;, E, Env&gt;</code></li>
 </ul>
-<p>The wrapper currently stores the inner value in <code>final_error</code> and exposes <code>into_value()</code> for extraction.</p>
+</li>
+<li>
+<p><strong><code>traverse</code></strong>: Maps a function over a collection and sequences the results</p>
+<ul>
+<li>Equivalent to <code>map(f).sequence()</code> but more efficient</li>
+</ul>
+</li>
+</ul>
+<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
+<h3 id="sequence"><a class="header" href="#sequence">Sequence</a></h3>
+<p><strong>Sequence</strong> inverts the structure of nested types:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::time::Duration;
+</span>use stillwater::{Validation, traverse::sequence};
 
-pub struct RetryExhausted&lt;E&gt; {
-    pub final_error: E,
-    pub attempts: u32,
-    pub total_duration: Duration,
+// We have: Vec&lt;Validation&lt;T, E&gt;&gt;
+let validations = vec![
+    Validation::success(1),
+    Validation::success(2),
+    Validation::success(3),
+];
+
+// We want: Validation&lt;Vec&lt;T&gt;, E&gt;
+let result = sequence(validations);
+assert_eq!(result, Validation::Success(vec![1, 2, 3]));
+<span class="boring">}</span></code></pre>
+<p>If any validation fails, all errors are accumulated:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, traverse::sequence};
+
+let validations = vec![
+    Validation::&lt;i32, _&gt;::failure(vec!["error 1"]),
+    Validation::success(2),
+    Validation::failure(vec!["error 2"]),
+];
+
+let result = sequence(validations);
+match result {
+    Validation::Failure(errors) =&gt; {
+        assert_eq!(errors, vec!["error 1", "error 2"]);
+    }
+    _ =&gt; panic!("Expected failure"),
 }
 <span class="boring">}</span></code></pre>
-<h3 id="timeouterrore"><a class="header" href="#timeouterrore"><code>TimeoutError&lt;E&gt;</code></a></h3>
-<p><code>with_timeout</code> wraps timeout and inner errors:</p>
+<h3 id="traverse"><a class="header" href="#traverse">Traverse</a></h3>
+<p><strong>Traverse</strong> combines mapping and sequencing in one operation:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum TimeoutError&lt;E&gt; {
-    Timeout { duration: Duration },
-    Inner(E),
+</span>use stillwater::{Validation, traverse::traverse};
+
+fn parse_number(s: &amp;str) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
+    s.parse()
+        .map(Validation::success)
+        .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
 }
+
+// Instead of: items.iter().map(parse_number).collect() then sequence
+let result = traverse(vec!["1", "2", "3"], parse_number);
+assert_eq!(result, Validation::Success(vec![1, 2, 3]));
 <span class="boring">}</span></code></pre>
-<h2 id="real-world-patterns"><a class="header" href="#real-world-patterns">Real-World Patterns</a></h2>
-<h3 id="http-client-with-retry"><a class="header" href="#http-client-with-retry">HTTP Client With Retry</a></h3>
+<h2 id="validation-examples"><a class="header" href="#validation-examples">Validation Examples</a></h2>
+<h3 id="validating-user-input-collections"><a class="header" href="#validating-user-input-collections">Validating User Input Collections</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::RetryPolicy;
-use std::time::Duration;
+</span>use stillwater::{Validation, traverse::traverse};
 
-#[derive(Debug, Clone)]
-enum HttpError {
-    Timeout,
-    ServerError(u16),
-    ClientError(u16),
+#[derive(Debug, PartialEq)]
+struct Email(String);
+
+#[derive(Debug)]
+enum ValidationError {
+    InvalidEmail(String),
 }
 
-fn is_retryable(err: &amp;HttpError) -&gt; bool {
-    matches!(err, HttpError::Timeout | HttpError::ServerError(_))
+fn validate_email(raw: &amp;str) -&gt; Validation&lt;Email, Vec&lt;ValidationError&gt;&gt; {
+    if raw.contains('@') &amp;&amp; raw.contains('.') {
+        Validation::success(Email(raw.to_string()))
+    } else {
+        Validation::failure(vec![ValidationError::InvalidEmail(raw.to_string())])
+    }
 }
 
-let effect = retry_if(
-    || http_get(url),
-    RetryPolicy::exponential(Duration::from_millis(100))
-        .with_max_retries(5)
-        .with_max_delay(Duration::from_secs(30)),
-    is_retryable,
-);
-<span class="boring">}</span></code></pre>
-<h3 id="database-connection-with-hooks"><a class="header" href="#database-connection-with-hooks">Database Connection With Hooks</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::RetryPolicy;
-use std::time::Duration;
+// Validate a list of email addresses
+let emails = vec!["alice@example.com", "bob@example.com", "invalid"];
+let result = traverse(emails, validate_email);
 
-let effect = retry_with_hooks(
-    || connect_to_db(),
-    RetryPolicy::exponential(Duration::from_secs(1))
-        .with_max_retries(10)
-        .with_max_delay(Duration::from_secs(60)),
-    |event| {
-        if event.attempt &gt;= 3 {
-            tracing::error!(attempt = event.attempt, "database connection still failing");
+match result {
+    Validation::Success(valid_emails) =&gt; {
+        println!("All valid: {:?}", valid_emails);
+    }
+    Validation::Failure(errors) =&gt; {
+        println!("Found {} invalid emails:", errors.len());
+        for err in errors {
+            println!("  {:?}", err);
         }
-    },
-);
+    }
+}
 <span class="boring">}</span></code></pre>
-<h3 id="robust-api-call"><a class="header" href="#robust-api-call">Robust API Call</a></h3>
-<p>Combine per-attempt timeout, conditional retry, max delay, jitter, and hooks when calling an unreliable external service:</p>
+<h3 id="validating-nested-data"><a class="header" href="#validating-nested-data">Validating Nested Data</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-use stillwater::{RetryEvent, RetryPolicy, TimeoutError};
-use std::time::Duration;
+</span>use stillwater::{Validation, traverse::traverse};
 
-#[derive(Debug, Clone)]
-enum ApiError {
-    Transient(String),
-    Permanent(String),
+#[derive(Debug)]
+struct User {
+    name: String,
+    age: u8,
 }
 
-fn is_retryable(err: &amp;ApiError) -&gt; bool {
-    matches!(err, ApiError::Transient(_))
+fn validate_user(name: &amp;str, age: u8) -&gt; Validation&lt;User, Vec&lt;String&gt;&gt; {
+    let name_check = if name.is_empty() {
+        Validation::failure(vec!["Name cannot be empty".to_string()])
+    } else {
+        Validation::success(name.to_string())
+    };
+
+    let age_check = if age &gt;= 18 {
+        Validation::success(age)
+    } else {
+        Validation::failure(vec![format!("Age {} too young", age)])
+    };
+
+    Validation::all((name_check, age_check))
+        .map(|(name, age)| User { name, age })
 }
 
-let policy = RetryPolicy::exponential(Duration::from_millis(500))
-    .with_max_retries(5)
-    .with_max_delay(Duration::from_secs(30))
-    .with_jitter(0.25);
+// Validate a batch of user registrations
+let registrations = vec![
+    ("Alice", 25),
+    ("Bob", 16),
+    ("", 30),
+];
 
-let effect = retry_with_hooks(
-    || {
-        with_timeout(call_api(), Duration::from_secs(10))
-            .map_err(|err| match err {
-                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
-                TimeoutError::Inner(err) =&gt; err,
-            })
-            .and_then(|response| {
-                if response.status().is_server_error() {
-                    fail(ApiError::Transient(format!("status {}", response.status())))
-                } else if response.status().is_client_error() {
-                    fail(ApiError::Permanent(format!("status {}", response.status())))
-                } else {
-                    pure(response)
-                }
-            })
-    },
-    policy,
-    |event: &amp;RetryEvent&lt;'_, ApiError&gt;| {
-        tracing::warn!(
-            attempt = event.attempt,
-            next_delay = ?event.next_delay,
-            "retrying API call"
-        );
-    },
-);
-<span class="boring">}</span></code></pre>
-<p>For conditional retry without hooks, use <code>retry_if</code> around the same per-attempt effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effect = retry_if(
-    || {
-        with_timeout(call_api(), Duration::from_secs(10))
-            .map_err(|err| match err {
-                TimeoutError::Timeout { .. } =&gt; ApiError::Transient("timeout".into()),
-                TimeoutError::Inner(err) =&gt; err,
-            })
-    },
-    RetryPolicy::exponential(Duration::from_millis(500)).with_max_retries(5),
-    is_retryable,
-);
-<span class="boring">}</span></code></pre>
-<h3 id="policy-testing"><a class="header" href="#policy-testing">Policy Testing</a></h3>
-<p><code>RetryPolicy</code> is just data, so you can test retry timing without running any effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
-use std::time::Duration;
+let result = traverse(registrations, |(name, age)| validate_user(name, age));
 
-let policy = RetryPolicy::exponential(Duration::from_millis(100))
-    .with_max_retries(3)
-    .with_max_delay(Duration::from_millis(250));
-
-assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
-assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
-assert_eq!(policy.delay_for_attempt(2), Some(Duration::from_millis(250)));
-assert_eq!(policy.delay_for_attempt(3), None);
-<span class="boring">}</span></code></pre>
-<h3 id="circuit-breaker-integration"><a class="header" href="#circuit-breaker-integration">Circuit-Breaker Integration</a></h3>
-<p>Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use <code>from_fn</code> or <code>check</code> before retrying:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-
-fn guarded_call() -&gt; impl Effect&lt;Output = ApiResponse, Error = ApiError, Env = AppEnv&gt; {
-    from_fn(|env: &amp;AppEnv| {
-        if env.circuit_breaker.is_open("api") {
-            Err(ApiError::Permanent("circuit open".into()))
-        } else {
-            Ok(())
+match result {
+    Validation::Success(users) =&gt; {
+        println!("All valid: {} users registered", users.len());
+    }
+    Validation::Failure(errors) =&gt; {
+        println!("Validation errors:");
+        for err in errors {
+            println!("  - {}", err);
         }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h3 id="csv-parsing-with-error-accumulation"><a class="header" href="#csv-parsing-with-error-accumulation">CSV Parsing with Error Accumulation</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, traverse::traverse};
+
+#[derive(Debug)]
+struct Record {
+    id: i32,
+    name: String,
+    score: f64,
+}
+
+fn parse_record(line: &amp;str) -&gt; Validation&lt;Record, Vec&lt;String&gt;&gt; {
+    let parts: Vec&lt;_&gt; = line.split(',').collect();
+
+    if parts.len() != 3 {
+        return Validation::failure(vec![
+            format!("Expected 3 fields, got {}", parts.len())
+        ]);
+    }
+
+    let id_check = parts[0].parse::&lt;i32&gt;()
+        .map(Validation::success)
+        .unwrap_or_else(|_| Validation::failure(vec![
+            format!("Invalid ID: {}", parts[0])
+        ]));
+
+    let name_check = if parts[1].is_empty() {
+        Validation::failure(vec!["Name cannot be empty".to_string()])
+    } else {
+        Validation::success(parts[1].to_string())
+    };
+
+    let score_check = parts[2].parse::&lt;f64&gt;()
+        .map(Validation::success)
+        .unwrap_or_else(|_| Validation::failure(vec![
+            format!("Invalid score: {}", parts[2])
+        ]));
+
+    Validation::all((id_check, name_check, score_check))
+        .map(|(id, name, score)| Record { id, name, score })
+}
+
+let csv_lines = vec![
+    "1,Alice,95.5",
+    "2,Bob,invalid",
+    "3,,88.0",
+    "bad,line",
+];
+
+let result = traverse(csv_lines, parse_record);
+
+match result {
+    Validation::Success(records) =&gt; {
+        println!("Parsed {} records", records.len());
+    }
+    Validation::Failure(errors) =&gt; {
+        println!("CSV parsing errors:");
+        for err in errors {
+            println!("  - {}", err);
+        }
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="effect-examples"><a class="header" href="#effect-examples">Effect Examples</a></h2>
+<h3 id="batch-file-processing"><a class="header" href="#batch-file-processing">Batch File Processing</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, traverse::traverse_effect};
+
+fn process_file(path: &amp;str) -&gt; Effect&lt;String, String, ()&gt; {
+    Effect::of(move |_env| {
+        Box::pin(async move {
+            // Simulate file reading
+            Ok(format!("Contents of {}", path))
+        })
     })
-    .and_then(|_| call_api())
 }
 
-let effect = retry_if(
-    || guarded_call(),
-    RetryPolicy::exponential(Duration::from_millis(250)).with_max_retries(3),
-    |err| matches!(err, ApiError::Transient(_)),
-);
+let files = vec!["file1.txt", "file2.txt", "file3.txt"];
+let effect = traverse_effect(files, |path| process_file(path));
+
+// Run the effect
+tokio_test::block_on(async {
+    match effect.run_standalone().await {
+        Ok(contents) =&gt; {
+            for content in contents {
+                println!("{}", content);
+            }
+        }
+        Err(e) =&gt; eprintln!("Error: {}", e),
+    }
+});
 <span class="boring">}</span></code></pre>
-<h2 id="behavior-notes"><a class="header" href="#behavior-notes">Behavior Notes</a></h2>
+<h3 id="database-batch-operations"><a class="header" href="#database-batch-operations">Database Batch Operations</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, traverse::traverse_effect};
+
+struct Database {
+    // Database connection details
+}
+
+fn save_user(db: &amp;Database, user: User) -&gt; Effect&lt;i64, String, Database&gt; {
+    Effect::of(|db| {
+        Box::pin(async move {
+            // Simulate database save
+            Ok(42) // user ID
+        })
+    })
+}
+
+let users = vec![
+    User { name: "Alice".to_string(), age: 25 },
+    User { name: "Bob".to_string(), age: 30 },
+];
+
+let db = Database {};
+let effect = traverse_effect(users, |user| save_user(&amp;db, user));
+
+// Run the effect
+tokio_test::block_on(async {
+    match effect.run(&amp;db).await {
+        Ok(ids) =&gt; {
+            println!("Saved {} users with IDs: {:?}", ids.len(), ids);
+        }
+        Err(e) =&gt; eprintln!("Database error: {}", e),
+    }
+});
+<span class="boring">}</span></code></pre>
+<h3 id="parallel-api-calls"><a class="header" href="#parallel-api-calls">Parallel API Calls</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, traverse::traverse_effect};
+
+fn fetch_user(id: i32) -&gt; Effect&lt;String, String, ()&gt; {
+    Effect::of(move |_env| {
+        Box::pin(async move {
+            // Simulate API call
+            Ok(format!("User {}", id))
+        })
+    })
+}
+
+let user_ids = vec![1, 2, 3, 4, 5];
+let effect = traverse_effect(user_ids, fetch_user);
+
+// Effects run in parallel
+tokio_test::block_on(async {
+    match effect.run_standalone().await {
+        Ok(users) =&gt; {
+            println!("Fetched {} users", users.len());
+        }
+        Err(e) =&gt; eprintln!("API error: {}", e),
+    }
+});
+<span class="boring">}</span></code></pre>
+<h2 id="sequence-examples"><a class="header" href="#sequence-examples">Sequence Examples</a></h2>
+<h3 id="sequencing-pre-computed-validations"><a class="header" href="#sequencing-pre-computed-validations">Sequencing Pre-computed Validations</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, traverse::sequence};
+
+// When you already have validations (perhaps from different sources)
+let validations = vec![
+    validate_field_1(),
+    validate_field_2(),
+    validate_field_3(),
+];
+
+let result = sequence(validations);
+<span class="boring">}</span></code></pre>
+<h3 id="sequencing-effects"><a class="header" href="#sequencing-effects">Sequencing Effects</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, traverse::sequence_effect};
+
+// When you have a collection of effects to run
+let effects = vec![
+    Effect::pure(1),
+    Effect::pure(2),
+    Effect::pure(3),
+];
+
+let combined = sequence_effect(effects);
+
+tokio_test::block_on(async {
+    let result = combined.run_standalone().await;
+    assert_eq!(result, Ok(vec![1, 2, 3]));
+});
+<span class="boring">}</span></code></pre>
+<h2 id="practical-patterns"><a class="header" href="#practical-patterns">Practical Patterns</a></h2>
+<h3 id="pattern-1-validate-then-process"><a class="header" href="#pattern-1-validate-then-process">Pattern 1: Validate Then Process</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, Effect, traverse::traverse};
+
+// First validate all inputs
+let validation = traverse(inputs, validate_input);
+
+// Then convert to effect and process
+let effect = Effect::from_validation(validation)
+    .and_then(|valid_inputs| process_batch(valid_inputs));
+<span class="boring">}</span></code></pre>
+<h3 id="pattern-2-fail-fast-vs-accumulate"><a class="header" href="#pattern-2-fail-fast-vs-accumulate">Pattern 2: Fail Fast vs Accumulate</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, traverse::traverse};
+
+// Accumulate all validation errors
+fn validate_all(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;Valid&gt;, Vec&lt;Error&gt;&gt; {
+    traverse(items, validate_item)
+}
+
+// Fail on first error (use Effect instead)
+fn process_all(items: Vec&lt;Item&gt;) -&gt; Effect&lt;Vec&lt;Result&gt;, Error, Env&gt; {
+    traverse_effect(items, process_item)
+}
+<span class="boring">}</span></code></pre>
+<h3 id="pattern-3-filtering-with-validation"><a class="header" href="#pattern-3-filtering-with-validation">Pattern 3: Filtering with Validation</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Validation, traverse::traverse};
+
+fn validate_and_filter(items: Vec&lt;String&gt;) -&gt; Validation&lt;Vec&lt;i32&gt;, Vec&lt;String&gt;&gt; {
+    let parsed = traverse(items, |s| {
+        s.parse::&lt;i32&gt;()
+            .map(Validation::success)
+            .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
+    });
+
+    parsed
+}
+<span class="boring">}</span></code></pre>
+<h3 id="pattern-4-transform-with-environment"><a class="header" href="#pattern-4-transform-with-environment">Pattern 4: Transform with Environment</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::{Effect, traverse::traverse_effect};
+
+struct Config {
+    api_key: String,
+}
+
+fn fetch_with_auth(id: i32) -&gt; Effect&lt;Data, Error, Config&gt; {
+    Effect::asks(move |config: &amp;Config| {
+        // Use config.api_key in request
+        Data { id }
+    })
+}
+
+let config = Config { api_key: "secret".to_string() };
+let effect = traverse_effect(vec![1, 2, 3], fetch_with_auth);
+
+// All requests share the same config
+tokio_test::block_on(async {
+    let result = effect.run(&amp;config).await;
+});
+<span class="boring">}</span></code></pre>
+<h2 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h2>
+<h3 id="use-traverse-when"><a class="header" href="#use-traverse-when">Use <code>traverse</code> when:</a></h3>
 <ul>
-<li><code>retry</code> and <code>retry_with_hooks</code> preserve retry metadata on success and failure.</li>
-<li><code>retry_if</code> returns the original success or error type directly.</li>
-<li>Retry factories should create a fresh effect for each attempt.</li>
-<li>Hooks are synchronous; keep them lightweight and non-blocking.</li>
-<li>Jitter requires the <code>jitter</code> feature.</li>
-<li>Timeout helpers require the <code>async</code> feature.</li>
+<li>You have a collection and a function to apply to each element</li>
+<li>The function returns a Validation or Effect</li>
+<li>You want a single result aggregating all outcomes</li>
 </ul>
-<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
-<ol>
-<li>Use exponential backoff for most network and service calls.</li>
-<li>Add jitter when many clients might retry simultaneously.</li>
-<li>Set <code>max_delay</code> to prevent unreasonably long waits.</li>
-<li>Use <code>retry_if</code> to avoid retrying permanent errors such as auth failures.</li>
-<li>Add per-attempt timeouts for operations that might hang.</li>
-<li>Use <code>retry_with_hooks</code> for retry logs and metrics.</li>
-</ol>
-<h2 id="see-also"><a class="header" href="#see-also">See Also</a></h2>
+<h3 id="use-sequence-when"><a class="header" href="#use-sequence-when">Use <code>sequence</code> when:</a></h3>
 <ul>
-<li><a href="https://github.com/iepathos/stillwater/blob/master/examples/retry_patterns.rs">examples/retry_patterns.rs</a> - Comprehensive retry examples</li>
-<li><a href="11-parallel-effects.html">Parallel Effects</a> - Running effects concurrently</li>
-<li><a href="04-error-context.html">Error Context</a> - Adding context to errors</li>
+<li>You already have a collection of Validations or Effects</li>
+<li>You need to invert the structure (Vec of Validations → Validation of Vec)</li>
+</ul>
+<h3 id="use-validationall-when"><a class="header" href="#use-validationall-when">Use <code>Validation::all()</code> when:</a></h3>
+<ul>
+<li>You have a fixed number of validations (tuple)</li>
+<li>The validations are different types</li>
+<li>You want to combine them all</li>
+</ul>
+<h3 id="use-traverse-vs-manual-loop-when"><a class="header" href="#use-traverse-vs-manual-loop-when">Use <code>traverse</code> vs manual loop when:</a></h3>
+<ul>
+<li><strong>traverse</strong>: Pure transformation, all errors matter</li>
+<li><strong>manual loop</strong>: Need early exit, complex control flow</li>
+</ul>
+<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
+<h3 id="memory-efficiency"><a class="header" href="#memory-efficiency">Memory Efficiency</a></h3>
+<ul>
+<li><code>traverse</code> is more efficient than <code>map().sequence()</code> because it only creates one collection</li>
+<li>For large collections, consider streaming or chunking</li>
+</ul>
+<h3 id="parallel-vs-sequential"><a class="header" href="#parallel-vs-sequential">Parallel vs Sequential</a></h3>
+<ul>
+<li><code>traverse_effect</code> runs effects in parallel by default</li>
+<li>For CPU-bound work, this is optimal</li>
+<li>For I/O-bound work with rate limits, consider sequential processing</li>
+</ul>
+<h3 id="early-termination"><a class="header" href="#early-termination">Early Termination</a></h3>
+<ul>
+<li>Validation accumulates ALL errors (no early exit)</li>
+<li>Effect stops at first error (fail-fast)</li>
+<li>Choose based on your error handling needs</li>
+</ul>
+<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
+<h3 id="pitfall-1-not-handling-empty-collections"><a class="header" href="#pitfall-1-not-handling-empty-collections">Pitfall 1: Not handling empty collections</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Empty collections return success with empty vec
+let result = traverse(Vec::&lt;i32&gt;::new(), validate);
+assert_eq!(result, Validation::Success(vec![]));
+
+// Make sure this is the behavior you want!
+<span class="boring">}</span></code></pre>
+<h3 id="pitfall-2-mixing-traverse-and-for-loops"><a class="header" href="#pitfall-2-mixing-traverse-and-for-loops">Pitfall 2: Mixing traverse and for loops</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Bad: Manual loop loses error accumulation
+for item in items {
+    validate(item)?; // Stops at first error!
+}
+
+// Good: Use traverse
+traverse(items, validate)
+<span class="boring">}</span></code></pre>
+<h3 id="pitfall-3-forgetting-to-map-after-traverse"><a class="header" href="#pitfall-3-forgetting-to-map-after-traverse">Pitfall 3: Forgetting to map after traverse</a></h3>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Returns Validation&lt;Vec&lt;(String, i32)&gt;, E&gt;
+traverse(items, |item| {
+    Validation::all((validate_name(item.name), validate_age(item.age)))
+})
+
+// Better: Map to User
+traverse(items, |item| {
+    Validation::all((validate_name(item.name), validate_age(item.age)))
+        .map(|(name, age)| User { name, age })
+})
+<span class="boring">}</span></code></pre>
+<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
+<p>Testing traverse operations is straightforward:</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod tests {
+    use super::*;
+    use stillwater::{Validation, traverse::traverse};
+
+    #[test]
+    fn test_traverse_all_valid() {
+        let result = traverse(vec![1, 2, 3], validate_positive);
+        assert!(result.is_success());
+    }
+
+    #[test]
+    fn test_traverse_accumulates_errors() {
+        let result = traverse(vec![1, -2, -3], validate_positive);
+
+        match result {
+            Validation::Failure(errors) =&gt; {
+                assert_eq!(errors.len(), 2); // Two negative numbers
+            }
+            _ =&gt; panic!("Expected failure"),
+        }
+    }
+
+    #[test]
+    fn test_traverse_empty() {
+        let result = traverse(Vec::&lt;i32&gt;::new(), validate_positive);
+        assert_eq!(result, Validation::Success(vec![]));
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
+<ul>
+<li><strong>traverse</strong> and <strong>sequence</strong> invert collection structures</li>
+<li>Use <strong>traverse</strong> for Validation to accumulate ALL errors</li>
+<li>Use <strong>traverse_effect</strong> for parallel Effect execution</li>
+<li>Choose based on error handling needs: accumulate vs fail-fast</li>
+<li>Test thoroughly, especially edge cases like empty collections</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li>Review <a href="02-validation.html">Validation guide</a> for error accumulation</li>
+<li>See <a href="03-effects.html">Effects guide</a> for async processing</li>
+<li>Check <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> for complete examples</li>
+<li>Read the <a href="https://docs.rs/stillwater">API docs</a> for full details</li>
 </ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../guide/12-traverse-patterns.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../guide/10-parallel-effects.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../guide/09-homogeneous-validation.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guide/12-retry.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -580,11 +760,11 @@ let effect = retry_if(
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../guide/12-traverse-patterns.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../guide/10-parallel-effects.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../guide/09-homogeneous-validation.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guide/12-retry.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
