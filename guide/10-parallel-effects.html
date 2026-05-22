@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4f251ccc.js";
+            window.path_to_searchindex_js = "../searchindex-a137e83a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-705dc3a5.js"></script>
@@ -346,7 +346,10 @@ assert_eq!(result, Err("first error".to_string()));
 </span><span class="boring">fn main() {
 </span>use stillwater::effect::prelude::*;
 
-async fn fetch_from_fastest_replica(key: String, env: &amp;AppEnv) -&gt; Result&lt;Data, FetchError&gt; {
+async fn fetch_from_fastest_replica(
+    key: String,
+    env: &amp;AppEnv,
+) -&gt; Result&lt;Data, RaceError&lt;FetchError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;Data, FetchError, AppEnv&gt;&gt; = vec![
         fetch_from_replica_a(key.clone()).boxed(),
         fetch_from_replica_b(key.clone()).boxed(),
@@ -365,7 +368,7 @@ async fn fetch_from_fastest_replica(key: String, env: &amp;AppEnv) -&gt; Result&
 ];
 
 let result = race(effects, &amp;()).await;
-assert_eq!(result, Err("fast failure".to_string()));
+assert_eq!(result, Err(RaceError::Inner("fast failure".to_string())));
 <span class="boring">}</span></code></pre>
 <p>This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with <code>or_else</code>, <code>fallback_to</code>, or explicit retry/fallback logic instead of <code>race</code>.</p>
 <h2 id="par_all_limit---bounded-concurrency"><a class="header" href="#par_all_limit---bounded-concurrency"><code>par_all_limit</code> - Bounded Concurrency</a></h2>
@@ -520,7 +523,10 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
 <p>Use <code>race</code> only when “first completed” is the desired behavior:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>async fn query_fastest_index(term: SearchTerm, env: &amp;AppEnv) -&gt; Result&lt;SearchResults, SearchError&gt; {
+</span>async fn query_fastest_index(
+    term: SearchTerm,
+    env: &amp;AppEnv,
+) -&gt; Result&lt;SearchResults, RaceError&lt;SearchError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;SearchResults, SearchError, AppEnv&gt;&gt; = vec![
         query_primary_index(term.clone()).boxed(),
         query_replica_index(term).boxed(),

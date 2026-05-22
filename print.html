@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4f251ccc.js";
+            window.path_to_searchindex_js = "searchindex-a137e83a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-705dc3a5.js"></script>
@@ -264,7 +264,7 @@
 <li>
 <p><strong><a href="#try-trait-support-nightly-feature">Try Trait</a></strong> - Nightly feature</p>
 <ul>
-<li>Using ? with Validation and Effect</li>
+<li>Using ? with Validation</li>
 <li>When to enable try_trait</li>
 <li>Migration path</li>
 </ul>
@@ -2327,7 +2327,7 @@ let effects: Vec&lt;BoxedEffect&lt;String, String, ()&gt;&gt; = vec![
     pure("first completed".to_string()).boxed(),
     pure("second completed".to_string()).boxed(),
 ];
-let result = race(effects, &amp;()).await?; // one of the completed values
+let result = race(effects, &amp;()).await?; // one completed value, or RaceError::Empty
 
 // par_all_limit - run with concurrency limit
 let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = /* many effects */;
@@ -3061,15 +3061,17 @@ fn timeout&lt;T, E, Env&gt;(
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="try-trait-support-nightly-feature"><a class="header" href="#try-trait-support-nightly-feature">Try Trait Support (Nightly Feature)</a></h1>
-<p>Stillwater provides experimental support for Rust’s <code>?</code> operator with Validation and Effect on nightly Rust.</p>
+<p>Stillwater provides experimental support for Rust’s <code>?</code> operator with Validation on nightly Rust.</p>
 <h2 id="enabling"><a class="header" href="#enabling">Enabling</a></h2>
 <p>Add to <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 stillwater = { version = "0.1", features = ["try_trait"] }
 </code></pre>
-<p>And use nightly Rust:</p>
-<pre><code class="language-bash">rustup override set nightly
+<p>Use nightly Rust and opt into the unstable implementation explicitly:</p>
+<pre><code class="language-bash">RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait
 </code></pre>
+<p>Applications that use <code>?</code> with <code>Validation</code> must also add <code>#![feature(try_trait_v2)]</code>
+to their crate root.</p>
 <h2 id="using--with-validation"><a class="header" href="#using--with-validation">Using ? with Validation</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span>#![feature(try_trait_v2)]
@@ -3094,27 +3096,6 @@ Validation::all((
 ))
 .map(|(email, age)| User { email, age })
 <span class="boring">}</span></code></pre>
-<h2 id="using--with-effect"><a class="header" href="#using--with-effect">Using ? with Effect</a></h2>
-<p>The <code>?</code> operator works well with Effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span>#![feature(try_trait_v2)]
-
-<span class="boring">fn main() {
-</span>use stillwater::Effect;
-
-fn process_user(id: u64) -&gt; Effect&lt;Profile, Error, Env&gt; {
-    let user = fetch_user(id)?;          // Short-circuit on error
-    let profile = load_profile(user)?;   // Short-circuit on error
-    Ok(profile)
-}
-<span class="boring">}</span></code></pre>
-<p>This is equivalent to:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fetch_user(id)
-    .and_then(|user| load_profile(user))
-<span class="boring">}</span></code></pre>
-<p>Use whichever is more readable for your use case.</p>
 <h2 id="should-you-use-this-feature"><a class="header" href="#should-you-use-this-feature">Should You Use This Feature?</a></h2>
 <p><strong>Pros</strong>:</p>
 <ul>
@@ -3124,6 +3105,7 @@ fn process_user(id: u64) -&gt; Effect&lt;Profile, Error, Env&gt; {
 <p><strong>Cons</strong>:</p>
 <ul>
 <li>Requires nightly Rust</li>
+<li>Requires <code>RUSTFLAGS="--cfg try_trait_nightly"</code></li>
 <li>Defeats Validation’s purpose</li>
 <li><code>and_then()</code> is just as readable</li>
 </ul>
@@ -4228,7 +4210,10 @@ assert_eq!(result, Err("first error".to_string()));
 </span><span class="boring">fn main() {
 </span>use stillwater::effect::prelude::*;
 
-async fn fetch_from_fastest_replica(key: String, env: &amp;AppEnv) -&gt; Result&lt;Data, FetchError&gt; {
+async fn fetch_from_fastest_replica(
+    key: String,
+    env: &amp;AppEnv,
+) -&gt; Result&lt;Data, RaceError&lt;FetchError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;Data, FetchError, AppEnv&gt;&gt; = vec![
         fetch_from_replica_a(key.clone()).boxed(),
         fetch_from_replica_b(key.clone()).boxed(),
@@ -4247,7 +4232,7 @@ async fn fetch_from_fastest_replica(key: String, env: &amp;AppEnv) -&gt; Result&
 ];
 
 let result = race(effects, &amp;()).await;
-assert_eq!(result, Err("fast failure".to_string()));
+assert_eq!(result, Err(RaceError::Inner("fast failure".to_string())));
 <span class="boring">}</span></code></pre>
 <p>This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with <code>or_else</code>, <code>fallback_to</code>, or explicit retry/fallback logic instead of <code>race</code>.</p>
 <h2 id="par_all_limit---bounded-concurrency"><a class="header" href="#par_all_limit---bounded-concurrency"><code>par_all_limit</code> - Bounded Concurrency</a></h2>
@@ -4402,7 +4387,10 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
 <p>Use <code>race</code> only when “first completed” is the desired behavior:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>async fn query_fastest_index(term: SearchTerm, env: &amp;AppEnv) -&gt; Result&lt;SearchResults, SearchError&gt; {
+</span>async fn query_fastest_index(
+    term: SearchTerm,
+    env: &amp;AppEnv,
+) -&gt; Result&lt;SearchResults, RaceError&lt;SearchError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;SearchResults, SearchError, AppEnv&gt;&gt; = vec![
         query_primary_index(term.clone()).boxed(),
         query_replica_index(term).boxed(),
@@ -7519,7 +7507,7 @@ let users = fetch_users_batch(ids).execute(&amp;env).await?;
 <h3 id="why-not-just-use-result"><a class="header" href="#why-not-just-use-result">Why not just use Result?</a></h3>
 <p>Result short-circuits on the first error. Validation accumulates all errors, providing better UX for forms and APIs where users need to see all validation failures at once.</p>
 <h3 id="can-i-use-the--operator-with-validation"><a class="header" href="#can-i-use-the--operator-with-validation">Can I use the ? operator with Validation?</a></h3>
-<p>On nightly with <code>try_trait</code> feature, yes! But be aware: <code>?</code> fails fast (no accumulation). Use <code>Validation::all()</code> for error accumulation. See <a href="#try-trait-support-nightly-feature">Try Trait guide</a>.</p>
+<p>On nightly with the <code>try_trait</code> feature and <code>try_trait_nightly</code> cfg, yes! But be aware: <code>?</code> fails fast (no accumulation). Use <code>Validation::all()</code> for error accumulation. See <a href="#try-trait-support-nightly-feature">Try Trait guide</a>.</p>
 <h3 id="what-if-i-need-more-than-12-validations"><a class="header" href="#what-if-i-need-more-than-12-validations">What if I need more than 12 validations?</a></h3>
 <p>Use <code>Validation::all_vec()</code> for homogeneous collections, or nest tuples: <code>Validation::all((all1, all2, all3))</code>.</p>
 <h3 id="how-do-i-convert-validation-to-result"><a class="header" href="#how-do-i-convert-validation-to-result">How do I convert Validation to Result?</a></h3>

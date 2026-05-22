@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4f251ccc.js";
+            window.path_to_searchindex_js = "../searchindex-a137e83a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-705dc3a5.js"></script>
@@ -181,15 +181,17 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="try-trait-support-nightly-feature"><a class="header" href="#try-trait-support-nightly-feature">Try Trait Support (Nightly Feature)</a></h1>
-<p>Stillwater provides experimental support for Rust’s <code>?</code> operator with Validation and Effect on nightly Rust.</p>
+<p>Stillwater provides experimental support for Rust’s <code>?</code> operator with Validation on nightly Rust.</p>
 <h2 id="enabling"><a class="header" href="#enabling">Enabling</a></h2>
 <p>Add to <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 stillwater = { version = "0.1", features = ["try_trait"] }
 </code></pre>
-<p>And use nightly Rust:</p>
-<pre><code class="language-bash">rustup override set nightly
+<p>Use nightly Rust and opt into the unstable implementation explicitly:</p>
+<pre><code class="language-bash">RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait
 </code></pre>
+<p>Applications that use <code>?</code> with <code>Validation</code> must also add <code>#![feature(try_trait_v2)]</code>
+to their crate root.</p>
 <h2 id="using--with-validation"><a class="header" href="#using--with-validation">Using ? with Validation</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span>#![feature(try_trait_v2)]
@@ -214,27 +216,6 @@ Validation::all((
 ))
 .map(|(email, age)| User { email, age })
 <span class="boring">}</span></code></pre>
-<h2 id="using--with-effect"><a class="header" href="#using--with-effect">Using ? with Effect</a></h2>
-<p>The <code>?</code> operator works well with Effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span>#![feature(try_trait_v2)]
-
-<span class="boring">fn main() {
-</span>use stillwater::Effect;
-
-fn process_user(id: u64) -&gt; Effect&lt;Profile, Error, Env&gt; {
-    let user = fetch_user(id)?;          // Short-circuit on error
-    let profile = load_profile(user)?;   // Short-circuit on error
-    Ok(profile)
-}
-<span class="boring">}</span></code></pre>
-<p>This is equivalent to:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fetch_user(id)
-    .and_then(|user| load_profile(user))
-<span class="boring">}</span></code></pre>
-<p>Use whichever is more readable for your use case.</p>
 <h2 id="should-you-use-this-feature"><a class="header" href="#should-you-use-this-feature">Should You Use This Feature?</a></h2>
 <p><strong>Pros</strong>:</p>
 <ul>
@@ -244,6 +225,7 @@ fn process_user(id: u64) -&gt; Effect&lt;Profile, Error, Env&gt; {
 <p><strong>Cons</strong>:</p>
 <ul>
 <li>Requires nightly Rust</li>
+<li>Requires <code>RUSTFLAGS="--cfg try_trait_nightly"</code></li>
 <li>Defeats Validation’s purpose</li>
 <li><code>and_then()</code> is just as readable</li>
 </ul>

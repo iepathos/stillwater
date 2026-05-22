@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4f251ccc.js";
+            window.path_to_searchindex_js = "../searchindex-a137e83a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-705dc3a5.js"></script>
@@ -744,7 +744,7 @@ let effects: Vec&lt;BoxedEffect&lt;String, String, ()&gt;&gt; = vec![
     pure("first completed".to_string()).boxed(),
     pure("second completed".to_string()).boxed(),
 ];
-let result = race(effects, &amp;()).await?; // one of the completed values
+let result = race(effects, &amp;()).await?; // one completed value, or RaceError::Empty
 
 // par_all_limit - run with concurrency limit
 let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = /* many effects */;

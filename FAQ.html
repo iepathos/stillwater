@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4f251ccc.js";
+            window.path_to_searchindex_js = "searchindex-a137e83a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-705dc3a5.js"></script>
@@ -199,7 +199,7 @@
 <h3 id="why-not-just-use-result"><a class="header" href="#why-not-just-use-result">Why not just use Result?</a></h3>
 <p>Result short-circuits on the first error. Validation accumulates all errors, providing better UX for forms and APIs where users need to see all validation failures at once.</p>
 <h3 id="can-i-use-the--operator-with-validation"><a class="header" href="#can-i-use-the--operator-with-validation">Can I use the ? operator with Validation?</a></h3>
-<p>On nightly with <code>try_trait</code> feature, yes! But be aware: <code>?</code> fails fast (no accumulation). Use <code>Validation::all()</code> for error accumulation. See <a href="guide/07-try-trait.html">Try Trait guide</a>.</p>
+<p>On nightly with the <code>try_trait</code> feature and <code>try_trait_nightly</code> cfg, yes! But be aware: <code>?</code> fails fast (no accumulation). Use <code>Validation::all()</code> for error accumulation. See <a href="guide/07-try-trait.html">Try Trait guide</a>.</p>
 <h3 id="what-if-i-need-more-than-12-validations"><a class="header" href="#what-if-i-need-more-than-12-validations">What if I need more than 12 validations?</a></h3>
 <p>Use <code>Validation::all_vec()</code> for homogeneous collections, or nest tuples: <code>Validation::all((all1, all2, all3))</code>.</p>
 <h3 id="how-do-i-convert-validation-to-result"><a class="header" href="#how-do-i-convert-validation-to-result">How do I convert Validation to Result?</a></h3>
