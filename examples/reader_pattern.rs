@@ -17,6 +17,26 @@ enum LogLevel {
     Error,
 }
 
+impl LogLevel {
+    fn priority(&self) -> u8 {
+        match self {
+            LogLevel::Debug => 0,
+            LogLevel::Info => 1,
+            LogLevel::Warn => 2,
+            LogLevel::Error => 3,
+        }
+    }
+
+    fn label(&self) -> &'static str {
+        match self {
+            LogLevel::Debug => "DEBUG",
+            LogLevel::Info => "INFO",
+            LogLevel::Warn => "WARN",
+            LogLevel::Error => "ERROR",
+        }
+    }
+}
+
 /// Database configuration
 #[derive(Clone, Debug)]
 struct DbConfig {
@@ -80,25 +100,14 @@ fn log_message(
     level: LogLevel,
 ) -> impl Effect<Output = (), Error = AppError, Env = AppEnv> {
     get_log_level().map(move |configured_level| {
-        let should_log = match (&configured_level, &level) {
-            (LogLevel::Debug, _) => true,
-            (LogLevel::Info, LogLevel::Debug) => false,
-            (LogLevel::Info, _) => true,
-            (LogLevel::Warn, LogLevel::Debug | LogLevel::Info) => false,
-            (LogLevel::Warn, _) => true,
-            (LogLevel::Error, LogLevel::Error) => true,
-            (LogLevel::Error, _) => false,
-        };
-
-        if should_log {
-            match level {
-                LogLevel::Debug => println!("[DEBUG] {}", msg),
-                LogLevel::Info => println!("[INFO] {}", msg),
-                LogLevel::Warn => println!("[WARN] {}", msg),
-                LogLevel::Error => println!("[ERROR] {}", msg),
-            }
+        if should_log(&configured_level, &level) {
+            println!("[{}] {}", level.label(), msg);
         }
     })
+}
+
+fn should_log(configured_level: &LogLevel, message_level: &LogLevel) -> bool {
+    configured_level.priority() <= message_level.priority()
 }
 
 // Example 5a: Helper functions for different log levels
@@ -404,6 +413,38 @@ mod tests {
             .run(&create_test_env())
             .await;
         assert!(matches!(result, Err(AppError::DatabaseError(_))));
+    }
+
+    #[test]
+    fn test_should_log_respects_configured_threshold() {
+        let cases = [
+            (LogLevel::Debug, LogLevel::Debug, true),
+            (LogLevel::Debug, LogLevel::Info, true),
+            (LogLevel::Debug, LogLevel::Warn, true),
+            (LogLevel::Debug, LogLevel::Error, true),
+            (LogLevel::Info, LogLevel::Debug, false),
+            (LogLevel::Info, LogLevel::Info, true),
+            (LogLevel::Info, LogLevel::Warn, true),
+            (LogLevel::Info, LogLevel::Error, true),
+            (LogLevel::Warn, LogLevel::Debug, false),
+            (LogLevel::Warn, LogLevel::Info, false),
+            (LogLevel::Warn, LogLevel::Warn, true),
+            (LogLevel::Warn, LogLevel::Error, true),
+            (LogLevel::Error, LogLevel::Debug, false),
+            (LogLevel::Error, LogLevel::Info, false),
+            (LogLevel::Error, LogLevel::Warn, false),
+            (LogLevel::Error, LogLevel::Error, true),
+        ];
+
+        for (configured_level, message_level, expected) in cases {
+            assert_eq!(
+                should_log(&configured_level, &message_level),
+                expected,
+                "configured={:?}, message={:?}",
+                configured_level,
+                message_level
+            );
+        }
     }
 
     #[tokio::test]
