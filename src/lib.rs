@@ -1,4 +1,7 @@
-#![cfg_attr(all(feature = "try_trait", try_trait_nightly), feature(try_trait_v2))]
+#![cfg_attr(
+    all(feature = "try_trait", try_trait_nightly),
+    feature(try_trait_v2, try_trait_v2_residual)
+)]
 //! # Stillwater
 //!
 //! A Rust library for pragmatic effect composition and validation.

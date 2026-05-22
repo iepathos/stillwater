@@ -1399,7 +1399,7 @@ impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 mod try_impl {
     use super::*;
     use std::convert::Infallible;
-    use std::ops::{ControlFlow, FromResidual, Try};
+    use std::ops::{ControlFlow, FromResidual, Residual, Try};
 
     /// Try trait implementation for Validation
     ///
@@ -1419,6 +1419,10 @@ mod try_impl {
                 Validation::Failure(error) => ControlFlow::Break(Validation::Failure(error)),
             }
         }
+    }
+
+    impl<T, E> Residual<T> for Validation<Infallible, E> {
+        type TryType = Validation<T, E>;
     }
 
     /// Enables ? operator to propagate Validation failures
