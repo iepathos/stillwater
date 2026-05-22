@@ -71,7 +71,21 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
     - name: Check all targets
-      run: cargo check --all-targets --features async
+      run: cargo check --all-targets --all-features
+
+  try-trait:
+    name: Try Trait Nightly
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install nightly Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: nightly
+
+    - name: Run try_trait tests
+      run: RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait --test try_trait
 
   examples:
     name: Build Examples

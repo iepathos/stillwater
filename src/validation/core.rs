@@ -59,8 +59,8 @@
 //!
 //! ## Try trait support (nightly + feature flag)
 //!
-//! When the `try_trait` feature is enabled and using nightly Rust, `Validation` supports
-//! the `?` operator for ergonomic error propagation:
+//! When the `try_trait` feature and `try_trait_nightly` cfg are enabled on nightly Rust,
+//! `Validation` supports the `?` operator for ergonomic error propagation:
 //!
 //! ```ignore
 //! #![feature(try_trait_v2)]
@@ -79,9 +79,10 @@
 //! For error accumulation, use `Validation::all()` or tuple validation instead.
 //!
 //! To enable this feature:
-//! 1. Use nightly Rust: `rustup default nightly`
+//! 1. Use nightly Rust: `cargo +nightly ...`
 //! 2. Enable the feature in `Cargo.toml`: `features = ["try_trait"]`
-//! 3. Add `#![feature(try_trait_v2)]` to your crate root
+//! 3. Build Stillwater with `RUSTFLAGS="--cfg try_trait_nightly"`
+//! 4. Add `#![feature(try_trait_v2)]` to your crate root
 
 use crate::either::Either;
 use crate::nonempty::NonEmptyVec;
@@ -1387,14 +1388,14 @@ impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
 impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 impl_validate_all!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 
-// Try trait support for ? operator (requires nightly + try_trait feature)
+// Try trait support for ? operator (requires nightly + try_trait feature + try_trait_nightly cfg)
 //
 // This implementation enables using the `?` operator with Validation types,
 // providing ergonomic error propagation similar to Result.
 //
 // IMPORTANT: Using `?` with Validation provides fail-fast behavior, not error
 // accumulation. For error accumulation, use `Validation::all()` instead.
-#[cfg(feature = "try_trait")]
+#[cfg(all(feature = "try_trait", try_trait_nightly))]
 mod try_impl {
     use super::*;
     use std::convert::Infallible;

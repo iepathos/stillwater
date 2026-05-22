@@ -13,6 +13,9 @@ keywords = ["validation", "effects", "functional", "composition", "railway"]
 categories = ["rust-patterns", "data-structures"]
 readme = "README.md"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(try_trait_nightly)'] }
+
 [dependencies]
 # Optional async support
 tokio = { version = "1", features = ["full"], optional = true }

@@ -30,7 +30,7 @@ Result short-circuits on the first error. Validation accumulates all errors, pro
 
 ### Can I use the ? operator with Validation?
 
-On nightly with `try_trait` feature, yes! But be aware: `?` fails fast (no accumulation). Use `Validation::all()` for error accumulation. See [Try Trait guide](guide/07-try-trait.md).
+On nightly with the `try_trait` feature and `try_trait_nightly` cfg, yes! But be aware: `?` fails fast (no accumulation). Use `Validation::all()` for error accumulation. See [Try Trait guide](guide/07-try-trait.md).
 
 ### What if I need more than 12 validations?
 

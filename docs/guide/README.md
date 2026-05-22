@@ -48,7 +48,7 @@ This guide is organized into progressive chapters, each building on the previous
    - Building your own combinators
 
 7. **[Try Trait](07-try-trait.md)** - Nightly feature
-   - Using ? with Validation and Effect
+   - Using ? with Validation
    - When to enable try_trait
    - Migration path
 

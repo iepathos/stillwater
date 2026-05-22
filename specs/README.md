@@ -71,7 +71,7 @@ This directory contains detailed specifications for implementing the Stillwater 
 
 **Validation**:
 - Run `cargo test --all-features`
-- Run `cargo test --features try_trait` (nightly)
+- Run `RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait` (nightly)
 
 ---
 

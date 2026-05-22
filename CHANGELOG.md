@@ -1106,7 +1106,7 @@ Zero-cost effect chains eliminate heap allocations:
 
 ### Known Limitations
 
-- `try_trait` feature requires nightly Rust (optional, not needed for core functionality)
+- `try_trait` feature requires nightly Rust and `RUSTFLAGS="--cfg try_trait_nightly"` (optional, not needed for core functionality)
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 

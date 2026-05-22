@@ -21,7 +21,7 @@ build:
 build-release:
     cargo build --release
 
-# Build with all features enabled
+# Build with all stable features enabled
 build-all:
     cargo build --all-features
 
@@ -113,10 +113,14 @@ test-integration:
 bench:
     cargo bench
 
-# Run all tests including doc tests
+# Run all stable tests including doc tests
 test-all:
     cargo nextest run --all-features
     cargo test --doc --all-features
+
+# Run nightly-only try_trait tests
+test-try-trait-nightly:
+    RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait --test try_trait
 
 # === CODE QUALITY ===
 
@@ -132,7 +136,7 @@ fmt-check:
 lint:
     cargo clippy -- -D warnings
 
-# Run clippy with all targets
+# Run clippy with all stable targets and features
 lint-all:
     cargo clippy --lib --tests --all-features -- -D warnings
 
@@ -140,7 +144,7 @@ lint-all:
 check:
     cargo check
 
-# Check all targets and features
+# Check all stable targets and features
 check-all:
     cargo check --all-targets --all-features
 

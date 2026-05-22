@@ -1,6 +1,6 @@
 # Try Trait Support (Nightly Feature)
 
-Stillwater provides experimental support for Rust's `?` operator with Validation and Effect on nightly Rust.
+Stillwater provides experimental support for Rust's `?` operator with Validation on nightly Rust.
 
 ## Enabling
 
@@ -11,11 +11,14 @@ Add to `Cargo.toml`:
 stillwater = { version = "0.1", features = ["try_trait"] }
 ```
 
-And use nightly Rust:
+Use nightly Rust and opt into the unstable implementation explicitly:
 
 ```bash
-rustup override set nightly
+RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait
 ```
+
+Applications that use `?` with `Validation` must also add `#![feature(try_trait_v2)]`
+to their crate root.
 
 ## Using ? with Validation
 
@@ -44,31 +47,6 @@ Validation::all((
 .map(|(email, age)| User { email, age })
 ```
 
-## Using ? with Effect
-
-The `?` operator works well with Effect:
-
-```rust
-#![feature(try_trait_v2)]
-
-use stillwater::Effect;
-
-fn process_user(id: u64) -> Effect<Profile, Error, Env> {
-    let user = fetch_user(id)?;          // Short-circuit on error
-    let profile = load_profile(user)?;   // Short-circuit on error
-    Ok(profile)
-}
-```
-
-This is equivalent to:
-
-```rust
-fetch_user(id)
-    .and_then(|user| load_profile(user))
-```
-
-Use whichever is more readable for your use case.
-
 ## Should You Use This Feature?
 
 **Pros**:
@@ -77,6 +55,7 @@ Use whichever is more readable for your use case.
 
 **Cons**:
 - Requires nightly Rust
+- Requires `RUSTFLAGS="--cfg try_trait_nightly"`
 - Defeats Validation's purpose
 - `and_then()` is just as readable
 
