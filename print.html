@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a137e83a.js";
+            window.path_to_searchindex_js = "searchindex-a1b6c38a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-705dc3a5.js"></script>
+        <script src="toc-8460a12b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -6943,6 +6943,66 @@ impl ResourceKind for PoolCheckout {
 </code></pre>
 <p>The example covers basic annotations, bracket usage, transaction protocol enforcement, multiple resource types, custom resource markers, and compile-time neutrality assertions.</p>
 <p>For API-level details, see <code>stillwater::effect::resource</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="performance-guide"><a class="header" href="#performance-guide">Performance Guide</a></h1>
+<p>Stillwater claims zero-cost abstractions for validation, effects, and error context. This guide documents how we measure those claims and how to interpret results.</p>
+<h2 id="running-benchmarks-locally"><a class="header" href="#running-benchmarks-locally">Running benchmarks locally</a></h2>
+<pre><code class="language-bash"># All benchmark suites (validation, effects, context, parallel)
+cargo bench --features async
+
+# Individual suites
+cargo bench --bench validation
+cargo bench --bench effects --features async
+cargo bench --bench context
+cargo bench --bench parallel --features async
+</code></pre>
+<p>Criterion writes HTML reports under <code>target/criterion/</code>. Open any <code>report/index.html</code> in a browser for detailed plots.</p>
+<p>For a quick smoke run (pass <code>--sample-size</code> only to criterion benches, not the library test harness):</p>
+<pre><code class="language-bash">cargo bench --features async \
+  --bench validation --bench effects --bench context --bench parallel \
+  -- --sample-size 10
+</code></pre>
+<h2 id="benchmark-categories"><a class="header" href="#benchmark-categories">Benchmark categories</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Suite</th><th>File</th><th>Compares</th></tr>
+</thead>
+<tbody>
+<tr><td>Validation</td><td><code>benches/validation.rs</code></td><td><code>Validation::all_vec</code> vs manual <code>Result</code> accumulation</td></tr>
+<tr><td>Effects</td><td><code>benches/effects.rs</code></td><td>Combinator chain (<code>map</code> + <code>and_then</code>) vs hand-written async</td></tr>
+<tr><td>Context</td><td><code>benches/context.rs</code></td><td><code>ContextError</code> layering vs equivalent manual struct</td></tr>
+<tr><td>Parallel</td><td><code>benches/parallel.rs</code></td><td><code>par_all</code> / <code>par2</code> vs sequential <code>run</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Each suite pairs Stillwater APIs with hand-written equivalents so overhead is measurable, not assumed.</p>
+<h2 id="expected-characteristics"><a class="header" href="#expected-characteristics">Expected characteristics</a></h2>
+<p>On typical release builds:</p>
+<ul>
+<li><strong>Validation</strong> — Within a few percent of manual accumulation for success paths; error accumulation adds work proportional to error count in both paths.</li>
+<li><strong>Effects</strong> — Combinator chains should match manual async code when effects use concrete types (no <code>.boxed()</code> in the hot path).</li>
+<li><strong>Context</strong> — <code>ContextError</code> should be within a few percent of a manual <code>Vec&lt;String&gt;</code> trail; both allocate context strings.</li>
+<li><strong>Parallel</strong> — <code>par_all</code> on cheap <code>pure</code> effects measures scheduling overhead; use I/O-heavy effects locally to validate real speedup.</li>
+</ul>
+<p>The project success metric is <strong>within 5% of hand-written equivalent code</strong> on CPU-bound paths. Absolute numbers vary by machine; compare relative ratios and track trends over time.</p>
+<h2 id="ci-integration"><a class="header" href="#ci-integration">CI integration</a></h2>
+<p>The <a href="https://github.com/iepathos/stillwater/blob/master/.github/workflows/benchmarks.yml">Benchmarks workflow</a>:</p>
+<ul>
+<li>On <strong>pull requests</strong>: runs benchmarks with reduced samples as a compile-and-run smoke test.</li>
+<li>On <strong>push to master</strong>: runs full benchmarks and stores results via <a href="https://github.com/benchmark-action/github-action-benchmark">github-action-benchmark</a> for historical comparison.</li>
+</ul>
+<p>Regressions are detected by comparing new results to the stored baseline on the default branch.</p>
+<h2 id="zero-cost-verification"><a class="header" href="#zero-cost-verification">Zero-cost verification</a></h2>
+<p>Compile-time checks live in <code>src/effect/combinators/zero_cost_tests.rs</code> (combinator struct sizes). Runtime benchmarks validate that those abstractions do not add unexpected overhead in hot paths.</p>
+<p>Practices for zero-cost usage:</p>
+<ol>
+<li>Prefer concrete effect types; call <code>.boxed()</code> only at collection boundaries (<code>par_all</code>, heterogeneous vectors).</li>
+<li>Use <code>Validation::all_vec</code> / tuple <code>validate_all</code> for accumulation instead of fail-fast <code>?</code> when you need every error.</li>
+<li>Add <code>ContextError</code> at boundaries, not inside tight inner loops.</li>
+</ol>
+<h2 id="updating-this-document"><a class="header" href="#updating-this-document">Updating this document</a></h2>
+<p>After significant API changes, re-run <code>cargo bench --features async</code> on release mode and note any ratio shifts in PR descriptions. Do not commit machine-specific timings here; rely on CI history for regression tracking.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="common-patterns-and-recipes"><a class="header" href="#common-patterns-and-recipes">Common Patterns and Recipes</a></h1>
 <p>This document collects common patterns and recipes for using Stillwater effectively.</p>
