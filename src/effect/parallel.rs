@@ -9,6 +9,66 @@
 use crate::effect::boxed::BoxedEffect;
 use crate::effect::trait_def::Effect;
 
+/// Error returned by [`race`].
+///
+/// Distinguishes an empty race input from the first effect completing with an
+/// application error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RaceError<E> {
+    /// `race` was called without any effects to run.
+    Empty,
+    /// The first completed effect failed.
+    Inner(E),
+}
+
+impl<E> RaceError<E> {
+    /// Create an empty-input error.
+    pub fn empty() -> Self {
+        Self::Empty
+    }
+
+    /// Wrap an effect error.
+    pub fn inner(error: E) -> Self {
+        Self::Inner(error)
+    }
+
+    /// Returns true when the race had no effects to run.
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Self::Empty)
+    }
+
+    /// Returns true when the first completed effect failed.
+    pub fn is_inner(&self) -> bool {
+        matches!(self, Self::Inner(_))
+    }
+
+    /// Extract the inner effect error, if present.
+    pub fn into_inner(self) -> Option<E> {
+        match self {
+            Self::Inner(error) => Some(error),
+            Self::Empty => None,
+        }
+    }
+}
+
+impl<E: std::fmt::Display> std::fmt::Display for RaceError<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Empty => write!(f, "race called with empty effects vec"),
+            Self::Inner(error) => write!(f, "{}", error),
+        }
+    }
+}
+
+impl<E: std::error::Error + 'static> std::error::Error for RaceError<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Inner(error) => Some(error),
+            Self::Empty => None,
+        }
+    }
+}
+
 /// Execute boxed effects in parallel, collecting all results or all errors.
 ///
 /// Returns `Ok(results)` if all effects succeed, `Err(errors)` if any fail.
@@ -99,9 +159,7 @@ where
 /// Returns the result of the first effect to complete, whether success or failure.
 /// Other effects are dropped.
 ///
-/// # Panics
-///
-/// Panics if the effects vec is empty.
+/// Returns [`RaceError::Empty`] if the effects vec is empty.
 ///
 /// # Example
 ///
@@ -119,17 +177,20 @@ where
 /// ];
 ///
 /// let result = race(effects, &()).await;
-/// assert_eq!(result, Err("fast failure".to_string()));
+/// assert_eq!(result, Err(RaceError::Inner("fast failure".to_string())));
 /// # });
 /// ```
-pub async fn race<T, E, Env>(effects: Vec<BoxedEffect<T, E, Env>>, env: &Env) -> Result<T, E>
+pub async fn race<T, E, Env>(
+    effects: Vec<BoxedEffect<T, E, Env>>,
+    env: &Env,
+) -> Result<T, RaceError<E>>
 where
     T: Send + 'static,
     E: Send + 'static,
     Env: Clone + Send + Sync + 'static,
 {
     if effects.is_empty() {
-        panic!("race called with empty effects vec");
+        return Err(RaceError::Empty);
     }
 
     let futures: Vec<_> = effects
@@ -138,7 +199,24 @@ where
         .collect();
 
     let (result, _index, _remaining) = futures::future::select_all(futures).await;
-    result
+    result.map_err(RaceError::Inner)
+}
+
+/// Race effects, panicking when called with an empty effects vec.
+///
+/// Prefer [`race`] for compositional library code. This helper exists for
+/// callers that explicitly want unwrap-style panic behavior for empty input.
+pub async fn race_unwrap<T, E, Env>(effects: Vec<BoxedEffect<T, E, Env>>, env: &Env) -> Result<T, E>
+where
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    match race(effects, env).await {
+        Ok(value) => Ok(value),
+        Err(RaceError::Inner(error)) => Err(error),
+        Err(RaceError::Empty) => panic!("race_unwrap called with empty effects vec"),
+    }
 }
 
 /// Execute two effects in parallel (heterogeneous).
@@ -582,14 +660,43 @@ mod tests {
         let effects: Vec<BoxedEffect<i32, String, ()>> = vec![fail("error".to_string()).boxed()];
 
         let result = race(effects, &()).await;
+        assert_eq!(result, Err(RaceError::Inner("error".to_string())));
+    }
+
+    #[test]
+    fn test_race_error_helpers() {
+        let empty: RaceError<String> = RaceError::empty();
+        assert!(empty.is_empty());
+        assert!(!empty.is_inner());
+        assert_eq!(empty.into_inner(), None);
+
+        let inner = RaceError::inner("error".to_string());
+        assert!(!inner.is_empty());
+        assert!(inner.is_inner());
+        assert_eq!(inner.into_inner(), Some("error".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_race_empty_returns_error() {
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![];
+        let result = race(effects, &()).await;
+
+        assert_eq!(result, Err(RaceError::Empty));
+    }
+
+    #[tokio::test]
+    async fn test_race_unwrap_preserves_inner_failure() {
+        let effects: Vec<BoxedEffect<i32, String, ()>> = vec![fail("error".to_string()).boxed()];
+
+        let result = race_unwrap(effects, &()).await;
         assert_eq!(result, Err("error".to_string()));
     }
 
     #[tokio::test]
-    #[should_panic(expected = "race called with empty effects vec")]
-    async fn test_race_empty_panics() {
+    #[should_panic(expected = "race_unwrap called with empty effects vec")]
+    async fn test_race_unwrap_empty_panics() {
         let effects: Vec<BoxedEffect<i32, String, ()>> = vec![];
-        let _ = race(effects, &()).await;
+        let _ = race_unwrap(effects, &()).await;
     }
 
     // Note: The current race implementation uses select_all which returns

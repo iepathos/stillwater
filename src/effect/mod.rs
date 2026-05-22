@@ -171,7 +171,9 @@ pub use constructors::{
 };
 
 // Re-export parallel functions
-pub use parallel::{par2, par3, par4, par_all, par_all_limit, par_try_all, race};
+pub use parallel::{
+    par2, par3, par4, par_all, par_all_limit, par_try_all, race, race_unwrap, RaceError,
+};
 
 // Re-export context trait
 pub use context::{EffectContext, EffectContextChain};

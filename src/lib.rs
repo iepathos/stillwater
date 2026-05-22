@@ -99,7 +99,9 @@ pub use effect::constructors::{
 };
 
 // Re-export parallel functions
-pub use effect::parallel::{par2, par3, par4, par_all, par_all_limit, par_try_all, race};
+pub use effect::parallel::{
+    par2, par3, par4, par_all, par_all_limit, par_try_all, race, race_unwrap, RaceError,
+};
 
 // Re-export combinator types (for advanced use)
 pub use effect::combinators::{

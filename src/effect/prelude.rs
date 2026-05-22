@@ -78,7 +78,9 @@ pub use crate::effect::constructors::{
 };
 
 // Parallel (homogeneous, requires boxing)
-pub use crate::effect::parallel::{par_all, par_all_limit, par_try_all, race};
+pub use crate::effect::parallel::{
+    par_all, par_all_limit, par_try_all, race, race_unwrap, RaceError,
+};
 
 // Parallel (heterogeneous, zero-cost)
 pub use crate::effect::parallel::{par2, par3, par4};

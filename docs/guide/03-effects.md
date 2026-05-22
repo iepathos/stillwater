@@ -606,7 +606,7 @@ let effects: Vec<BoxedEffect<String, String, ()>> = vec![
     pure("first completed".to_string()).boxed(),
     pure("second completed".to_string()).boxed(),
 ];
-let result = race(effects, &()).await?; // one of the completed values
+let result = race(effects, &()).await?; // one completed value, or RaceError::Empty
 
 // par_all_limit - run with concurrency limit
 let effects: Vec<BoxedEffect<i32, String, ()>> = /* many effects */;

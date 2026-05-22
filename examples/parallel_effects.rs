@@ -134,7 +134,7 @@ async fn example_par_try_all() {
 //
 // Use race when you have multiple equivalent sources and want the fastest response.
 async fn example_race() {
-    println!("\n=== Example 4: race - First Success Wins ===\n");
+    println!("\n=== Example 4: race - First Completed Wins ===\n");
 
     let env = AppEnv;
 
@@ -152,8 +152,11 @@ async fn example_race() {
             println!("✓ Got data from {} in {:?}", data, start.elapsed());
             println!("\nNote: Returned as soon as cache responded (~30ms)");
         }
-        Err(error) => {
+        Err(RaceError::Inner(error)) => {
             println!("✗ First source failed: {:?}", error);
+        }
+        Err(RaceError::Empty) => {
+            println!("✗ No sources were configured");
         }
     }
 }
@@ -189,10 +192,11 @@ async fn example_race_timeout() {
     .await
     {
         Ok(result) => println!("✓ {}", result),
-        Err(error) => {
+        Err(RaceError::Inner(error)) => {
             println!("✗ Timed out after {:?}", start.elapsed());
             println!("  Error: {:?}", error);
         }
+        Err(RaceError::Empty) => println!("✗ No operation was configured"),
     }
 }
 

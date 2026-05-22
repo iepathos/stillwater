@@ -180,7 +180,10 @@ Use `race` when the first completed result should decide the outcome.
 ```rust
 use stillwater::effect::prelude::*;
 
-async fn fetch_from_fastest_replica(key: String, env: &AppEnv) -> Result<Data, FetchError> {
+async fn fetch_from_fastest_replica(
+    key: String,
+    env: &AppEnv,
+) -> Result<Data, RaceError<FetchError>> {
     let effects: Vec<BoxedEffect<Data, FetchError, AppEnv>> = vec![
         fetch_from_replica_a(key.clone()).boxed(),
         fetch_from_replica_b(key.clone()).boxed(),
@@ -200,7 +203,7 @@ let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
 ];
 
 let result = race(effects, &()).await;
-assert_eq!(result, Err("fast failure".to_string()));
+assert_eq!(result, Err(RaceError::Inner("fast failure".to_string())));
 ```
 
 This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with `or_else`, `fallback_to`, or explicit retry/fallback logic instead of `race`.
@@ -374,7 +377,10 @@ async fn import_customers(customers: Vec<Customer>, env: &AppEnv) -> ImportSumma
 Use `race` only when "first completed" is the desired behavior:
 
 ```rust
-async fn query_fastest_index(term: SearchTerm, env: &AppEnv) -> Result<SearchResults, SearchError> {
+async fn query_fastest_index(
+    term: SearchTerm,
+    env: &AppEnv,
+) -> Result<SearchResults, RaceError<SearchError>> {
     let effects: Vec<BoxedEffect<SearchResults, SearchError, AppEnv>> = vec![
         query_primary_index(term.clone()).boxed(),
         query_replica_index(term).boxed(),
