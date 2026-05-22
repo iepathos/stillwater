@@ -465,12 +465,8 @@ mod tests {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
-    println!("=== Reader Pattern Examples ===\n");
-
-    // Setup environment
-    let env = AppEnv {
+fn create_demo_env() -> AppEnv {
+    AppEnv {
         config: AppConfig {
             api_key: "secret-key-abc123".to_string(),
             timeout_ms: 2000,
@@ -482,76 +478,103 @@ async fn main() -> Result<(), AppError> {
             port: 5432,
             max_connections: 20,
         },
-    };
+    }
+}
 
+async fn demonstrate_environment_access(env: &AppEnv) -> Result<(), AppError> {
     println!("1. Get entire environment:");
-    let full_env = get_environment().run(&env).await?;
+    let full_env = get_environment().run(env).await?;
     println!("   Config: {:?}\n", full_env.config);
+    Ok(())
+}
 
+async fn demonstrate_config_extraction(env: &AppEnv) -> Result<(), AppError> {
     println!("2. Extract specific values with asks():");
-    let timeout = get_timeout().run(&env).await?;
-    let api_key = get_api_key().run(&env).await?;
+    let timeout = get_timeout().run(env).await?;
+    let api_key = get_api_key().run(env).await?;
     println!("   Timeout: {}ms", timeout);
     println!("   API Key: {}\n", api_key);
+    Ok(())
+}
 
+async fn demonstrate_query_composition(env: &AppEnv) -> Result<(), AppError> {
     println!("3. Compose environment queries:");
-    let conn_str = get_db_connection_string().run(&env).await?;
+    let conn_str = get_db_connection_string().run(env).await?;
     println!("   Connection: {}\n", conn_str);
+    Ok(())
+}
 
+async fn demonstrate_environment_computation(env: &AppEnv) -> Result<(), AppError> {
     println!("4. Use environment in computations:");
-    let user_data = fetch_user_data(123).run(&env).await?;
+    let user_data = fetch_user_data(123).run(env).await?;
     println!("   {}\n", user_data);
+    Ok(())
+}
 
+async fn demonstrate_local_timeout(env: &AppEnv) -> Result<(), AppError> {
     println!("5. Temporarily extend timeout with local():");
-    let standard = get_timeout().run(&env).await?;
-    let extended = with_extended_timeout(5, get_timeout()).run(&env).await?;
+    let standard = get_timeout().run(env).await?;
+    let extended = with_extended_timeout(5, get_timeout()).run(env).await?;
     println!("   Standard timeout: {}ms", standard);
     println!("   Extended timeout: {}ms", extended);
     println!(
         "   Original unchanged: {}ms\n",
-        get_timeout().run(&env).await?
+        get_timeout().run(env).await?
     );
+    Ok(())
+}
 
+async fn demonstrate_complex_workflow(env: &AppEnv) -> Result<(), AppError> {
     println!("6. Complex workflow with environment:");
-    let result = process_user_request(456).run(&env).await?;
+    let result = process_user_request(456).run(env).await?;
     println!("   {}\n", result);
+    Ok(())
+}
 
+async fn demonstrate_database_query(env: &AppEnv) -> Result<(), AppError> {
     println!("7. Database query with environment:");
     let db_results = query_database("SELECT * FROM orders".to_string())
-        .run(&env)
+        .run(env)
         .await?;
     println!("   Results: {:?}\n", db_results);
+    Ok(())
+}
 
+async fn demonstrate_error_handling(env: &AppEnv) -> Result<(), AppError> {
     println!("8. Error handling with environment validation:");
     log_info("Demonstrating error handling".to_string())
-        .run(&env)
+        .run(env)
         .await?;
 
-    // Show safe query validation
     if let Err(AppError::DatabaseError(msg)) = safe_database_query("DROP TABLE users".to_string())
-        .run(&env)
+        .run(env)
         .await
     {
         log_error(format!("Query blocked: {}", msg))
-            .run(&env)
+            .run(env)
             .await?;
     }
 
-    // Show successful safe query
     let safe_results = safe_database_query("SELECT * FROM users".to_string())
-        .run(&env)
+        .run(env)
         .await?;
     println!("   Safe query results: {:?}\n", safe_results);
+    Ok(())
+}
 
+async fn demonstrate_log_levels(env: &AppEnv) -> Result<(), AppError> {
     println!("9. Different log levels:");
     log_debug("This is a debug message".to_string())
-        .run(&env)
+        .run(env)
         .await?;
     log_warn("This is a warning message".to_string())
-        .run(&env)
+        .run(env)
         .await?;
     println!();
+    Ok(())
+}
 
+fn print_reader_pattern_benefits() {
     println!("=== Benefits of Reader Pattern ===");
     println!("✓ No global variables or thread-local storage");
     println!("✓ Easy to test with different configurations");
@@ -560,6 +583,23 @@ async fn main() -> Result<(), AppError> {
     println!("✓ Temporary environment modifications with local()");
     println!("✓ Compose environment queries functionally");
     println!("✓ Clean error handling with context-aware validation");
+}
+
+#[tokio::main]
+async fn main() -> Result<(), AppError> {
+    println!("=== Reader Pattern Examples ===\n");
+    let env = create_demo_env();
+
+    demonstrate_environment_access(&env).await?;
+    demonstrate_config_extraction(&env).await?;
+    demonstrate_query_composition(&env).await?;
+    demonstrate_environment_computation(&env).await?;
+    demonstrate_local_timeout(&env).await?;
+    demonstrate_complex_workflow(&env).await?;
+    demonstrate_database_query(&env).await?;
+    demonstrate_error_handling(&env).await?;
+    demonstrate_log_levels(&env).await?;
+    print_reader_pattern_benefits();
 
     Ok(())
 }
