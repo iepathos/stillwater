@@ -1,0 +1,44 @@
+name: Benchmarks
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-Dwarnings"
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Run benchmarks (smoke test on PR)
+        if: github.event_name == 'pull_request'
+        run: >-
+          cargo bench --features async
+          --bench validation --bench effects --bench context --bench parallel
+          -- --sample-size 10
+
+      - name: Run benchmarks (full on main)
+        if: github.event_name != 'pull_request'
+        run: >-
+          cargo bench --features async
+          --bench validation --bench effects --bench context --bench parallel
+
+      - name: Store benchmark results
+        if: github.event_name != 'pull_request'
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: cargo
+          output-file-path: target/criterion/**/base/estimates.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          comment-always: false

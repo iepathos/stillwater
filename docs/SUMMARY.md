@@ -37,6 +37,7 @@
 
 # Reference
 
+- [Performance](PERFORMANCE.md)
 - [Patterns](PATTERNS.md)
 - [FAQ](FAQ.md)
 - [Migration Guide](MIGRATION.md)
