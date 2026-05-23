@@ -1,6 +1,6 @@
 //! Effect composition vs hand-written async call benchmarks.
 
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
 use stillwater::effect::prelude::*;
 
 const CHAIN_DEPTH: usize = 8;
@@ -49,7 +49,7 @@ fn effect_vs_manual(c: &mut Criterion) {
     });
 
     group.bench_function("manual_chain", |b| {
-        b.to_async(&rt).iter(|| manual_chain());
+        b.to_async(&rt).iter(manual_chain);
     });
 
     group.finish();
