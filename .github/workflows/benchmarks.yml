@@ -14,6 +14,8 @@ jobs:
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
 
@@ -32,13 +34,14 @@ jobs:
         run: >-
           cargo bench --features async
           --bench validation --bench effects --bench context --bench parallel
+          -- --output-format bencher | tee benchmark-output.txt
 
       - name: Store benchmark results
         if: github.event_name != 'pull_request'
         uses: benchmark-action/github-action-benchmark@v1
         with:
           tool: cargo
-          output-file-path: target/criterion/**/base/estimates.json
+          output-file-path: benchmark-output.txt
           github-token: ${{ secrets.GITHUB_TOKEN }}
           auto-push: true
           comment-always: false
