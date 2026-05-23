@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-23
+
+### Added
+
+- Added a Criterion benchmark suite for validation, effects, context, and parallel workflows, with CI coverage for benchmark execution.
+- Added commit quality tooling for release hygiene.
+- Added mdBook documentation publishing support, link checking, cargo metadata, refreshed contributor and roadmap guidance, and expanded resource tracking guidance.
+
+### Changed
+
+- Refined reader examples and log level threshold logic for simpler reader pattern documentation.
+- Updated effect retry and parallel guidance.
+- Refreshed direct and transitive dependencies, including `tokio`, `rand`, and `extractions/setup-just`, and regenerated `Cargo.lock`.
+
+### Fixed
+
+- Restored Rust 1.89 compatibility in CI and separated nightly-only try trait checks from stable builds.
+- Returned the typed error from effect `race`.
+- Stored cargo benchmark output in CI artifacts.
+
 ## [1.0.1] - 2026-04-05
 
 ### Changed
