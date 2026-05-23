@@ -1,6 +1,6 @@
 //! Effect composition vs hand-written async call benchmarks.
 
-use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use stillwater::effect::prelude::*;
 
 const CHAIN_DEPTH: usize = 8;

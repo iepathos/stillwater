@@ -6,9 +6,7 @@ use stillwater::effect::prelude::*;
 const EFFECT_COUNT: usize = 8;
 
 fn build_pure_effects() -> Vec<BoxedEffect<i32, (), ()>> {
-    (0..EFFECT_COUNT)
-        .map(|i| pure(i as i32).boxed())
-        .collect()
+    (0..EFFECT_COUNT).map(|i| pure(i as i32).boxed()).collect()
 }
 
 async fn sequential_all(effects: Vec<BoxedEffect<i32, (), ()>>, env: &()) -> Vec<i32> {

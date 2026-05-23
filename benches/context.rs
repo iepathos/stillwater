@@ -38,7 +38,6 @@ impl ManualContextError {
         self.context.push(msg.into());
         self
     }
-
 }
 
 fn manual_context() -> ManualContextError {
