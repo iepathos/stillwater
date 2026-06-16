@@ -1,7 +1,7 @@
 # Stillwater
 
-[![Crates.io](https://img.shields.io/crates/v/stillwater)](https://crates.io/crates/stillwater)
-[![Downloads](https://img.shields.io/crates/d/stillwater)](https://crates.io/crates/stillwater)
+[![Crates.io](https://badgen.net/crates/v/stillwater)](https://crates.io/crates/stillwater)
+[![Downloads](https://badgen.net/crates/d/stillwater)](https://crates.io/crates/stillwater)
 [![CI](https://github.com/iepathos/stillwater/actions/workflows/ci.yml/badge.svg)](https://github.com/iepathos/stillwater/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT)](LICENSE)
 
