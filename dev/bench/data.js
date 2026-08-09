@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786316794580,
+  "lastUpdate": 1786316819327,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -155,6 +155,84 @@ window.BENCHMARK_DATA = {
             "name": "validation/manual_accumulate",
             "value": 58,
             "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "3cdf72803a0bc8b7e6f149376cce053daef7ae95",
+          "message": "deps(deps): bump serde from 1.0.228 to 1.0.229 (#26)\n\nBumps [serde](https://github.com/serde-rs/serde) from 1.0.228 to 1.0.229.\n- [Release notes](https://github.com/serde-rs/serde/releases)\n- [Commits](https://github.com/serde-rs/serde/compare/v1.0.228...v1.0.229)\n\n---\nupdated-dependencies:\n- dependency-name: serde\n  dependency-version: 1.0.229\n  dependency-type: direct:production\n  update-type: version-update:semver-patch\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-08-09T16:03:41-07:00",
+          "tree_id": "e638fa9be8e39800249be57a137395ac89f510ac",
+          "url": "https://github.com/iepathos/stillwater/commit/3cdf72803a0bc8b7e6f149376cce053daef7ae95"
+        },
+        "date": 1786316818656,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 103,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 75,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 48,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 428,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 362,
+            "range": "± 27",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 13,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 93,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 61,
+            "range": "± 1",
             "unit": "ns/iter"
           }
         ]
