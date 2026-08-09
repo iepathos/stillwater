@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-08-09
+
+### Changed
+
+- Updated runtime and development dependencies: `futures` 0.3.32 to 0.3.33, `rand` 0.9.4 to 0.9.5, `serde` 1.0.228 to 1.0.229, `serde_json` 1.0.150 to 1.0.151, and `tokio` 1.52.3 to 1.53.1.
+- Updated GitHub Actions dependencies: `actions/checkout` 6 to 7 and `actions/cache` 5 to 6.
+
 ## [1.1.0] - 2026-05-23
 
 ### Added
@@ -1130,7 +1137,10 @@ Zero-cost effect chains eliminate heap allocations:
 - API may evolve in 0.x versions based on community feedback
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/iepathos/stillwater/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/iepathos/stillwater/compare/v1.0.1...v1.1.0
+[1.0.1]: https://github.com/iepathos/stillwater/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/iepathos/stillwater/compare/v0.15.0...v1.0.0
 [0.15.0]: https://github.com/iepathos/stillwater/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/iepathos/stillwater/compare/v0.13.0...v0.14.0
