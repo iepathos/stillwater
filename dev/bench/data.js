@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786316819327,
+  "lastUpdate": 1786316824540,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -232,6 +232,84 @@ window.BENCHMARK_DATA = {
           {
             "name": "validation/manual_accumulate",
             "value": 61,
+            "range": "± 1",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "0014ec39b031b03d9ab719629afdc2a4c275aef1",
+          "message": "deps(deps): bump futures from 0.3.32 to 0.3.33 (#25)\n\n---\nupdated-dependencies:\n- dependency-name: futures\n  dependency-version: 0.3.33\n  dependency-type: direct:production\n  update-type: version-update:semver-patch\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-08-09T16:03:51-07:00",
+          "tree_id": "3e2e7fb3d995e91de99d239eb74f8930977602b3",
+          "url": "https://github.com/iepathos/stillwater/commit/0014ec39b031b03d9ab719629afdc2a4c275aef1"
+        },
+        "date": 1786316823836,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 127,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 76,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 32,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 456,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 331,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 15,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 89,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 60,
             "range": "± 1",
             "unit": "ns/iter"
           }
