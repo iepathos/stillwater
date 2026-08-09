@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786316824540,
+  "lastUpdate": 1786316837326,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -311,6 +311,84 @@ window.BENCHMARK_DATA = {
             "name": "validation/manual_accumulate",
             "value": 60,
             "range": "± 1",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "268869a175b72be88c5dec248cf5a21d8fcb80b0",
+          "message": "deps(deps): bump rand from 0.9.4 to 0.9.5 (#24)\n\nBumps [rand](https://github.com/rust-random/rand) from 0.9.4 to 0.9.5.\n- [Release notes](https://github.com/rust-random/rand/releases)\n- [Changelog](https://github.com/rust-random/rand/blob/0.9.5/CHANGELOG.md)\n- [Commits](https://github.com/rust-random/rand/compare/0.9.4...0.9.5)\n\n---\nupdated-dependencies:\n- dependency-name: rand\n  dependency-version: 0.9.5\n  dependency-type: direct:production\n  update-type: version-update:semver-patch\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-08-09T16:04:02-07:00",
+          "tree_id": "f76e1c3b1d88f3d4fc52fb713a137ddfa8c2c4b6",
+          "url": "https://github.com/iepathos/stillwater/commit/268869a175b72be88c5dec248cf5a21d8fcb80b0"
+        },
+        "date": 1786316835969,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 102,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 76,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 35,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 424,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 362,
+            "range": "± 4",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 13,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 82,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 60,
+            "range": "± 0",
             "unit": "ns/iter"
           }
         ]
