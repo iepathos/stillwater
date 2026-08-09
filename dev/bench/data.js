@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786318165859,
+  "lastUpdate": 1786319136674,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -622,6 +622,84 @@ window.BENCHMARK_DATA = {
           {
             "name": "validation/manual_accumulate",
             "value": 58,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "iepathos@gmail.com",
+            "name": "Glen Baker",
+            "username": "iepathos"
+          },
+          "committer": {
+            "email": "iepathos@gmail.com",
+            "name": "Glen Baker",
+            "username": "iepathos"
+          },
+          "distinct": true,
+          "id": "d72326673b0def4e52160e13460a67a3f52f71dd",
+          "message": "fix(ci): Repair security workflow failures",
+          "timestamp": "2026-08-09T16:42:42-07:00",
+          "tree_id": "3a0898b4c7c19dc37e6484f8d35c1dfaeee495c5",
+          "url": "https://github.com/iepathos/stillwater/commit/d72326673b0def4e52160e13460a67a3f52f71dd"
+        },
+        "date": 1786319135584,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 71,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 50,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 23,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 0,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 335,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 303,
+            "range": "± 13",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 14,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 54,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 50,
             "range": "± 0",
             "unit": "ns/iter"
           }
