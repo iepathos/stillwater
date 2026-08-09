@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786316903355,
+  "lastUpdate": 1786318165859,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -544,6 +544,84 @@ window.BENCHMARK_DATA = {
           {
             "name": "validation/manual_accumulate",
             "value": 60,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "iepathos@gmail.com",
+            "name": "Glen Baker",
+            "username": "iepathos"
+          },
+          "committer": {
+            "email": "iepathos@gmail.com",
+            "name": "Glen Baker",
+            "username": "iepathos"
+          },
+          "distinct": true,
+          "id": "c36f2842d4c5f72e1d53152a0576dcc915908cd3",
+          "message": "chore(release): Prepare 1.1.1",
+          "timestamp": "2026-08-09T16:27:04-07:00",
+          "tree_id": "80803d4e612cb90bfdb5379bb2bbfb21192bc4bb",
+          "url": "https://github.com/iepathos/stillwater/commit/c36f2842d4c5f72e1d53152a0576dcc915908cd3"
+        },
+        "date": 1786318165165,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 101,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 76,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 46,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 438,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 347,
+            "range": "± 9",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 13,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 83,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 58,
             "range": "± 0",
             "unit": "ns/iter"
           }
