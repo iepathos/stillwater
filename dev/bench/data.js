@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1786316864377,
+  "lastUpdate": 1786316903355,
   "repoUrl": "https://github.com/iepathos/stillwater",
   "entries": {
     "Benchmark": [
@@ -466,6 +466,84 @@ window.BENCHMARK_DATA = {
           {
             "name": "validation/manual_accumulate",
             "value": 61,
+            "range": "± 0",
+            "unit": "ns/iter"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "49699333+dependabot[bot]@users.noreply.github.com",
+            "name": "dependabot[bot]",
+            "username": "dependabot[bot]"
+          },
+          "committer": {
+            "email": "noreply@github.com",
+            "name": "GitHub",
+            "username": "web-flow"
+          },
+          "distinct": true,
+          "id": "6fdf90548feca72b52035a2429d4ba52addc5f0b",
+          "message": "ci(deps): bump actions/checkout from 6 to 7 (#22)\n\nBumps [actions/checkout](https://github.com/actions/checkout) from 6 to 7.\n- [Release notes](https://github.com/actions/checkout/releases)\n- [Changelog](https://github.com/actions/checkout/blob/main/CHANGELOG.md)\n- [Commits](https://github.com/actions/checkout/compare/v6...v7)\n\n---\nupdated-dependencies:\n- dependency-name: actions/checkout\n  dependency-version: '7'\n  dependency-type: direct:production\n  update-type: version-update:semver-major\n...\n\nSigned-off-by: dependabot[bot] <support@github.com>\nCo-authored-by: dependabot[bot] <49699333+dependabot[bot]@users.noreply.github.com>",
+          "timestamp": "2026-08-09T16:04:21-07:00",
+          "tree_id": "575911b657d377bcda7030f79b3f06bb8344ec4a",
+          "url": "https://github.com/iepathos/stillwater/commit/6fdf90548feca72b52035a2429d4ba52addc5f0b"
+        },
+        "date": 1786316902624,
+        "tool": "cargo",
+        "benches": [
+          {
+            "name": "context/stillwater_context",
+            "value": 121,
+            "range": "± 2",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "context/manual_context",
+            "value": 76,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/stillwater_chain",
+            "value": 32,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "effects/manual_chain",
+            "value": 1,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par_all",
+            "value": 450,
+            "range": "± 6",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/sequential",
+            "value": 341,
+            "range": "± 1",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "parallel/par2_heterogeneous",
+            "value": 15,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/stillwater_accumulate",
+            "value": 89,
+            "range": "± 0",
+            "unit": "ns/iter"
+          },
+          {
+            "name": "validation/manual_accumulate",
+            "value": 60,
             "range": "± 0",
             "unit": "ns/iter"
           }
