@@ -11,6 +11,10 @@ use crate::effect::trait_def::Effect;
 /// The async function is stored directly in the struct and
 /// invoked when the effect is run.
 ///
+/// The returned future must own anything it uses across `.await`. To borrow
+/// from the environment across `.await`, use
+/// [`FromAsyncRef`](crate::effect::combinators::FromAsyncRef).
+///
 /// # Example
 ///
 /// ```rust,ignore

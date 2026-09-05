@@ -29,6 +29,7 @@
 //! ## Conversion Constructors
 //! - [`from_fn`] - Create effect from synchronous function
 //! - [`from_async`] - Create effect from async function
+//! - [`from_async_ref`] - Create an async effect that borrows its environment
 //! - [`from_result`] - Lift a `Result` into an effect
 //! - [`from_option`] - Lift an `Option` into an effect
 //! - [`from_validation`] - Convert `Validation` to effect
@@ -76,8 +77,9 @@
 
 use std::future::Future;
 
+use crate::effect::boxed::BoxFuture;
 use crate::effect::combinators::{
-    Fail, FromAsync, FromFn, FromResult, Pure, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8,
+    Fail, FromAsync, FromAsyncRef, FromFn, FromResult, Pure, Zip3, Zip4, Zip5, Zip6, Zip7, Zip8,
 };
 use crate::effect::reader::{Ask, Asks, Local};
 use crate::effect::trait_def::Effect;
@@ -157,7 +159,10 @@ where
 
 /// Create an effect from an async function.
 ///
-/// The function receives a reference to the environment and returns a Future.
+/// The function receives a reference to the environment and returns a future
+/// that owns anything it uses across `.await`. Clone inexpensive service
+/// handles from the environment before constructing the future. Use
+/// [`from_async_ref`] when the future needs to retain the environment borrow.
 ///
 /// # Example
 ///
@@ -178,6 +183,47 @@ where
     Env: Clone + Send + Sync,
 {
     FromAsync::new(f)
+}
+
+/// Create an async effect whose future borrows from the environment.
+///
+/// This constructor ties the future's lifetime to the environment passed to
+/// [`Effect::run`]. It allocates one boxed future each time the effect runs.
+/// Use [`from_async`] when the future owns its captured service handles and
+/// allocation-free construction is preferred.
+///
+/// # Example
+///
+/// ```
+/// use stillwater::effect::prelude::*;
+///
+/// #[derive(Clone)]
+/// struct Env {
+///     value: String,
+/// }
+///
+/// # tokio_test::block_on(async {
+/// let effect = from_async_ref(|env: &Env| {
+///     Box::pin(async move {
+///         std::future::ready(()).await;
+///         Ok::<_, String>(env.value.len())
+///     })
+/// });
+///
+/// let env = Env {
+///     value: "stillwater".to_string(),
+/// };
+/// assert_eq!(effect.run(&env).await, Ok(10));
+/// # });
+/// ```
+pub fn from_async_ref<T, E, Env, F>(f: F) -> FromAsyncRef<F, Env>
+where
+    F: for<'a> FnOnce(&'a Env) -> BoxFuture<'a, Result<T, E>> + Send,
+    T: Send,
+    E: Send,
+    Env: Clone + Send + Sync,
+{
+    FromAsyncRef::new(f)
 }
 
 /// Create an effect from a Result.

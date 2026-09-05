@@ -1,4 +1,4 @@
-use stillwater::{fail, from_fn, pure, Effect, EffectExt, RunStandalone};
+use stillwater::{fail, from_async_ref, from_fn, pure, Effect, EffectExt, RunStandalone};
 
 #[derive(Clone, Debug, PartialEq)]
 struct User {
@@ -29,6 +29,24 @@ impl Database {
 #[derive(Clone)]
 struct Env {
     db: Database,
+}
+
+#[tokio::test]
+async fn borrowed_async_constructor_composes_through_public_api() {
+    let env = Env {
+        db: Database { users: vec![] },
+    };
+
+    let effect = from_async_ref(|env: &Env| {
+        Box::pin(async move {
+            tokio::task::yield_now().await;
+            Ok::<_, AppError>(env.db.users.len())
+        })
+    })
+    .map(|count| count + 1)
+    .and_then(|count| pure(count * 2));
+
+    assert_eq!(effect.run(&env).await, Ok(2));
 }
 
 #[tokio::test]

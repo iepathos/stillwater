@@ -126,9 +126,16 @@ let effect = from_fn(|env: &Env| {
     Ok::<_, String>(env.config.value)
 });
 
-// From async function
-let effect = from_async(|env: &Env| async {
-    env.db.fetch_user(123).await
+// From an async function that owns a cloned service handle
+let effect = from_async(|env: &Env| {
+    let db = env.db.clone();
+    async move { db.fetch_user(123).await }
+});
+
+// Borrow directly from the environment across `.await`.
+// This allocates one boxed future when the effect runs.
+let effect = from_async_ref(|env: &Env| {
+    Box::pin(async move { env.db.fetch_user(123).await })
 });
 
 // From Option

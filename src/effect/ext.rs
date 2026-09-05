@@ -315,10 +315,10 @@ pub trait EffectExt: Effect {
 
     /// Perform a side effect and return the original value.
     ///
-    /// Useful for logging, metrics, or other operations that don't
-    /// affect the main computation. The side effect function receives
-    /// a reference to the value and must return an Effect. If the side
-    /// effect fails, the entire computation fails.
+    /// Useful for logging, metrics, or other operations that don't affect the
+    /// main computation. The original value is retained without cloning. The
+    /// side effect function receives a reference to the value and must return
+    /// an Effect. If the side effect fails, the entire computation fails.
     ///
     /// # Example
     ///
@@ -333,7 +333,6 @@ pub trait EffectExt: Effect {
     /// ```
     fn tap<E2, F>(self, f: F) -> Tap<Self, F, E2>
     where
-        Self::Output: Clone,
         F: FnOnce(&Self::Output) -> E2 + Send,
         E2: Effect<Output = (), Error = Self::Error, Env = Self::Env>,
     {
@@ -377,9 +376,9 @@ pub trait EffectExt: Effect {
 
     /// Combine with another effect, returning both values as a tuple.
     ///
-    /// Useful when you need results from multiple effects.
-    /// The function receives a reference to the first value
-    /// and returns an effect for the second value.
+    /// Useful when you need results from multiple effects. The function
+    /// receives a reference to the first value and returns an effect for the
+    /// second value. The first value is retained without cloning.
     ///
     /// # Example
     ///
@@ -392,7 +391,6 @@ pub trait EffectExt: Effect {
     /// ```
     fn with<E2, F>(self, f: F) -> With<Self, F, E2>
     where
-        Self::Output: Clone,
         F: FnOnce(&Self::Output) -> E2 + Send,
         E2: Effect<Error = Self::Error, Env = Self::Env>,
     {
@@ -444,9 +442,9 @@ pub trait EffectExt: Effect {
 
     /// Chain effect by borrowing value, then return original.
     ///
-    /// Avoids multiple clones when you need to use a value in multiple effects
-    /// but only care about the final result. The function receives a reference
-    /// to the value and returns an effect whose result is discarded.
+    /// The function borrows the value while constructing the next effect. That
+    /// effect must own anything it needs while running; it cannot retain this
+    /// temporary borrow. The next effect's result is discarded.
     ///
     /// # Example
     ///
@@ -465,7 +463,6 @@ pub trait EffectExt: Effect {
     /// ```
     fn and_then_ref<E2, F>(self, f: F) -> AndThenRef<Self, F, E2>
     where
-        Self::Output: Clone,
         F: FnOnce(&Self::Output) -> E2 + Send,
         E2: Effect<Error = Self::Error, Env = Self::Env>,
     {

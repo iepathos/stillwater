@@ -14,7 +14,7 @@ use std::pin::Pin;
 
 use crate::effect::trait_def::Effect;
 
-/// A boxed future that is Send + 'static
+/// A boxed, `Send` future with an explicit lifetime.
 pub type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 
 /// A type-erased effect.

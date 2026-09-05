@@ -140,8 +140,16 @@ let effect = fail::<i32, _, ()>("error".to_string());
 // From synchronous function
 let effect = from_fn(|env: &Env| Ok::<_, String>(env.value));
 
-// From async function
-let effect = from_async(|env: &Env| async { Ok(env.fetch().await) });
+// From async function with an owned service handle
+let effect = from_async(|env: &Env| {
+    let client = env.client.clone();
+    async move { Ok(client.fetch().await) }
+});
+
+// From async function that borrows the environment across `.await`
+let effect = from_async_ref(|env: &Env| {
+    Box::pin(async move { Ok(env.client.fetch().await) })
+});
 
 // From Result
 let effect = from_result::<_, String, ()>(Ok(42));

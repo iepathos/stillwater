@@ -367,6 +367,8 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
 - **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
   - Zero heap allocations by default
   - Explicit `.boxed()` when type erasure is needed
+  - `from_async()` for owned async work without an extra future allocation
+  - `from_async_ref()` for borrowing across `.await` with one boxed future per run
   - Returns `impl Effect` for optimal performance
 - **Zip combinators** - Combine independent effects into tuples
   - `zip()`, `zip_with()` methods for pairwise combination

@@ -133,11 +133,12 @@ Validate first (pure, accumulates errors), then lift to Effect for I/O.
 Map them to your error types:
 
 ```rust
-from_async(|env: &AppEnv| async {
-    env.db.query()
+from_async_ref(|env: &AppEnv| Box::pin(async move {
+    env.db
+        .query()
         .await
         .map_err(|err| MyError::Database(err.to_string()))
-})
+}))
 ```
 
 ## Performance
