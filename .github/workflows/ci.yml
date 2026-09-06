@@ -52,6 +52,9 @@ jobs:
     - name: Run documentation contract
       run: cargo test --doc --all-features
 
+    - name: Run default-feature tests and documentation
+      run: cargo test
+
     - name: Test canonical registration example
       run: cargo test --example user_registration --all-features
     
@@ -94,7 +97,7 @@ jobs:
         toolchain: nightly
 
     - name: Run try_trait tests
-      run: RUSTFLAGS="--cfg try_trait_nightly" cargo +nightly test --features try_trait --test try_trait
+      run: RUSTFLAGS="-Dwarnings --cfg try_trait_nightly" cargo +nightly test --features try_trait --test try_trait
 
   examples:
     name: Build Examples
