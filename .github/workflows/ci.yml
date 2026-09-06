@@ -94,7 +94,7 @@ jobs:
       run: mdbook build book
 
     - name: Check rendered local-execution policy
-      run: python3 -B scripts/check_book_playground.py book/book --local-only
+      run: python3 -B scripts/check_book_playground.py book/book
 
     - name: Run documented standalone quickstart
       run: python3 -B scripts/check_book_quickstart.py

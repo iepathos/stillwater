@@ -1,136 +1,119 @@
-import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from check_book_playground import check_book, check_local_book, main, parse_inventory, playground_blocks
+from check_book_playground import check_local_book
 
 
-MANIFEST = '''[package]
-name = "stillwater"
-version = "2.0.0"
-[dev-dependencies]
-tokio-test = "0.4"
-'''
-
-
-def rendered(code, code_class="language-rust", pre_class="playground"):
-    return f'<pre class="{pre_class}"><code class="{code_class}">{code}</code></pre>'
+def rendered(code="use stillwater::Semigroup;", code_class="language-rust",
+             container_class="playground", tag="pre"):
+    return (f'<{tag} class="{container_class}">'
+            f'<code class="{code_class}">{code}</code></{tag}>')
 
 
 class PlaygroundTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
-        self.manifest = self.root / "Cargo.toml"
-        self.manifest.write_text(MANIFEST, encoding="utf-8")
-        self.book = self.root / "book"
+        self.book = Path(self.temporary.name) / "book"
         self.book.mkdir()
         self.page = self.book / "index.html"
 
-    def check(self, code, inventory=None, **classes):
-        self.page.write_text(rendered(code, **classes), encoding="utf-8")
-        return check_book(self.book, self.manifest, inventory or {})
+    def check(self, html):
+        self.page.write_text(html, encoding="utf-8")
+        return check_local_book(self.book)
 
-    def test_semigroup_regression_without_extern_crate(self):
-        report = self.check('''use stillwater::Semigroup;
-let v1 = vec![1, 2, 3];
-let v2 = vec![4, 5, 6];
-assert_eq!(v1.combine(v2), vec![1, 2, 3, 4, 5, 6]);
-let empty: Vec&lt;i32&gt; = vec![];
-let values = vec![1, 2, 3];
-assert_eq!(empty.combine(values), vec![1, 2, 3]);''')
-        self.assertEqual(report.blocks, 1)
-        self.assertEqual(len(report.errors), 1)
+    def run_cli(self, *args):
+        script = Path(__file__).resolve().parents[1] / "check_book_playground.py"
+        return subprocess.run([sys.executable, "-B", str(script), str(self.book), *args],
+                              capture_output=True, text=True, timeout=10)
+
+    def test_semigroup_without_extern_crate_is_rejected(self):
+        report = self.check(rendered())
+        self.assertEqual((report.blocks, len(report.errors)), (1, 1))
         self.assertIn("index.html:1", report.errors[0])
-        self.assertIn("stillwater is unavailable", report.errors[0])
 
-    def test_published_old_version_does_not_validate_new_docs(self):
-        report = self.check("use stillwater::Semigroup;", {"stillwater": "1.1.1"})
-        self.assertIn("requires stillwater 2.0.0", report.errors[0])
+    def test_any_playground_container_is_rejected(self):
+        for tag in ["pre", "div", "section", "code"]:
+            with self.subTest(tag=tag):
+                self.assertEqual(self.check(rendered(tag=tag)).blocks, 1)
 
-    def test_matching_version_passes_dependency_check(self):
-        report = self.check("use stillwater::Semigroup;", {"stillwater": "2.0.0"})
-        self.assertEqual(report.errors, [])
-
-    def test_hidden_lines_and_highlighted_paths_are_checked(self):
-        code = '<span class="boring">use <span>stillwater</span>::Semigroup;</span>'
-        self.assertIn("stillwater is unavailable", self.check(code).errors[0])
-
-    def test_fully_qualified_and_aliased_paths_are_checked(self):
-        for code in ["stillwater::pure(1);", "use stillwater :: {Semigroup as S};",
-                     "extern crate stillwater as sw;"]:
-            with self.subTest(code=code):
-                self.assertEqual(len(self.check(code).errors), 1)
-
-    def test_helpers_need_their_own_dependencies(self):
-        report = self.check("tokio_test::block_on(async {});", {"stillwater": "2.0.0"})
-        self.assertIn("tokio_test is unavailable", report.errors[0])
-
-    def test_non_runnable_blocks_are_not_playground_promises(self):
+    def test_doctest_classes_cannot_bypass_local_policy(self):
         for code_class in ["language-rust no_run", "language-rust compile_fail",
                            "language-rust ignore"]:
             with self.subTest(code_class=code_class):
-                report = self.check("use stillwater::Semigroup;", code_class=code_class)
+                self.assertEqual(self.check(rendered(code_class=code_class)).blocks, 1)
+
+    def test_even_std_only_playground_blocks_are_rejected(self):
+        self.assertEqual(self.check(rendered("assert_eq!(2 + 2, 4);")).blocks, 1)
+
+    def test_class_tokens_and_entities_are_recognized(self):
+        for classes in ["example playground extra", "playground\textra", "play&#103;round"]:
+            with self.subTest(classes=classes):
+                self.assertEqual(self.check(rendered(container_class=classes)).blocks, 1)
+
+    def test_non_playground_code_is_allowed(self):
+        for classes in ["", "example", "not-playground", "playground-extra"]:
+            with self.subTest(classes=classes):
+                report = self.check(rendered(container_class=classes))
                 self.assertEqual((report.blocks, report.errors), (0, []))
-        report = self.check("use stillwater::Semigroup;", pre_class="")
-        self.assertEqual((report.blocks, report.errors), (0, []))
 
-    def test_std_only_example_passes(self):
-        self.assertEqual(self.check("assert_eq!(2 + 2, 4);").errors, [])
+    def test_comments_and_escaped_markup_are_not_elements(self):
+        html = '<!-- <div class="playground"> --> &lt;pre class="playground"&gt;'
+        self.assertEqual(self.check(html).errors, [])
 
-    def test_local_policy_rejects_any_reintroduced_run_controls(self):
-        for code in ["use stillwater::Semigroup;", "assert_eq!(2 + 2, 4);"]:
-            with self.subTest(code=code):
-                self.page.write_text(rendered(code), encoding="utf-8")
-                self.assertIn("browser Run control", check_local_book(self.book).errors[0])
+    def test_nested_and_empty_elements_are_counted_with_locations(self):
+        report = self.check('<div class="playground">\n<pre class="playground"></pre>\n</div>')
+        self.assertEqual(report.blocks, 2)
+        self.assertIn("index.html:1", report.errors[0])
+        self.assertIn("index.html:2", report.errors[1])
 
-    def test_local_policy_needs_no_network(self):
-        self.page.write_text(rendered("use stillwater::Semigroup;", pre_class=""),
-                             encoding="utf-8")
-        with patch("sys.argv", ["checker", str(self.book), "--local-only"]), \
-             patch("check_book_playground.load_inventory", side_effect=AssertionError("network")):
-            self.assertEqual(main(), 0)
+    def test_self_closing_and_unclosed_elements_are_rejected(self):
+        for html in ['<div class="playground"/>', '<pre class="playground">']:
+            with self.subTest(html=html):
+                self.assertEqual(self.check(html).blocks, 1)
 
-    def test_local_policy_rejects_missing_book(self):
-        with self.assertRaises(ValueError):
-            check_local_book(self.root / "missing")
+    def test_nested_pages_and_print_output_are_checked(self):
+        (self.book / "guide").mkdir()
+        (self.book / "guide/chapter.html").write_text(rendered(), encoding="utf-8")
+        (self.book / "print.html").write_text(rendered(), encoding="utf-8")
+        report = self.check(rendered(container_class=""))
+        self.assertEqual(report.blocks, 2)
+        self.assertTrue(any("chapter.html:1" in error for error in report.errors))
+        self.assertTrue(any("print.html:1" in error for error in report.errors))
 
     def test_missing_or_empty_book_fails(self):
-        for path in [self.root / "missing", self.book]:
-            with self.subTest(path=path), self.assertRaises(ValueError):
-                check_book(path, self.manifest, {})
+        for path in [self.book / "missing", self.book]:
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, "No rendered HTML"):
+                check_local_book(path)
 
-    def test_parser_preserves_hidden_text_entities_and_line_numbers(self):
-        blocks = playground_blocks('\n' + rendered('<span class="boring">&amp;x</span>'))
-        self.assertEqual([(block.line, block.code) for block in blocks], [(2, "&x")])
-
-    def test_inventory_schema_is_checked(self):
-        self.assertEqual(parse_inventory({"crates": [{"id": "tokio", "version": "1.0"}]}),
-                         {"tokio": "1.0"})
-        for invalid in [{}, {"crates": []}, {"crates": [{}]},
-                        {"crates": [{"id": "tokio", "version": None}]}]:
-            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
-                parse_inventory(invalid)
-
-    def test_cli_returns_failure_and_actionable_location(self):
-        self.page.write_text(rendered("use stillwater::Semigroup;"), encoding="utf-8")
-        inventory = self.root / "inventory.json"
-        inventory.write_text(json.dumps({"crates": [{"id": "tokio", "version": "1"}]}),
-                             encoding="utf-8")
-        script = Path(__file__).resolve().parents[1] / "check_book_playground.py"
-        result = subprocess.run(
-            [sys.executable, str(script), str(self.book), "--manifest", str(self.manifest),
-             "--inventory", str(inventory)], capture_output=True, text=True,
-        )
+    def test_cli_defaults_to_local_policy_with_actionable_failure(self):
+        self.check(rendered())
+        result = self.run_cli()
         self.assertEqual(result.returncode, 1)
         self.assertIn("index.html:1", result.stderr)
-        self.assertIn("stillwater is unavailable", result.stderr)
+        self.assertIn("runnable = false", result.stderr)
+
+    def test_cli_passes_local_book(self):
+        self.check(rendered(container_class=""))
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("0 rendered playground", result.stdout)
+
+    def test_cli_missing_output_fails(self):
+        result = self.run_cli()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("No rendered HTML", result.stderr)
+
+    def test_removed_inventory_options_are_rejected(self):
+        for args in [("--inventory", "inventory.json"), ("--manifest", "Cargo.toml")]:
+            with self.subTest(args=args):
+                result = self.run_cli(*args)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("unrecognized arguments", result.stderr)
 
 
 if __name__ == "__main__":

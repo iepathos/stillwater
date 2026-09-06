@@ -177,7 +177,7 @@ book-check-links: book
 # Verify local execution policy and the documented standalone Cargo project
 book-check-playground: book
     python3 -B -m unittest discover -s scripts/tests -v
-    python3 -B scripts/check_book_playground.py book/book --local-only
+    python3 -B scripts/check_book_playground.py book/book
     python3 -B scripts/check_book_quickstart.py
 
 # Serve the mdBook documentation site locally
