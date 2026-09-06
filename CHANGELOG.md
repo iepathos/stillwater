@@ -5,20 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-## [2.0.0] - 2026-09-05
+## [Unreleased] — 2.0.0
 
 ### Added
 
 - Added `from_async_ref` for effects that borrow their environment across `.await`.
 - Added explicit sequential and parallel effect traversal and sequencing APIs.
 - Added Cargo-backed compile coverage for Rust-labelled README and mdBook examples.
+- Added documentation checks rejecting test-only bodies and text downgrades in core guides.
 
 ### Changed
 
 - Removed unnecessary `Clone` requirements and cloning from `tap`, `with`, and `and_then_ref`.
 - Reworked the user-registration example around a pure decision core and an imperative shell.
+- Enforced uniqueness at the registration commit boundary and added CI coverage for its tests.
+- Documented traversal factory timing and compiled the 2.0 migration examples.
 - Clarified that the `async` feature enables Tokio-backed retry and timeout operations; the
   core `Effect` abstraction is always asynchronous.
 
@@ -1158,8 +1159,7 @@ Zero-cost effect chains eliminate heap allocations:
 - Breaking API changes follow major-version releases
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/iepathos/stillwater/compare/v1.1.1...v2.0.0
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v1.1.1...HEAD
 [1.1.1]: https://github.com/iepathos/stillwater/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/iepathos/stillwater/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/iepathos/stillwater/compare/v1.0.0...v1.0.1

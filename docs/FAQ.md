@@ -124,7 +124,7 @@ No. Use it at I/O boundaries and major operation boundaries where context helps 
 Yes! Common pattern:
 
 ```text
-Effect::from_validation(validate_data(data))
+from_validation(validate_data(data))
     .and_then(|valid| save_to_db(valid))
 ```
 
@@ -210,16 +210,21 @@ See [CONTRIBUTING.md](https://github.com/iepathos/stillwater/blob/master/CONTRIB
 
 ### What's the roadmap?
 
-See specs in the [specs/](https://github.com/iepathos/stillwater/tree/master/specs) directory for planned features. Current areas under consideration include:
+See the [specification index](https://github.com/iepathos/stillwater/tree/master/specs)
+for proposal statuses. Drafts are not release commitments. Current areas under consideration include:
 - Saga-style compensation for multi-step workflows
 - Serde and framework integration
 - Benchmarks and performance validation
-- Circuit breaker support
-- Additional Result and tuple combinator ergonomics
+- Additional Result ergonomics
+
+Circuit breakers and flat tuple Effect combinators are parked, with reactivation
+criteria recorded in their specifications.
 
 ### Is this production-ready?
 
-Yes. Stillwater 1.0 is stable with comprehensive unit, integration, and documentation tests.
+Stillwater 2.0 is the next major release candidate. Its test suite covers library
+behavior, executable documentation, and the canonical registration example. Release
+readiness also requires CI and package verification; examples are not production service adapters.
 
 ## Common Issues
 

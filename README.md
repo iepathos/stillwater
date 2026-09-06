@@ -594,7 +594,7 @@ See [examples/](examples/) directory for full code.
 
 ## Production Readiness
 
-**Status: 1.0.1 - Production Ready**
+**Status: 2.0.0 release candidate**
 
 - Comprehensive unit and documentation test coverage
 - 27 runnable examples
@@ -602,9 +602,10 @@ See [examples/](examples/) directory for full code.
 - Full async support
 - CI/CD pipeline with security audits
 
-This library is stable and ready for use.
+The 2.0 release removes deprecated APIs and makes traversal semantics explicit.
+Review the migration guide and verify your application's ordering and failure contracts.
 
-## Migration from Pre-0.11 Releases
+## Migration to 2.0
 
 The concrete-combinator Effect API was introduced in 0.11.0 and remains the core API in 2.0. See [MIGRATION.md](docs/MIGRATION.md) for 2.0 breaking changes and older upgrade instructions.
 
