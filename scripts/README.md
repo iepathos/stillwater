@@ -1,6 +1,6 @@
 # Documentation checks
 
-Run `just book-check-playground` with Python 3.11+ and mdBook installed.
+Run `just book-check-playground` with Python 3.11+, mdBook, and rustup installed.
 It builds the book, tests the checkers, enforces local-only execution on the
 rendered HTML, and runs the documented standalone quickstart. CI and documentation
 deployment run the same checks.
@@ -30,8 +30,11 @@ python3 -B scripts/check_book_quickstart.py
 
 The smoke test runs the exact TOML and Rust snippets in `docs/running-examples.md`
 as a fresh standalone Cargo project with the documented relative dependency path.
-This test needs Cargo and may fetch dependencies, just like the reader's
-`cargo run`.
+It resolves the checkout's active Rust toolchain with rustup, reports it, and
+passes it to Cargo via `RUSTUP_TOOLCHAIN` so moving into the temporary project
+cannot silently change compilers. Explicit environment toolchain overrides are
+honored by rustup. Toolchain resolution failures stop the check. Dependency
+fetching is allowed, just like the reader's `cargo run`.
 
 Keep the existing Cargo doctests and documentation-contract tests. Do not change
 Rust examples to `text`, `ignore`, or `no_run` merely to pass the rendered check.

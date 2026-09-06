@@ -14,7 +14,18 @@ def one_fence(markdown, language):
     return blocks[0]
 
 
+def active_toolchain(root):
+    result = subprocess.run(["rustup", "show", "active-toolchain"], cwd=root,
+                            stdout=subprocess.PIPE, text=True, check=True, timeout=30)
+    fields = result.stdout.split()
+    if not fields:
+        raise ValueError(f"rustup reported no active toolchain for {root}")
+    return fields[0]
+
+
 def check_quickstart(root):
+    toolchain = active_toolchain(root)
+    print(f"Running standalone quickstart with Rust toolchain {toolchain}", flush=True)
     guide = (root / "docs/running-examples.md").read_text(encoding="utf-8")
     with tempfile.TemporaryDirectory(prefix="stillwater-book-quickstart-") as temporary:
         directory = Path(temporary)
@@ -23,7 +34,9 @@ def check_quickstart(root):
         (project / "src").mkdir(parents=True)
         (project / "Cargo.toml").write_text(one_fence(guide, "toml"), encoding="utf-8")
         (project / "src/main.rs").write_text(one_fence(guide, "rust"), encoding="utf-8")
-        env = dict(os.environ, CARGO_TARGET_DIR=str(root / "target/book-quickstart"))
+        # The checkout's directory override does not follow us into the temp project.
+        env = dict(os.environ, RUSTUP_TOOLCHAIN=toolchain,
+                   CARGO_TARGET_DIR=str(root / "target/book-quickstart"))
         # Allow dependency fetching just like the reader's documented `cargo run`.
         subprocess.run(["cargo", "run", "--quiet"], cwd=project, env=env, check=True, timeout=180)
 
