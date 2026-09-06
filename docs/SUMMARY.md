@@ -43,7 +43,10 @@
 - [FAQ](FAQ.md)
 - [Migration Guide](MIGRATION.md)
 - [Comparison](COMPARISON.md)
+- [IO API Analysis](io-api-analysis.md)
+
+# Historical Design Records
+
 - [Validation API Comparison](validation-api-comparison.md)
 - [Async Design](async-design.md)
-- [IO API Analysis](io-api-analysis.md)
 - [Improving Our Process](improving-our-process.md)

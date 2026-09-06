@@ -1,5 +1,10 @@
 # Improving Our Design & Planning Process
 
+> Historical design record. This predates the current concrete-combinator API and
+> contains unimplemented or superseded proposals. It is not a 2.0 usage guide.
+> Use the [effects guide](guide/03-effects.md) and [API tiers](guide/17-api-tiers.md)
+> for current behavior.
+
 ## What We've Done Well ✅
 
 ### 1. Example-Driven Design
@@ -36,7 +41,7 @@
 - Hidden complexity not discovered
 
 **Solution:**
-```rust
+```text
 // Create a minimal proof-of-concept:
 // stillwater/prototypes/validation_poc.rs
 

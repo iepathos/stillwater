@@ -1,5 +1,10 @@
 # Async Design for Stillwater
 
+> Historical design record. This predates the current concrete-combinator API and
+> contains unimplemented or superseded proposals. It is not a 2.0 usage guide.
+> Use the [effects guide](guide/03-effects.md) and [API tiers](guide/17-api-tiers.md)
+> for current behavior.
+
 ## Critical Decision: Async from the Start
 
 Since async is important for MVP, we need to design Effect with async as a first-class concern, not an afterthought.
