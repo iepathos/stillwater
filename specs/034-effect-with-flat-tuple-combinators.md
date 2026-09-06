@@ -3,7 +3,7 @@ number: 034
 title: Effect with_flat Tuple Combinators
 category: foundation
 priority: high
-status: draft
+status: parked
 dependencies: [024]
 created: 2025-11-27
 ---
@@ -12,8 +12,14 @@ created: 2025-11-27
 
 **Category**: foundation
 **Priority**: high
-**Status**: draft
+**Status**: parked
 **Dependencies**: Spec 024 (Zero-Cost Effect Trait)
+
+> **Parked for 2.0.** Reactivate only after real application examples show that nested tuple
+> handling remains a recurring source of defects after named plan structs and ordinary
+> mapping are considered. Any reactivation must redesign the proposal without requiring
+> `Clone` merely to preserve earlier tuple elements and must benchmark compile-time and API
+> complexity against the named-struct alternative.
 
 ## Context
 

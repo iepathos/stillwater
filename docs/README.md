@@ -19,3 +19,4 @@ Stillwater is a Rust library for pragmatic functional programming focused on val
 - [IO Module](guide/05-io-module.md)
 - [Try Trait](guide/07-try-trait.md)
 - [Compile-Time Resource Tracking](guide/16-resource-tracking.md)
+- [API Tiers and Composition Decisions](guide/17-api-tiers.md)

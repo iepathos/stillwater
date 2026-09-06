@@ -3,7 +3,7 @@ number: 039
 title: Circuit Breaker
 category: foundation
 priority: high
-status: draft
+status: parked
 dependencies: [024]
 created: 2025-12-20
 ---
@@ -12,8 +12,13 @@ created: 2025-12-20
 
 **Category**: foundation
 **Priority**: high
-**Status**: draft
+**Status**: parked
 **Dependencies**: Spec 024 (Zero-Cost Effect Trait)
+
+> **Parked for 2.0.** Reactivate only with demonstrated demand that cannot be met cleanly by
+> composing retry, timeout, and an application-owned state machine. A revised design must
+> define concurrency semantics, clock injection, cancellation behavior, and measurable
+> overhead; it must not make a literal “zero overhead” claim for shared runtime state.
 
 ## Context
 

@@ -34,6 +34,7 @@
 # Advanced Topics
 
 - [Compile-Time Resource Tracking](guide/16-resource-tracking.md)
+- [API Tiers and Composition Decisions](guide/17-api-tiers.md)
 
 # Reference
 
