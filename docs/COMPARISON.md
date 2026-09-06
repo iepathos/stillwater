@@ -24,7 +24,7 @@ This document compares Stillwater to other Rust libraries providing similar func
 **Problem**: Collecting ALL validation errors for a user registration form, not just the first one.
 
 **Before** (Traditional Rust - 22 lines):
-```rust
+```text
 fn validate_user_registration(
     email: &str,
     password: &str,
@@ -60,7 +60,7 @@ fn validate_user_registration(
 ```
 
 **After** (With Stillwater - 8 lines, 64% reduction):
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_user_registration(
@@ -91,7 +91,7 @@ fn validate_user_registration(
 **Problem**: Validating a complex order form with shipping address.
 
 **Before** (Traditional Rust - 42 lines):
-```rust
+```text
 fn validate_order(input: &OrderInput) -> Result<ValidatedOrder, Vec<String>> {
     let mut errors = Vec::new();
 
@@ -144,7 +144,7 @@ fn validate_order(input: &OrderInput) -> Result<ValidatedOrder, Vec<String>> {
 ```
 
 **After** (With Stillwater - 18 lines, 57% reduction):
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_order(input: &OrderInput) -> Validation<ValidatedOrder, Vec<String>> {
@@ -185,7 +185,7 @@ fn validate_order(input: &OrderInput) -> Validation<ValidatedOrder, Vec<String>>
 **Problem**: Password confirmation must match, but only validate strength if they match.
 
 **Before** (Traditional Rust - 20 lines):
-```rust
+```text
 fn validate_password_change(
     current: &str,
     new_password: &str,
@@ -222,7 +222,7 @@ fn validate_password_change(
 ```
 
 **After** (With Stillwater - 14 lines, 30% reduction):
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_password_change(
@@ -259,7 +259,7 @@ fn validate_password_change(
 **Problem**: When a deeply nested operation fails, you need the full context trail.
 
 **Before** (Traditional Rust - 24 lines):
-```rust
+```text
 #[derive(Debug)]
 struct ContextError {
     message: String,
@@ -296,7 +296,7 @@ fn process_order(order_id: u64) -> Result<Receipt, ContextError> {
 ```
 
 **After** (With Stillwater - 16 lines, 33% reduction):
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::effect::context::{EffectContext, EffectContextChain};
 use stillwater::context::ContextError;
@@ -336,7 +336,7 @@ fn process_order(order_id: u64) -> impl Effect<Output = Receipt, Error = Context
 **Problem**: Passing database, cache, and email service through multiple function calls.
 
 **Before** (Traditional Rust - 32 lines):
-```rust
+```text
 async fn process_user_signup(
     db: &Database,
     cache: &Cache,
@@ -368,7 +368,7 @@ async fn send_welcome_email(email_service: &EmailService, user: &User) -> Result
 ```
 
 **After** (With Stillwater Reader Pattern - 24 lines, 25% reduction):
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn process_user_signup(input: SignupInput) -> impl Effect<Output = User, Error = Error, Env = AppEnv> {
@@ -482,7 +482,7 @@ mod tests {
 **Problem**: Retry a flaky network call with exponential backoff.
 
 **Before** (Traditional Rust - 35 lines):
-```rust
+```text
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -513,7 +513,7 @@ async fn fetch_with_retry(url: &str, max_retries: u32) -> Result<Response, Error
 ```
 
 **After** (With Stillwater - 14 lines, 60% reduction):
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::effect::retry::retry;
 use stillwater::retry::RetryExhausted;
@@ -559,7 +559,7 @@ fn fetch_with_retry(url: String)
 **Problem**: Fetch user data from multiple services concurrently with a timeout.
 
 **Before** (Traditional Rust - 25 lines):
-```rust
+```text
 use tokio::time::timeout;
 use futures::future::try_join3;
 
@@ -587,7 +587,7 @@ async fn fetch_user_dashboard(user_id: u64) -> Result<Dashboard, Error> {
 ```
 
 **After** (With Stillwater - 17 lines, 32% reduction):
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::effect::retry::with_timeout;
 use stillwater::TimeoutError;
@@ -628,7 +628,7 @@ fn fetch_user_dashboard(user_id: u64) -> impl Effect<Output = Dashboard, Error =
 **Problem**: Handle an API request with validation, business logic, and error handling.
 
 **Before** (Traditional Rust - 45 lines):
-```rust
+```text
 async fn handle_create_order(
     db: &Database,
     cache: &Cache,
@@ -681,7 +681,7 @@ async fn handle_create_order(
 ```
 
 **After** (With Stillwater - 30 lines, 33% reduction):
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 use stillwater::effect::prelude::*;
 
@@ -725,7 +725,7 @@ fn handle_create_order(request: CreateOrderRequest) -> impl Effect<Output = ApiR
 **Problem**: Execute multiple database operations atomically.
 
 **Before** (Traditional Rust - 30 lines):
-```rust
+```text
 async fn transfer_funds(
     db: &Database,
     from_account: u64,
@@ -768,7 +768,7 @@ async fn transfer_funds(
 ```
 
 **After** (With Stillwater bracket - 24 lines, 20% reduction):
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::effect::bracket::{bracket_full, BracketError};
 
@@ -812,7 +812,7 @@ fn transfer_funds(
 **Problem**: Validate application configuration at startup.
 
 **Before** (Traditional Rust - 40 lines):
-```rust
+```text
 fn validate_config(config: &RawConfig) -> Result<ValidatedConfig, Vec<ConfigError>> {
     let mut errors = Vec::new();
 
@@ -856,7 +856,7 @@ fn validate_config(config: &RawConfig) -> Result<ValidatedConfig, Vec<ConfigErro
 ```
 
 **After** (With Stillwater - 22 lines, 45% reduction):
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_config(config: &RawConfig) -> Validation<ValidatedConfig, Vec<ConfigError>> {
@@ -915,7 +915,7 @@ fn validate_port(port: Option<i32>) -> Validation<u16, Vec<ConfigError>> {
 
 Use anyhow for error propagation, Stillwater for validation and effects:
 
-```rust
+```text
 use stillwater::{Validation, validation::ValidateAll};
 use stillwater::effect::prelude::*;
 use anyhow::{Result, Context};
@@ -943,7 +943,7 @@ fn process_request(input: RequestInput) -> impl Effect<Output = Response, Error 
 
 Use validator derive macros for struct validation, Stillwater for custom logic:
 
-```rust
+```text
 use validator::Validate;
 use stillwater::{Validation, validation::ValidateAll};
 
@@ -979,7 +979,7 @@ fn validate_user(input: &UserInput) -> Validation<ValidatedUser, Vec<String>> {
 
 Use thiserror for error definitions, Stillwater for composition:
 
-```rust
+```text
 use thiserror::Error;
 use stillwater::effect::prelude::*;
 
@@ -1192,7 +1192,7 @@ fn process_order(order: Order) -> impl Effect<Output = Receipt, Error = OrderErr
 
 ### From Result to Stillwater
 
-```rust
+```text
 // Before: Result (short-circuits)
 fn validate(data: Data) -> Result<Valid, Error> {
     let email = validate_email(data.email)?;
@@ -1215,7 +1215,7 @@ fn validate(data: Data) -> Validation<Valid, Vec<Error>> {
 
 ### From async fn to Effect
 
-```rust
+```text
 // Before: async fn (hard to test)
 async fn create_user(db: &Database, email: String) -> Result<User, Error> {
     let user = User { email };

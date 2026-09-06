@@ -5,7 +5,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //! use stillwater::refined::{refine, NonEmptyString, PositiveI32};
 //!
@@ -36,7 +36,7 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     /// use stillwater::refined::{Refined, Positive};
     ///
@@ -59,7 +59,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 /// use stillwater::refined::{refine, NonEmpty, Refined};
 ///
@@ -86,7 +86,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 /// use stillwater::refined::{pure_refined, Refined, Positive};
 ///

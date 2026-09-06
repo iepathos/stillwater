@@ -19,7 +19,7 @@ For ordinary scoped cleanup, the runtime bracket helpers are often enough. Resou
 
 Resource tracking is built from marker types and type-level sets:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::*;
 
 // Built-in resource markers
@@ -36,7 +36,7 @@ Has<FileRes>; // one tracked resource
 
 Tracked effects implement `ResourceEffect`, which extends `Effect` with two associated resource sets:
 
-```rust,ignore
+```text
 trait ResourceEffect {
     type Acquires;
     type Releases;
@@ -49,7 +49,7 @@ These sets describe what an effect acquires and releases at the type level. The 
 
 Use extension methods to mark effects as acquiring, releasing, or neutral with respect to resources:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
@@ -96,7 +96,7 @@ The function signatures make the resource contract explicit:
 
 The most ergonomic way to acquire and release a resource safely is the bracket builder:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
@@ -125,7 +125,7 @@ The bracketed effect is resource-neutral as a whole: it does not leak its acquir
 
 Resource tracking is also useful for protocols such as transactions:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
@@ -170,7 +170,7 @@ The return type says `run_in_transaction` is neutral: it begins and ends the tra
 
 Use `assert_resource_neutral` when an API must not expose outstanding resources:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::*;
 
 fn must_be_neutral<E>(effect: E) -> E
@@ -187,7 +187,7 @@ If the effect still acquires or releases a resource, the code will fail to compi
 
 Define a marker when the built-in resource kinds do not fit your domain:
 
-```rust,ignore
+```text
 use stillwater::effect::resource::ResourceKind;
 
 pub struct PoolCheckout;

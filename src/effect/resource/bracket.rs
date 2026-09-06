@@ -34,7 +34,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// // This compiles: resource is properly managed
@@ -167,7 +167,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// let effect = resource_bracket::<FileRes, _, _, _, _, _, _, _, _>(
@@ -218,7 +218,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// // The acquire effect must be annotated with .acquires::<FileRes>()

@@ -2,7 +2,7 @@
 
 ## Current Design (Tuples)
 
-```rust
+```text
 Validation::all((
     validate_email(&input.email),
     validate_password(&input.password),
@@ -16,7 +16,7 @@ Validation::all((
 ### Option 1: Tuples (Current Design)
 
 **How it works:**
-```rust
+```text
 impl<T1, T2, E: Semigroup> Validation<(T1, T2), E> {
     fn all(validations: (Validation<T1, E>, Validation<T2, E>)) -> Validation<(T1, T2), E>
 }
@@ -43,7 +43,7 @@ impl<T1, T2, E: Semigroup> Validation<(T1, T2), E> {
 - For rare cases, can nest: `Validation::all((group1, group2))`
 
 **Example of edge case:**
-```rust
+```text
 // 15 fields? Probably indicates poor UX
 let personal = Validation::all((name, email, phone, address));
 let payment = Validation::all((card, cvv, expiry, billing));
@@ -59,7 +59,7 @@ Validation::all((personal, payment, shipping))
 
 ### Option 2: Vec/Slice (Homogeneous)
 
-```rust
+```text
 fn all_same<T, E>(validations: Vec<Validation<T, E>>) -> Validation<Vec<T>, E>
 ```
 
@@ -74,7 +74,7 @@ fn all_same<T, E>(validations: Vec<Validation<T, E>>) -> Validation<Vec<T>, E>
 - ❌ Can't build heterogeneous structs easily
 
 **When it's useful:**
-```rust
+```text
 // Validating a list of records (all same type)
 let validated_records = Validation::all_vec(
     records.into_iter().map(validate_record).collect()
@@ -90,7 +90,7 @@ let validated_records = Validation::all_vec(
 
 ### Option 3: HList (Like Frunk)
 
-```rust
+```text
 // Heterogeneous list (compile-time linked list)
 Validation::all(HCons(
     validate_email(input),
@@ -117,7 +117,7 @@ Validation::all(HCons(
 - ❌ Defeats our "simplicity" goal
 
 **Example error:**
-```
+```text
 error[E0271]: type mismatch resolving `<HCons<Validation<Email, Vec<Error>>,
   HCons<Validation<Password, Vec<Error>>, HCons<Validation<Age, Vec<Error>>,
   HNil>>> as ValidateAll>::Output == Validation<HCons<Email, HCons<Password,
@@ -130,7 +130,7 @@ error[E0271]: type mismatch resolving `<HCons<Validation<Email, Vec<Error>>,
 
 ### Option 4: Macro
 
-```rust
+```text
 validate_all![
     email: validate_email(&input.email),
     password: validate_password(&input.password),
@@ -159,7 +159,7 @@ validate_all![
 
 ### Option 5: Builder Pattern
 
-```rust
+```text
 Validation::builder()
     .add(validate_email(&input.email))
     .add(validate_password(&input.password))
@@ -214,7 +214,7 @@ Let's look at actual forms in popular apps:
 
 **Recommendation:** Support BOTH
 
-```rust
+```text
 // 1. Tuple version (for most cases)
 impl Validation<T, E> {
     fn all<Tuple>(validations: Tuple) -> Validation<TupleOutput, E>
@@ -245,7 +245,7 @@ impl Validation<T, E> {
 
 **Usage examples:**
 
-```rust
+```text
 // Case 1: Form validation (different types)
 Validation::all((
     validate_email(input),
@@ -281,7 +281,7 @@ Validation::all_iter(
 
 ## Recommended Implementation
 
-```rust
+```text
 // Core trait for tuple validation
 pub trait ValidateAll<E: Semigroup> {
     type Output;
@@ -372,7 +372,7 @@ The only "advantage" alternatives offer is **no size limit**, but:
    - Vec: Loses type safety
 
 **If you truly have 50 validations:**
-```rust
+```text
 // Good: Logical grouping
 let personal = Validation::all((name, email, phone, dob));
 let address = Validation::all((street, city, state, zip));

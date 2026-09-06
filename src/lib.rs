@@ -89,7 +89,10 @@ pub mod testing;
 pub mod traverse;
 pub mod validation;
 
-// Re-exports - Effect system (zero-cost by default)
+#[cfg(doctest)]
+mod book_doctests;
+
+// Re-exports - Effect system (boxing-free composition by default)
 pub use effect::{BoxedEffect, Effect, EffectContext, EffectContextChain, EffectExt};
 
 // Re-export boxed types

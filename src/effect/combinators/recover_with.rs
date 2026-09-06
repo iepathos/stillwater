@@ -10,7 +10,7 @@ use crate::predicate::Predicate;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = parse_config()

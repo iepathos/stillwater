@@ -62,7 +62,7 @@
 //! When the `try_trait` feature and `try_trait_nightly` cfg are enabled on nightly Rust,
 //! `Validation` supports the `?` operator for ergonomic error propagation:
 //!
-//! ```ignore
+//! ```text
 //! #![feature(try_trait_v2)]
 //!
 //! fn validate_form(data: FormData) -> Validation<User, Vec<ValidationError>> {

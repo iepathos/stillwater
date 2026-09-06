@@ -14,7 +14,7 @@ pub trait Semigroup: Sized {
 
 The key property is **associativity**: the order of combining doesn't matter.
 
-```rust
+```text
 // These two operations must produce the same result:
 a.combine(b).combine(c) == a.combine(b.combine(c))
 ```
@@ -221,7 +221,7 @@ impl<T> Monoid for Vec<T> {
 
 Here's how Semigroup enables multi-field form validation:
 
-```rust
+```text
 use stillwater::{Semigroup, Validation};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -498,7 +498,7 @@ assert_eq!(config_value.0, "default");
 
 **Use case: Default Values**
 
-```rust
+```text
 use std::collections::HashMap;
 use stillwater::{First, Semigroup};
 
@@ -537,7 +537,7 @@ assert_eq!(config_value.0, "override");
 
 **Use case: Layered Configuration**
 
-```rust
+```text
 use std::collections::HashMap;
 use stillwater::{Last, Semigroup};
 
@@ -598,7 +598,7 @@ let effective_perms = Intersection(admin_perms).combine(Intersection(user_perms)
 
 Here's how these implementations enable sophisticated error handling:
 
-```rust
+```text
 use std::collections::HashMap;
 use stillwater::Semigroup;
 

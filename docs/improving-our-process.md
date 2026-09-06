@@ -136,7 +136,7 @@ So that pipelines complete faster.
 
 #### Benchmark Critical Paths
 
-```rust
+```text
 // benchmarks/effect_overhead.rs
 
 #[bench]
@@ -251,7 +251,7 @@ fn stillwater_sync(b: &mut Bencher) {
 
 #### Spike/Prototype Critical Parts
 
-```rust
+```text
 // prototypes/effect_lifetimes.rs
 
 // Experiment: Can we avoid boxing?
@@ -300,7 +300,7 @@ where
 ### Stage 1: Validation Only (Week 1)
 Start with just validation in new API endpoints:
 
-```rust
+```
 // Before
 fn create_user(input: UserInput) -> Result<User, Error> {
     if !validate_email(&input.email) {
@@ -317,14 +317,14 @@ fn create_user(input: UserInput) -> Result<User, Vec<ValidationError>> {
     ))
     .into_result()
 }
-```
+```text
 
 **Benefits:** Immediate value, low risk, no refactoring needed
 
 ### Stage 2: Effect Separation (Week 2-3)
 Extract pure business logic in critical paths:
 
-```rust
+```
 // Pure functions (new)
 fn calculate_discount(customer: &Customer) -> Money { ... }
 fn apply_discount(order: Order, discount: Money) -> Order { ... }
@@ -336,18 +336,18 @@ async fn process_order(id: OrderId) -> Result<Invoice, Error> {
     let final_order = apply_discount(order, discount);   // Pure!
     db.save_invoice(final_order).await
 }
-```
+```text
 
 **Benefits:** Better testability immediately, incremental change
 
 ### Stage 3: Full Effects (Month 2+)
 Gradually wrap I/O in Effects for new features:
 
-```rust
+```
 fn process_order_v2(id: OrderId) -> Effect<Invoice, Error, AppEnv> {
     // Full stillwater style
 }
-```
+```text
 
 **Benefits:** New code uses best practices, old code still works
 ```
@@ -417,7 +417,7 @@ fn process_order_v2(id: OrderId) -> Effect<Invoice, Error, AppEnv> {
 
 #### Documentation Structure
 
-```
+```text
 stillwater/
 ├── README.md                          # Quick intro, examples
 ├── docs/

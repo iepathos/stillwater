@@ -17,7 +17,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone, PartialEq, Debug)]
@@ -73,7 +73,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]
@@ -126,7 +126,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Clone)]

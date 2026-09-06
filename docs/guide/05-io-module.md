@@ -8,7 +8,7 @@ The IO module provides convenient helpers for creating Effects from I/O operatio
 
 For queries that don't modify state:
 
-```rust
+```text
 use stillwater::IO;
 
 struct Database { /* ... */ }
@@ -22,7 +22,7 @@ let effect = IO::read(|db: &Database| {
 
 For operations that modify state (uses interior mutability):
 
-```rust
+```text
 use stillwater::IO;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -40,7 +40,7 @@ let effect = IO::write(|cache: &Cache| {
 
 For async I/O, use `read_async` for query-style operations and `write_async` for operations that mutate through interior mutability:
 
-```rust
+```text
 use stillwater::IO;
 use std::future::ready;
 
@@ -59,7 +59,7 @@ let write_effect = IO::write_async(|cache: &Cache| {
 
 IO uses `AsRef<T>` for automatic dependency extraction:
 
-```rust
+```text
 struct AppEnv {
     db: Database,
     cache: Cache,

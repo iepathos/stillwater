@@ -1,4 +1,4 @@
-//! Retry support for zero-cost effects.
+//! Retry support for concrete effects.
 //!
 //! This module provides retry combinators that integrate with the existing
 //! `crate::retry::{RetryPolicy, RetryEvent, RetryExhausted, TimeoutError}` types.

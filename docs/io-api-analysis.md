@@ -6,7 +6,7 @@ Accepted and implemented.
 
 The current IO helper API is:
 
-```rust
+```text
 IO::read(...)
 IO::write(...)
 IO::read_async(...)
@@ -19,7 +19,7 @@ The previous design discussion considered more database-oriented and generic nam
 
 The IO module provides a small namespace for creating boxed effects from service operations:
 
-```rust
+```text
 use stillwater::IO;
 
 let find_user = IO::read(|db: &Database| db.find_user(id));
@@ -30,7 +30,7 @@ Both `read` and `write` receive `&T`, not `&mut T`. This follows Stillwater's ef
 
 Async operations use explicit async variants:
 
-```rust
+```text
 let find_user = IO::read_async(|db: &Database| async move {
     db.find_user(id).await
 });
@@ -50,7 +50,7 @@ The names are semantic, not borrow-mode distinctions:
 
 This lets code communicate intent even though both closures receive immutable references:
 
-```rust
+```text
 IO::read(|cache: &Cache| cache.get(key))
 IO::write(|cache: &Cache| cache.set(key, value))
 ```
@@ -59,7 +59,7 @@ IO::write(|cache: &Cache| cache.set(key, value))
 
 IO helpers use `AsRef<T>` to extract a service from a larger application environment:
 
-```rust
+```text
 #[derive(Clone)]
 struct AppEnv {
     db: Database,
@@ -81,7 +81,7 @@ impl AsRef<Cache> for AppEnv {
 
 The closure parameter tells the compiler which service type to extract:
 
-```rust
+```text
 let user_effect = IO::read(|db: &Database| db.find_user(id));
 let cache_effect = IO::write(|cache: &Cache| cache.set(key, value));
 ```
@@ -92,7 +92,7 @@ This keeps the effect code decoupled from the concrete layout of `AppEnv`.
 
 Because the environment is immutable, mutable services should use interior mutability or handle types that are already designed for shared access.
 
-```rust
+```text
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -126,7 +126,7 @@ This pattern aligns with async Rust service handles such as database pools and H
 
 ### `read` / `write`
 
-```rust
+```text
 IO::read(|db: &Database| db.find_user(id))
 IO::write(|repo: &UserRepository| repo.save_user(user))
 ```
@@ -147,7 +147,7 @@ Verdict: best default.
 
 ### `access` / `modify`
 
-```rust
+```text
 IO::access(|db: &Database| db.find_user(id))
 IO::modify(|repo: &UserRepository| repo.save_user(user))
 ```
@@ -166,7 +166,7 @@ Verdict: reasonable but less readable.
 
 ### `get` / `set`
 
-```rust
+```text
 IO::get(|cache: &Cache| cache.get(key))
 IO::set(|cache: &Cache| cache.set(key, value))
 ```
@@ -184,7 +184,7 @@ Verdict: too limited.
 
 ### `run` / `run_mut`
 
-```rust
+```text
 IO::run(|db: &Database| db.find_user(id))
 IO::run_mut(|repo: &UserRepository| repo.save_user(user))
 ```
@@ -221,35 +221,35 @@ Verdict: too database-centric for a general effect library.
 
 ### Database
 
-```rust
+```text
 IO::read(|db: &Database| db.find_user(id))
 IO::write(|db: &Database| db.insert_user(user))
 ```
 
 ### Cache
 
-```rust
+```text
 IO::read(|cache: &Cache| cache.get(key))
 IO::write(|cache: &Cache| cache.set(key, value))
 ```
 
 ### Logger
 
-```rust
+```text
 IO::read(|logger: &Logger| logger.level())
 IO::write(|logger: &Logger| logger.info("user registered"))
 ```
 
 ### File System Abstraction
 
-```rust
+```text
 IO::read(|fs: &FileSystem| fs.read_to_string(path))
 IO::write(|fs: &FileSystem| fs.write_string(path, contents))
 ```
 
 ### Async HTTP Client
 
-```rust
+```text
 IO::read_async(|client: &HttpClient| async move {
     client.get_json(url).await
 })
@@ -263,7 +263,7 @@ IO::write_async(|client: &HttpClient| async move {
 
 Use `read` and `write` as the conceptual split:
 
-```rust
+```text
 IO::read(...)
 IO::write(...)
 IO::read_async(...)

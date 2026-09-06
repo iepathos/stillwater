@@ -8,7 +8,7 @@
 //!
 //! Instead of scattering validation checks throughout your code:
 //!
-//! ```rust,ignore
+//! ```text
 //! fn process_user(name: String, age: i32) -> Result<User, Error> {
 //!     if name.is_empty() {
 //!         return Err(Error::EmptyName);
@@ -22,7 +22,7 @@
 //!
 //! Use refined types to encode invariants in the type system:
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::refined::{Refined, NonEmpty, Positive};
 //!
 //! type NonEmptyString = Refined<String, NonEmpty>;

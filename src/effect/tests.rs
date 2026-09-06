@@ -1,4 +1,4 @@
-//! Tests for the zero-cost Effect trait system.
+//! Tests for the concrete-combinator Effect trait system.
 
 use crate::effect::compat::RunStandalone;
 use crate::effect::prelude::*;
@@ -342,7 +342,7 @@ async fn test_bracket_releases_on_error() {
     assert!(released.load(Ordering::SeqCst));
 }
 
-// Zero-cost verification tests (compile-time checks)
+// Concrete layout verification tests (compile-time checks)
 #[test]
 fn test_pure_size() {
     use std::marker::PhantomData;
@@ -572,7 +572,7 @@ async fn test_zip_boxed() {
     assert_eq!(results, vec![3, 7]);
 }
 
-// Zero-cost verification for Zip
+// Concrete layout verification for Zip
 #[test]
 fn test_zip_size() {
     use std::mem::size_of;

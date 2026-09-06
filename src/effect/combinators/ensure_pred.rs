@@ -14,7 +14,7 @@ use crate::predicate::Predicate;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 /// use stillwater::predicate::*;
 ///

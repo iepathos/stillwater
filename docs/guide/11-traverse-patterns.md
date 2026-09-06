@@ -4,7 +4,7 @@
 
 When working with collections of data that need validation or effectful processing, you often face a choice:
 
-```rust
+```text
 // Option 1: Process one at a time, manually accumulating
 let mut results = Vec::new();
 let mut errors = Vec::new();
@@ -40,7 +40,7 @@ Stillwater provides two fundamental operations for working with collections of e
 
 **Sequence** inverts the structure of nested types:
 
-```rust
+```text
 use stillwater::{Validation, traverse::sequence};
 
 // We have: Vec<Validation<T, E>>
@@ -135,7 +135,7 @@ match result {
 
 ### Validating Nested Data
 
-```rust
+```text
 use stillwater::{Validation, traverse::traverse};
 
 #[derive(Debug)]
@@ -185,7 +185,7 @@ match result {
 
 ### CSV Parsing with Error Accumulation
 
-```rust
+```text
 use stillwater::{Validation, traverse::traverse};
 
 #[derive(Debug)]
@@ -252,8 +252,8 @@ match result {
 
 ### Batch File Processing
 
-```rust
-use stillwater::{Effect, traverse::traverse_effect};
+```text
+use stillwater::{Effect, traverse::traverse_effect_sequential};
 
 fn process_file(path: &str) -> Effect<String, String, ()> {
     Effect::of(move |_env| {
@@ -265,7 +265,7 @@ fn process_file(path: &str) -> Effect<String, String, ()> {
 }
 
 let files = vec!["file1.txt", "file2.txt", "file3.txt"];
-let effect = traverse_effect(files, |path| process_file(path));
+let effect = traverse_effect_sequential(files, |path| process_file(path));
 
 // Run the effect
 tokio_test::block_on(async {
@@ -282,8 +282,8 @@ tokio_test::block_on(async {
 
 ### Database Batch Operations
 
-```rust
-use stillwater::{Effect, traverse::traverse_effect};
+```text
+use stillwater::{Effect, traverse::traverse_effect_sequential};
 
 struct Database {
     // Database connection details
@@ -304,7 +304,7 @@ let users = vec![
 ];
 
 let db = Database {};
-let effect = traverse_effect(users, |user| save_user(&db, user));
+let effect = traverse_effect_sequential(users, |user| save_user(&db, user));
 
 // Run the effect
 tokio_test::block_on(async {
@@ -319,8 +319,8 @@ tokio_test::block_on(async {
 
 ### Parallel API Calls
 
-```rust
-use stillwater::{Effect, traverse::traverse_effect};
+```text
+use stillwater::{Effect, traverse::traverse_effect_parallel};
 
 fn fetch_user(id: i32) -> Effect<String, String, ()> {
     Effect::of(move |_env| {
@@ -332,7 +332,7 @@ fn fetch_user(id: i32) -> Effect<String, String, ()> {
 }
 
 let user_ids = vec![1, 2, 3, 4, 5];
-let effect = traverse_effect(user_ids, fetch_user);
+let effect = traverse_effect_parallel(user_ids, fetch_user);
 
 // Effects run in parallel
 tokio_test::block_on(async {
@@ -349,7 +349,7 @@ tokio_test::block_on(async {
 
 ### Sequencing Pre-computed Validations
 
-```rust
+```text
 use stillwater::{Validation, traverse::sequence};
 
 // When you already have validations (perhaps from different sources)
@@ -364,8 +364,8 @@ let result = sequence(validations);
 
 ### Sequencing Effects
 
-```rust
-use stillwater::{Effect, traverse::sequence_effect};
+```text
+use stillwater::{Effect, traverse::sequence_effect_sequential};
 
 // When you have a collection of effects to run
 let effects = vec![
@@ -374,7 +374,7 @@ let effects = vec![
     Effect::pure(3),
 ];
 
-let combined = sequence_effect(effects);
+let combined = sequence_effect_sequential(effects);
 
 tokio_test::block_on(async {
     let result = combined.run_standalone().await;
@@ -386,7 +386,7 @@ tokio_test::block_on(async {
 
 ### Pattern 1: Validate Then Process
 
-```rust
+```text
 use stillwater::{Validation, Effect, traverse::traverse};
 
 // First validate all inputs
@@ -399,7 +399,7 @@ let effect = Effect::from_validation(validation)
 
 ### Pattern 2: Fail Fast vs Accumulate
 
-```rust
+```text
 use stillwater::{Validation, traverse::traverse};
 
 // Accumulate all validation errors
@@ -409,7 +409,7 @@ fn validate_all(items: Vec<Item>) -> Validation<Vec<Valid>, Vec<Error>> {
 
 // Fail on first error (use Effect instead)
 fn process_all(items: Vec<Item>) -> Effect<Vec<Result>, Error, Env> {
-    traverse_effect(items, process_item)
+    traverse_effect_sequential(items, process_item)
 }
 ```
 
@@ -431,8 +431,8 @@ fn validate_and_filter(items: Vec<String>) -> Validation<Vec<i32>, Vec<String>> 
 
 ### Pattern 4: Transform with Environment
 
-```rust
-use stillwater::{Effect, traverse::traverse_effect};
+```text
+use stillwater::{Effect, traverse::traverse_effect_parallel};
 
 struct Config {
     api_key: String,
@@ -446,7 +446,7 @@ fn fetch_with_auth(id: i32) -> Effect<Data, Error, Config> {
 }
 
 let config = Config { api_key: "secret".to_string() };
-let effect = traverse_effect(vec![1, 2, 3], fetch_with_auth);
+let effect = traverse_effect_parallel(vec![1, 2, 3], fetch_with_auth);
 
 // All requests share the same config
 tokio_test::block_on(async {
@@ -481,7 +481,8 @@ tokio_test::block_on(async {
 - For large collections, consider streaming or chunking
 
 ### Parallel vs Sequential
-- `traverse_effect` runs effects in parallel by default
+- `traverse_effect_parallel` runs effects concurrently and awaits all results
+- `traverse_effect_sequential` runs one effect at a time and stops at the first error
 - For CPU-bound work, this is optimal
 - For I/O-bound work with rate limits, consider sequential processing
 
@@ -494,7 +495,7 @@ tokio_test::block_on(async {
 
 ### Pitfall 1: Not handling empty collections
 
-```rust
+```text
 // Empty collections return success with empty vec
 let result = traverse(Vec::<i32>::new(), validate);
 assert_eq!(result, Validation::Success(vec![]));
@@ -504,7 +505,7 @@ assert_eq!(result, Validation::Success(vec![]));
 
 ### Pitfall 2: Mixing traverse and for loops
 
-```rust
+```text
 // Bad: Manual loop loses error accumulation
 for item in items {
     validate(item)?; // Stops at first error!
@@ -516,7 +517,7 @@ traverse(items, validate)
 
 ### Pitfall 3: Forgetting to map after traverse
 
-```rust
+```text
 // Returns Validation<Vec<(String, i32)>, E>
 traverse(items, |item| {
     Validation::all((validate_name(item.name), validate_age(item.age)))
@@ -569,7 +570,8 @@ mod tests {
 
 - **traverse** and **sequence** invert collection structures
 - Use **traverse** for Validation to accumulate ALL errors
-- Use **traverse_effect** for parallel Effect execution
+- Use **traverse_effect_parallel** for parallel Effect execution
+- Use **traverse_effect_sequential** for ordered, fail-fast execution
 - Choose based on error handling needs: accumulate vs fail-fast
 - Test thoroughly, especially edge cases like empty collections
 

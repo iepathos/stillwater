@@ -1,4 +1,4 @@
-//! Tracing support for zero-cost effects.
+//! Tracing support for concrete effects.
 //!
 //! This module provides the `Instrument` combinator and `instrument` method
 //! for wrapping effects in tracing spans. Feature-gated behind `#[cfg(feature = "tracing")]`.
@@ -42,7 +42,7 @@ pub trait EffectTracingExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     /// use stillwater::effect::tracing::EffectTracingExt;
     /// use tracing::{info_span, debug_span};

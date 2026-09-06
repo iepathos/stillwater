@@ -5,7 +5,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use serde::{Deserialize, Serialize};
 //! use stillwater::refined::{Refined, NonEmpty, Positive};
 //!

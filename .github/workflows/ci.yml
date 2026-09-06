@@ -47,13 +47,13 @@ jobs:
       shell: bash
 
     - name: Run tests
-      run: cargo nextest run --features async
+      run: cargo nextest run --all-features
 
-    - name: Run doc tests
-      run: cargo test --doc --features async
+    - name: Run documentation contract
+      run: cargo test --doc --all-features
     
     - name: Run clippy
-      run: cargo clippy --all-targets --features async -- -D warnings
+      run: cargo clippy --all-targets --all-features -- -D warnings
     
     - name: Check formatting
       run: cargo fmt --all -- --check
@@ -70,8 +70,14 @@ jobs:
     - name: Install Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
+    - name: Install mdBook
+      uses: taiki-e/install-action@mdbook
+
     - name: Check all targets
       run: cargo check --all-targets --all-features
+
+    - name: Build documentation book
+      run: mdbook build book
 
   try-trait:
     name: Try Trait Nightly
@@ -97,4 +103,4 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
 
     - name: Build all examples
-      run: cargo build --examples --features async
+      run: cargo build --examples --all-features

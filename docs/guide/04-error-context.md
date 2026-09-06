@@ -4,7 +4,7 @@
 
 Standard errors lose context as they bubble up:
 
-```rust
+```text
 async fn load_user_profile(id: u64) -> Result<Profile, Error> {
     let user = database.fetch_user(id).await?;
     // Error: "Connection refused"
@@ -73,7 +73,7 @@ assert_eq!(err.context_trail(), &[
 
 ### Accessing the Error
 
-```rust
+```text
 use stillwater::ContextError;
 
 let err = ContextError::new("base error")
@@ -95,7 +95,7 @@ assert_eq!(trail, &["operation failed"]);
 
 Context errors integrate seamlessly with Effect:
 
-```rust
+```text
 use stillwater::{Effect, ContextError};
 
 fn load_user(id: u64) -> Effect<User, ContextError<DbError>, AppEnv> {
@@ -111,7 +111,7 @@ fn load_user(id: u64) -> Effect<User, ContextError<DbError>, AppEnv> {
 
 Even better, Effect provides a `context` method:
 
-```rust
+```text
 use stillwater::Effect;
 
 fn load_user(id: u64) -> Effect<User, String, AppEnv> {
@@ -129,7 +129,7 @@ The Effect's `context` method automatically wraps errors in ContextError!
 
 ## Real-World Example
 
-```rust
+```text
 use stillwater::{Effect, IO, ContextError};
 
 struct AppEnv {
@@ -218,7 +218,7 @@ match get_user_dashboard(123).run(&env).await {
 
 Don't add context to every function. Add it at major operation boundaries:
 
-```rust
+```text
 // ❌ Too much context
 fn validate_email(email: &str) -> Result<Email, ContextError<Error>> {
     check_format(email)
@@ -241,7 +241,7 @@ fn register_user(input: UserInput) -> Effect<User, ContextError<Error>, Env> {
 
 ### Be Specific but Concise
 
-```rust
+```text
 // ❌ Too vague
 .context("error occurred")
 
@@ -254,7 +254,7 @@ fn register_user(input: UserInput) -> Effect<User, ContextError<Error>, Env> {
 
 ### Include Relevant Identifiers
 
-```rust
+```text
 // ✓ Include user ID for debugging
 .context(format!("loading profile for user {}", user_id))
 
@@ -335,7 +335,7 @@ mod tests {
 
 ContextError implements `std::error::Error`, so it works with libraries like anyhow:
 
-```rust
+```text
 use anyhow::Result;
 use stillwater::ContextError;
 

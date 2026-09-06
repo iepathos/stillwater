@@ -4,7 +4,7 @@
 
 Validation checks are often scattered throughout codebases:
 
-```rust
+```text
 fn process_user(name: String, age: i32) -> Result<User, Error> {
     if name.is_empty() {
         return Err(Error::EmptyName);
@@ -37,7 +37,7 @@ This leads to:
 
 Refined types encode invariants in the type system. Once validated at the boundary, the type *guarantees* validity:
 
-```rust
+```text
 use stillwater::refined::{Refined, NonEmpty, Positive};
 
 type NonEmptyString = Refined<String, NonEmpty>;
@@ -359,7 +359,7 @@ match result {
 
 Use refined types in effect chains:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::refined::{refine, NonEmpty, Refined};
 
@@ -376,7 +376,7 @@ assert_eq!(result, Ok(5));
 
 ## Real-World Example
 
-```rust
+```text
 use stillwater::refined::{
     Refined, And, NonEmpty, Trimmed, MaxLength, MinLength, Port,
 };

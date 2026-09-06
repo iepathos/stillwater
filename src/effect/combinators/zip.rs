@@ -15,7 +15,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(1).zip(pure(2));
@@ -89,7 +89,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = zip3(pure(1), pure(2), pure(3));

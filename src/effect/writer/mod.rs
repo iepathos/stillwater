@@ -7,7 +7,7 @@
 //!
 //! Instead of manually threading an accumulator through every function:
 //!
-//! ```rust,ignore
+//! ```text
 //! fn process(x: i32, logs: &mut Vec<String>) -> Result<i32, Error> {
 //!     logs.push("Starting".into());
 //!     let y = step1(x, logs)?;

@@ -8,7 +8,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::resource::*;
 //!
 //! // Define a custom resource kind
@@ -41,7 +41,7 @@ pub trait ResourceKind: Send + Sync + 'static {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// fn open_file(path: &str) -> impl ResourceEffect<Acquires = Has<FileRes>> {
 ///     // ... opens file and marks acquisition
 /// }
@@ -79,7 +79,7 @@ impl ResourceKind for LockRes {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// fn begin_tx() -> impl ResourceEffect<Acquires = Has<TxRes>> { ... }
 /// fn commit(tx: Tx) -> impl ResourceEffect<Releases = Has<TxRes>> { ... }
 /// fn rollback(tx: Tx) -> impl ResourceEffect<Releases = Has<TxRes>> { ... }

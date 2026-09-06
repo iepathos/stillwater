@@ -8,7 +8,7 @@ Since async is important for MVP, we need to design Effect with async as a first
 
 ### Option 1: Separate Sync and Async Types
 
-```rust
+```text
 // Sync version
 struct Effect<T, E, Env> {
     run_fn: Box<dyn FnOnce(&Env) -> Result<T, E>>,
@@ -36,7 +36,7 @@ struct AsyncEffect<T, E, Env> {
 
 ### Option 2: Unified Type with Async Methods
 
-```rust
+```text
 struct Effect<T, E, Env> {
     // Store function, not Future
     run_fn: Box<dyn FnOnce(&Env) -> BoxFuture<'static, Result<T, E>> + Send>,
@@ -90,7 +90,7 @@ impl<T, E, Env> Effect<T, E, Env> {
 
 ### Option 3: Generic Over Sync/Async (Type-State Pattern)
 
-```rust
+```text
 // Marker types
 struct Sync;
 struct Async;
@@ -126,7 +126,7 @@ impl<T, E, Env> Effect<T, E, Env, Async> {
 
 ### Option 4: Runtime-Agnostic with Trait-Based Execution (Recommended)
 
-```rust
+```text
 use std::future::Future;
 use std::pin::Pin;
 
@@ -241,7 +241,7 @@ where
 
 ### Core Effect Implementation
 
-```rust
+```text
 use std::future::Future;
 use std::pin::Pin;
 
@@ -384,7 +384,7 @@ Based on your guidance to include helpers when appropriate:
 
 ### 1. Tap (Side Effect, Return Value)
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + Clone + 'static,
@@ -410,7 +410,7 @@ user_effect
 
 ### 2. Check (Conditional Failure)
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + 'static,
@@ -441,7 +441,7 @@ user_effect.check(
 
 ### 3. With (Combine Effects, Keep Both Results)
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + 'static,
@@ -469,7 +469,7 @@ user_effect.with(|user| {
 
 ### 4. Auto-Converting and_then
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + 'static,
@@ -497,7 +497,7 @@ user_effect
 
 ### 5. Reference-Friendly and_then
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + Clone + 'static,
@@ -524,7 +524,7 @@ user_effect
 
 ### 6. Parallel Execution (Future Enhancement)
 
-```rust
+```text
 impl<T, E, Env> Effect<T, E, Env>
 where
     T: Send + 'static,
@@ -563,7 +563,7 @@ Effect::all(user_effects)  // Fetches all users concurrently!
 
 ## IO Module for Async
 
-```rust
+```text
 pub struct IO;
 
 impl IO {
@@ -606,7 +606,7 @@ impl IO {
 
 ### Pure Sync Code
 
-```rust
+```text
 let effect = Effect::pure(42)
     .map(|x| x * 2)
     .map(|x| x + 10);
@@ -617,7 +617,7 @@ assert_eq!(result, Ok(94));
 
 ### Async I/O
 
-```rust
+```text
 async fn fetch_user_async(id: UserId) -> Effect<User, AppError, AppEnv> {
     Effect::from_async(|env: &AppEnv| async move {
         env.db.query("SELECT * FROM users WHERE id = $1")
@@ -631,7 +631,7 @@ async fn fetch_user_async(id: UserId) -> Effect<User, AppError, AppEnv> {
 
 ### Mixed Sync and Async
 
-```rust
+```text
 fn process_user(id: UserId) -> Effect<Invoice, AppError, AppEnv> {
     fetch_user_async(id)                          // Async I/O
         .and_then(|user| {
@@ -671,7 +671,7 @@ fn process_user(id: UserId) -> Effect<Invoice, AppError, AppEnv> {
 
 Users can opt-in to sync-only if needed:
 
-```rust
+```text
 // If you really need blocking for some reason:
 tokio::task::block_in_place(|| {
     let rt = tokio::runtime::Handle::current();

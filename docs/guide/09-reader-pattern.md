@@ -15,7 +15,7 @@ In Stillwater, the Reader pattern is built into the `Effect` type through three 
 
 Without Reader, you pass dependencies everywhere:
 
-```rust
+```text
 fn process_order(order: Order, db: &Database, cache: &Cache, logger: &Logger) -> Result<()> {
     validate_order(order, db)?;
     save_order(order, db, cache, logger)?;
@@ -38,7 +38,7 @@ This gets tedious and error-prone as the application grows.
 
 With Reader, dependencies live in an environment:
 
-```rust
+```text
 use stillwater::{Effect, IO};
 
 struct AppEnv {
@@ -79,7 +79,7 @@ Benefits:
 
 Use `ask()` when you need the entire environment:
 
-```rust
+```text
 use stillwater::Effect;
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ assert_eq!(result, "Config: timeout=30, debug=true");
 
 Use `asks(f)` when you only need part of the environment:
 
-```rust
+```text
 use stillwater::Effect;
 
 struct AppEnv {
@@ -161,7 +161,7 @@ assert_eq!(result, "Connecting to postgres://localhost with 10 connections");
 
 Use `local(f, effect)` to run an effect with a modified environment:
 
-```rust
+```text
 use stillwater::Effect;
 
 #[derive(Clone)]
@@ -210,7 +210,7 @@ assert_eq!(config.timeout, 30);
 
 ### Pattern 1: Combining asks() with Business Logic
 
-```rust
+```text
 use stillwater::Effect;
 
 struct PricingEnv {
@@ -242,7 +242,7 @@ assert_eq!(final_price, 97.2); // (100 * 0.9) * 1.08
 
 ### Pattern 2: Environment-Dependent Decisions
 
-```rust
+```text
 use stillwater::{Effect, IO};
 
 struct AppEnv {
@@ -267,7 +267,7 @@ fn log_message(msg: String) -> Effect<(), String, AppEnv> {
 
 ### Pattern 3: Nested Environments with local()
 
-```rust
+```text
 use stillwater::Effect;
 
 #[derive(Clone)]
@@ -314,7 +314,7 @@ assert_eq!(critical, "GET api.example.com:443/payment (timeout=30)");
 
 ## Real-World Example: Multi-Tier Application
 
-```rust
+```text
 use stillwater::{Effect, IO};
 
 // Environment with multiple dependencies
@@ -427,7 +427,7 @@ match register_user("user@example.com".into()).run(&env).await {
 
 The Reader pattern makes testing easier with mock environments:
 
-```rust
+```text
 use stillwater::Effect;
 
 struct AppEnv {
@@ -505,7 +505,7 @@ mod tests {
 
 ### 1. Keep Environments Small and Focused
 
-```rust
+```text
 // ❌ Bad: Kitchen sink environment
 struct AppEnv {
     db: Database,
@@ -536,7 +536,7 @@ struct PaymentEnv {
 
 ### 2. Use asks() for Simple Queries
 
-```rust
+```text
 // ❌ Verbose
 Effect::ask().map(|env: Config| env.timeout)
 
@@ -546,7 +546,7 @@ Effect::asks(|env: &Config| env.timeout)
 
 ### 3. Compose with and_then for Dependent Operations
 
-```rust
+```text
 fn process() -> Effect<Result, Error, AppEnv> {
     Effect::asks(|env: &AppEnv| env.config.max_retries)
         .and_then(|retries| {
@@ -566,7 +566,7 @@ Only use `local()` when you truly need to modify the environment temporarily. Mo
 
 ### Pitfall 1: Cloning Large Environments
 
-```rust
+```text
 // ❌ ask() clones the entire environment
 let effect = Effect::<LargeEnv, _, LargeEnv>::ask();
 
@@ -576,7 +576,7 @@ let effect = Effect::asks(|env: &LargeEnv| env.small_field.clone());
 
 ### Pitfall 2: Nested local() Calls
 
-```rust
+```text
 // ❌ Hard to follow
 Effect::local(
     |cfg| modify1(cfg),

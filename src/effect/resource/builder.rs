@@ -2,7 +2,7 @@
 //!
 //! Provides a fluent API that avoids the turbofish with many underscores:
 //!
-//! ```rust,ignore
+//! ```text
 //! // Before: 10 type parameters, 9 underscores
 //! resource_bracket::<FileRes, _, _, _, _, _, _, _, _, _>(
 //!     open_file(path),
@@ -29,7 +29,7 @@ use super::markers::ResourceKind;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// fn read_file_safe(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
@@ -142,7 +142,7 @@ impl<R: ResourceKind, Acq, Rel> std::fmt::Debug for BracketWithRelease<R, Acq, R
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// fn read_file(path: &str) -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {

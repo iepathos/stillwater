@@ -11,7 +11,7 @@ use crate::effect::trait_def::Effect;
 /// of the original effect. Use `map_err` to convert error types
 /// before chaining:
 ///
-/// ```rust,ignore
+/// ```text
 /// fetch_user(id)                           // Error = DbError
 ///     .map_err(AppError::from)             // Error = AppError
 ///     .and_then(|user| send_email(user))   // Error = AppError (via Into)
@@ -19,7 +19,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(21)

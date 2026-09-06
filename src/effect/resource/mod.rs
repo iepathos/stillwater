@@ -10,7 +10,7 @@
 //!
 //! # Quick Start
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //! use stillwater::effect::resource::*;
 //!
@@ -57,7 +57,7 @@
 //!
 //! You can define custom resource kinds:
 //!
-//! ```rust,ignore
+//! ```text
 //! pub struct MyPoolRes;
 //! impl ResourceKind for MyPoolRes {
 //!     const NAME: &'static str = "ConnectionPool";
@@ -78,7 +78,7 @@
 //!
 //! The easiest way to add tracking:
 //!
-//! ```rust,ignore
+//! ```text
 //! let effect = some_effect
 //!     .acquires::<FileRes>()    // Mark acquisition
 //!     .map(|x| process(x))      // Tracking preserved through map
@@ -89,7 +89,7 @@
 //!
 //! For guaranteed resource safety, use the builder pattern:
 //!
-//! ```rust,ignore
+//! ```text
 //! // Ergonomic builder (recommended)
 //! let safe = bracket::<FileRes>()
 //!     .acquire(acquire_effect)
@@ -109,7 +109,7 @@
 //!
 //! Verify resource neutrality at compile time:
 //!
-//! ```rust,ignore
+//! ```text
 //! fn process() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
 //!     let effect = /* ... */;
 //!     assert_resource_neutral(effect)  // Compile error if not neutral
@@ -118,7 +118,7 @@
 //!
 //! # Protocol Enforcement Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::resource::*;
 //!
 //! // Transaction protocol

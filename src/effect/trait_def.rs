@@ -1,4 +1,4 @@
-//! Effect trait definition - the core abstraction for zero-cost effects.
+//! Effect trait definition - the core abstraction for concrete effect composition.
 //!
 //! This module defines the `Effect` trait, which represents a computation that:
 //! - Produces a value of type `Output` on success
@@ -8,7 +8,7 @@
 //! # Design Philosophy
 //!
 //! This trait follows the same pattern as `Future` and `Iterator`:
-//! - Combinators return concrete types (zero-cost abstractions)
+//! - Combinators return concrete types without boxing by default
 //! - Use `.boxed()` when you need type erasure
 //!
 //! # Environment Cloning
@@ -18,7 +18,7 @@
 //! lifetime. This is typically cheap when environments contain `Arc`-wrapped
 //! resources:
 //!
-//! ```rust,ignore
+//! ```text
 //! #[derive(Clone)]
 //! struct AppEnv {
 //!     db: Arc<DatabasePool>,
@@ -31,7 +31,7 @@ use std::future::Future;
 
 /// The core Effect trait - represents a computation that may perform effects.
 ///
-/// This trait is the foundation of Stillwater's zero-cost effect system.
+/// This trait is the foundation of Stillwater's concrete-combinator effect system.
 /// Unlike the boxed `Effect` struct, implementing types can be zero-sized
 /// when possible, and combinators return concrete types rather than boxed
 /// trait objects.
@@ -44,7 +44,7 @@ use std::future::Future;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// fn fetch_user(id: i32) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {

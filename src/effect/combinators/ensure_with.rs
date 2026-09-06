@@ -10,7 +10,7 @@ use crate::effect::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(-5)

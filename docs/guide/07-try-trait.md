@@ -22,7 +22,7 @@ to their crate root.
 
 ## Using ? with Validation
 
-```rust
+```text
 #![feature(try_trait_v2)]
 
 use stillwater::Validation;
@@ -38,7 +38,7 @@ fn validate_user(email: &str, age: u8) -> Validation<User, Vec<Error>> {
 
 **Recommendation**: Don't use `?` with Validation. Use `Validation::all()` instead:
 
-```rust
+```text
 // ✓ Better: accumulates all errors
 Validation::all((
     validate_email(email),

@@ -11,17 +11,17 @@ A **Monoid** is a `Semigroup` with an identity element. While a Semigroup provid
 For a type `M` to be a valid Monoid, it must satisfy:
 
 1. **Associativity** (from Semigroup):
-   ```rust
+   ```text
    a.combine(b).combine(c) == a.combine(b.combine(c))
    ```
 
 2. **Right Identity**:
-   ```rust
+   ```text
    a.combine(M::empty()) == a
    ```
 
 3. **Left Identity**:
-   ```rust
+   ```text
    M::empty().combine(a) == a
    ```
 
@@ -82,7 +82,7 @@ Since Rust primitives can't implement external traits and numbers have multiple 
 
 Addition with 0 as identity:
 
-```rust
+```text
 use stillwater::monoid::{Sum, fold_all};
 use stillwater::Semigroup;
 
@@ -104,7 +104,7 @@ assert_eq!(result, Sum(10));
 
 Multiplication with 1 as identity:
 
-```rust
+```text
 use stillwater::monoid::{Product, fold_all};
 
 let result = Product(5).combine(Product(10));
@@ -213,7 +213,7 @@ assert_eq!(result, (vec![1, 2, 3], "abc".to_string()));
 
 Monoids work seamlessly with Validation for combining results:
 
-```rust
+```text
 use stillwater::{Validation, Monoid};
 use stillwater::monoid::fold_all;
 
@@ -231,7 +231,7 @@ assert_eq!(result, Validation::success(vec![1, 2, 3, 4]));
 
 Monoids enable parallel reduction because the identity element allows splitting work:
 
-```rust
+```text
 use stillwater::monoid::{Sum, fold_all};
 
 // These can be computed in parallel and combined
@@ -262,7 +262,7 @@ Use **Semigroup** when:
 
 Implement Monoid for your own types by first implementing Semigroup:
 
-```rust
+```text
 use stillwater::{Semigroup, Monoid};
 
 #[derive(Debug, Clone, PartialEq)]

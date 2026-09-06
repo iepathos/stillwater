@@ -44,7 +44,7 @@
 //! stillwater = { version = "...", features = ["jitter"] }
 //! ```
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::RetryPolicy;
 //! use std::time::Duration;
 //!

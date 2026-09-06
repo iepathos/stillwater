@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// #[derive(Debug, Clone)]

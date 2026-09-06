@@ -28,7 +28,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// fn open_file(path: &str) -> impl ResourceEffect<
@@ -60,7 +60,7 @@ pub trait ResourceEffect: Effect {
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// // Wrap an effect to track that it acquires a file resource

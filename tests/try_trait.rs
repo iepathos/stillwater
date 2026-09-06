@@ -1,5 +1,4 @@
 #![cfg(all(feature = "try_trait", try_trait_nightly))]
-#![cfg_attr(all(feature = "try_trait", try_trait_nightly), feature(try_trait_v2))]
 
 use stillwater::Validation;
 

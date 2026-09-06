@@ -29,7 +29,7 @@ fn test_user_validation() {
 
 The `MockEnv` builder creates test environments by composing dependencies:
 
-```rust
+```text
 use stillwater::testing::MockEnv;
 
 struct Database {
@@ -235,7 +235,7 @@ mod proptest_tests {
 
 Test invariants that should always hold:
 
-```rust
+```text
 proptest! {
     #[test]
     fn test_success_always_is_success(value: i32) {
@@ -359,7 +359,7 @@ mod async_tests {
 
 Here's a complete example showing all testing utilities:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]

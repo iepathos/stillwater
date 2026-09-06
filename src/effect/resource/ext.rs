@@ -5,7 +5,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //! use stillwater::effect::resource::*;
 //!
@@ -30,7 +30,7 @@ pub trait ResourceEffectExt: Effect + Sized {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::resource::*;
     ///
     /// fn open_file(path: &str) -> impl ResourceEffect<Acquires = Has<FileRes>> {
@@ -47,7 +47,7 @@ pub trait ResourceEffectExt: Effect + Sized {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::resource::*;
     ///
     /// fn close_file(handle: FileHandle) -> impl ResourceEffect<Releases = Has<FileRes>> {
@@ -77,7 +77,7 @@ impl<E: Effect> ResourceEffectExt for E {}
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::resource::*;
 ///
 /// fn process_data() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {

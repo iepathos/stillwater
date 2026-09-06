@@ -17,7 +17,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = from_async::<_, String, (), _, _>(|_| async { Ok(42) });

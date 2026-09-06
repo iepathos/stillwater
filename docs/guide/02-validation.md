@@ -4,7 +4,7 @@
 
 Standard `Result` types short-circuit on the first error:
 
-```rust
+```text
 fn validate_form(data: FormData) -> Result<ValidForm, Error> {
     let email = validate_email(data.email)?;     // ❌ Stops here if invalid
     let password = validate_password(data.pwd)?; // Never reached
@@ -20,7 +20,7 @@ If the email is invalid, the user doesn't learn about password or age errors. Th
 
 Stillwater's `Validation` type accumulates ALL errors:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 fn validate_form(data: FormData) -> Validation<ValidForm, Vec<Error>> {
@@ -39,7 +39,7 @@ Now all three validations run, and the user sees all errors at once!
 
 ### Creating Validations
 
-```rust
+```text
 use stillwater::Validation;
 
 // Success
@@ -55,7 +55,7 @@ let v = Validation::from_result(Err("error"));
 
 ### Pattern Matching
 
-```rust
+```text
 use stillwater::Validation;
 
 match validation {
@@ -66,7 +66,7 @@ match validation {
 
 ### Checking Status
 
-```rust
+```text
 use stillwater::Validation;
 
 let v = Validation::success(42);
@@ -80,7 +80,7 @@ assert!(v.is_failure());
 
 ### Combining Validations
 
-```rust
+```text
 use stillwater::Validation;
 
 // Combine with tuples (up to 12 items)
@@ -100,7 +100,7 @@ let result = Validation::all_vec(vec![
 
 ### Transforming Validations
 
-```rust
+```text
 use stillwater::Validation;
 
 // Transform success value
@@ -226,7 +226,7 @@ assert_eq!(result, Validation::Success(5));
 #### Why Use Validation Combinators?
 
 **Before** (verbose):
-```rust
+```text
 validate_email(email)
     .and_then(|email| {
         if email.len() <= 100 {
@@ -245,7 +245,7 @@ validate_email(email)
 ```
 
 **After** (declarative):
-```rust
+```text
 use stillwater::predicate::*;
 
 validate_email(email)
@@ -255,7 +255,7 @@ validate_email(email)
 
 ### Converting to Result
 
-```rust
+```text
 use stillwater::Validation;
 
 let v = Validation::success(42);
@@ -283,7 +283,7 @@ Common implementations:
 - `(A, B) where A: Semigroup, B: Semigroup`: Combine components
 
 Example:
-```rust
+```text
 use stillwater::Semigroup;
 
 impl Semigroup for Vec<ValidationError> {
@@ -298,7 +298,7 @@ See [Semigroup guide](01-semigroup.md) for details.
 
 ## Real-World Example
 
-```rust
+```text
 use stillwater::{Validation, Semigroup};
 
 #[derive(Debug, PartialEq)]
@@ -388,7 +388,7 @@ match validate_registration("invalid", "short", 15) {
 
 Extending the above example to validate multiple user registrations:
 
-```rust
+```text
 use stillwater::{Validation, traverse::traverse};
 
 #[derive(Debug)]
@@ -461,7 +461,7 @@ This demonstrates how `traverse` makes it easy to validate collections while acc
 
 ### Independent Field Validation
 
-```rust
+```text
 use stillwater::Validation;
 
 // All fields validated independently
@@ -474,7 +474,7 @@ Validation::all((
 
 ### Dependent Validation
 
-```rust
+```text
 use stillwater::Validation;
 
 // First validate, then check dependencies
@@ -486,7 +486,7 @@ validate_email(email)
 
 ### Mixed Validation
 
-```rust
+```text
 use stillwater::Validation;
 
 // Combine independent and dependent
@@ -504,7 +504,7 @@ Validation::all((
 
 When validating collections, use `traverse` for cleaner, more efficient code:
 
-```rust
+```text
 use stillwater::{Validation, traverse::traverse};
 
 fn validate_all_items(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>> {
@@ -543,7 +543,7 @@ For more advanced patterns, see the [Traverse Patterns guide](11-traverse-patter
 
 **Alternative using `all_vec` (less convenient)**:
 
-```rust
+```text
 use stillwater::Validation;
 
 fn validate_all_items(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>> {
@@ -558,7 +558,7 @@ fn validate_all_items(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>
 
 ### Building Complex Types
 
-```rust
+```text
 use stillwater::Validation;
 
 struct Config {
@@ -680,7 +680,7 @@ The main cost is creating error objects, which you'd do anyway.
 
 ### Don't use `?` for accumulation
 
-```rust
+```text
 // ❌ Wrong: short-circuits on first error
 fn validate(data: Data) -> Validation<Valid, Vec<Error>> {
     let email = validate_email(data.email)?;  // Stops here!
@@ -699,7 +699,7 @@ fn validate(data: Data) -> Validation<Valid, Vec<Error>> {
 
 ### Remember to map after all()
 
-```rust
+```text
 // ❌ Wrong: returns tuple instead of User
 fn validate(email: &str, age: u8) -> Validation<(String, u8), Vec<Error>> {
     Validation::all((

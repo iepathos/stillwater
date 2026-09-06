@@ -8,7 +8,7 @@ Stillwater provides helper functions for common patterns with Validation and Eff
 
 Already covered in [Validation guide](02-validation.md):
 
-```rust
+```text
 use stillwater::Validation;
 
 Validation::all((
@@ -22,7 +22,7 @@ Validation::all((
 
 For homogeneous collections:
 
-```rust
+```text
 use stillwater::Validation;
 
 let validations: Vec<Validation<Item, Vec<Error>>> = items
@@ -37,19 +37,19 @@ let result: Validation<Vec<Item>, Vec<Error>> = Validation::all_vec(validations)
 
 ### map() - Transform success value
 
-```rust
+```text
 effect.map(|user| user.email)
 ```
 
 ### and_then() - Chain dependent effects
 
-```rust
+```text
 effect.and_then(|user| load_profile(user))
 ```
 
 ### map_err() - Transform error value
 
-```rust
+```text
 effect.map_err(|e| format!("Failed: {}", e))
 ```
 
@@ -57,7 +57,7 @@ effect.map_err(|e| format!("Failed: {}", e))
 
 You can build your own combinators for common patterns:
 
-```rust
+```text
 use stillwater::{Effect, Validation};
 
 // Retry combinator

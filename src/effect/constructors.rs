@@ -62,7 +62,7 @@
 //!
 //! ## Before and After Example
 //!
-//! ```rust,ignore
+//! ```text
 //! // Associated function style (verbose)
 //! Effect::asks(|env: &Env| env.db.clone())
 //!     .and_then(|db| Effect::from_async(move |_| db.query()))
@@ -407,7 +407,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = zip3(
@@ -432,7 +432,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = zip4(fetch_a(), fetch_b(), fetch_c(), fetch_d());

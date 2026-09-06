@@ -21,7 +21,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = pure::<_, String, ()>(21)
@@ -36,7 +36,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = pure::<_, String, ()>(21).map(|x| x * 2);
     /// assert_eq!(effect.execute(&()).await, Ok(42));
     /// ```
@@ -54,7 +54,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = fail::<i32, _, ()>("error")
     ///     .map_err(|e| format!("wrapped: {}", e));
     /// assert_eq!(effect.execute(&()).await, Err("wrapped: error".to_string()));
@@ -77,7 +77,7 @@ pub trait EffectExt: Effect {
     /// The chained effect must have the same error type. Use `map_err`
     /// to convert error types before chaining:
     ///
-    /// ```rust,ignore
+    /// ```text
     /// fetch_user(id)                           // Error = DbError
     ///     .map_err(AppError::from)             // Error = AppError
     ///     .and_then(|user| send_email(user))   // Error = AppError
@@ -85,7 +85,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = pure::<_, String, ()>(21)
     ///     .and_then(|x| pure(x * 2));
     /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -105,7 +105,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = fail::<i32, _, ()>("error")
     ///     .or_else(|_| pure(42));
     /// assert_eq!(effect.execute(&()).await, Ok(42));
@@ -129,7 +129,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     /// use stillwater::predicate::*;
     ///
@@ -172,7 +172,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     ///
     /// let effect = parse_config()
@@ -202,7 +202,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     ///
     /// #[derive(Debug, Clone)]
@@ -235,7 +235,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     ///
     /// let count = get_count().fallback(0);
@@ -254,7 +254,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let data = fetch_primary()
     ///     .fallback_to(fetch_secondary());
     /// ```
@@ -272,7 +272,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// #[derive(Clone)]
     /// struct OuterEnv { multiplier: i32 }
     /// #[derive(Clone)]
@@ -300,7 +300,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     ///     pure(1).boxed(),
     ///     pure(2).map(|x| x * 2).boxed(),
@@ -322,7 +322,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = pure::<_, String, ()>(42)
     ///     .tap(|value| {
     ///         println!("Value: {}", value);
@@ -351,7 +351,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// // Success case
     /// let effect = pure::<_, String, ()>(25)
     ///     .check(|age| *age >= 18, || "too young".to_string());
@@ -382,7 +382,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = pure::<_, String, ()>(5)
     ///     .with(|value| pure(*value * 2))
     ///     .map(|(first, second)| first + second);
@@ -409,7 +409,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// #[derive(Debug, PartialEq)]
     /// enum ValidationError { Invalid }
     ///
@@ -448,7 +448,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = pure::<_, String, ()>(42)
     ///     .and_then_ref(|value| {
     ///         assert_eq!(*value, 42);
@@ -479,7 +479,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let result = pure::<_, String, ()>(42).execute(&()).await;
     /// assert_eq!(result, Ok(42));
     /// ```
@@ -508,7 +508,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     ///
     /// // Independent effects - order doesn't matter
@@ -546,7 +546,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::effect::prelude::*;
     ///
     /// let effect = pure::<_, String, ()>(2)
@@ -574,7 +574,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = fetch_user(id)
     ///     .ensure(|u| u.age >= 18, Error::TooYoung)
     ///     .ensure(|u| u.is_active, Error::InactiveUser);
@@ -602,7 +602,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = fetch_user(id)
     ///     .ensure_with(
     ///         |u| u.age >= 18,
@@ -624,7 +624,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// use stillwater::predicate::*;
     ///
     /// let valid_age = between(18, 120);
@@ -658,7 +658,7 @@ pub trait EffectExt: Effect {
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// let effect = fetch_user(id)
     ///     .unless(|u| u.is_banned, Error::UserBanned);
     /// ```

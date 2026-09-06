@@ -23,7 +23,7 @@ Many real-world operations are independent and can run concurrently:
 
 Sequential execution waits for each operation before starting the next:
 
-```rust
+```text
 let user = fetch_user(id).run(&env).await?;
 let settings = fetch_settings(id).run(&env).await?;
 let preferences = fetch_preferences(id).run(&env).await?;
@@ -31,7 +31,7 @@ let preferences = fetch_preferences(id).run(&env).await?;
 
 Parallel execution starts independent work together:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 let (user, settings, preferences) = par3(
@@ -60,7 +60,7 @@ let profile = UserProfile {
 
 Collection helpers require boxed effects because a `Vec` needs one concrete item type:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 let effects: Vec<BoxedEffect<User, DbError, AppEnv>> = user_ids
@@ -75,7 +75,7 @@ let users = par_all(effects, &env).await?;
 
 Use `par2`, `par3`, or `par4` when effects have different output types, or when you want to avoid boxing.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 let (price, inventory, shipping) = par3(
@@ -94,7 +94,7 @@ let quote = Quote {
 
 These helpers return a tuple of results instead of short-circuiting. That makes each outcome explicit:
 
-```rust
+```text
 let (database, cache) = par2(check_database(), check_cache(), &env).await;
 
 match (database, cache) {
@@ -109,7 +109,7 @@ This is useful for diagnostics and health checks where you want to inspect every
 
 Use `par_all` when every operation should run to completion and callers benefit from a complete error report.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 async fn validate_import(records: Vec<Record>, env: &AppEnv) -> Result<Vec<ValidRecord>, Vec<ValidationError>> {
@@ -124,7 +124,7 @@ async fn validate_import(records: Vec<Record>, env: &AppEnv) -> Result<Vec<Valid
 
 If any effect fails, `par_all` returns all failures:
 
-```rust
+```text
 let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     pure(1).boxed(),
     fail("bad input".to_string()).boxed(),
@@ -144,7 +144,7 @@ This is the right choice for form validation, import validation, batch reporting
 
 Use `par_try_all` when one error is enough for the caller.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 async fn load_required_services(env: &AppEnv) -> Result<Vec<ServiceStatus>, ServiceError> {
@@ -160,7 +160,7 @@ async fn load_required_services(env: &AppEnv) -> Result<Vec<ServiceStatus>, Serv
 
 `par_try_all` awaits the batch and then collects with normal `Result` semantics, returning the first error in result order. It is not a cancellation primitive.
 
-```rust
+```text
 let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     pure(1).boxed(),
     fail("first error".to_string()).boxed(),
@@ -177,7 +177,7 @@ Use `par_all` when you need every error. Use `par_try_all` when the caller only 
 
 Use `race` when the first completed result should decide the outcome.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 async fn fetch_from_fastest_replica(
@@ -196,7 +196,7 @@ async fn fetch_from_fastest_replica(
 
 `race` returns the first completed result, whether success or error. It does not wait to find the first success.
 
-```rust
+```text
 let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     fail("fast failure".to_string()).boxed(),
     pure(42).boxed(),
@@ -212,7 +212,7 @@ This behavior is useful for deadline effects, fastest-result wins workflows, or 
 
 Use `par_all_limit` for large batches or limited resources such as connection pools, file descriptors, or API rate limits.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 async fn process_queue(
@@ -231,7 +231,7 @@ async fn process_queue(
 
 The function still runs every effect and collects all errors, but it only keeps `limit` futures in flight at once.
 
-```rust
+```text
 let effects: Vec<BoxedEffect<i32, String, ()>> = (1..=10)
     .map(|n| pure(n).boxed())
     .collect();
@@ -244,7 +244,7 @@ assert_eq!(result.as_ref().map(|values| values.len()), Ok(10));
 
 Parallel helpers receive a shared `&Env`. Boxed collection helpers require `Env: Clone + Send + Sync + 'static`, so application environments usually store services in cheap-to-clone handles:
 
-```rust
+```text
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -257,7 +257,7 @@ struct AppEnv {
 
 Each effect still controls how it uses the environment:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {
@@ -272,7 +272,7 @@ fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = A
 
 Parallel work often appears inside a larger sequential workflow. Use normal Rust control flow around the async helper calls:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 async fn build_dashboard(user_id: UserId, env: &AppEnv) -> Result<Dashboard, AppError> {
@@ -296,7 +296,7 @@ async fn build_dashboard(user_id: UserId, env: &AppEnv) -> Result<Dashboard, App
 
 For a second parallel phase, build another effect collection after the first phase succeeds:
 
-```rust
+```text
 async fn load_and_save(ids: Vec<UserId>, env: &AppEnv) -> Result<Vec<Receipt>, Vec<AppError>> {
     let load_effects: Vec<BoxedEffect<User, AppError, AppEnv>> = ids
         .into_iter()
@@ -320,7 +320,7 @@ async fn load_and_save(ids: Vec<UserId>, env: &AppEnv) -> Result<Vec<Receipt>, V
 
 Use `par_all` when expensive validation checks can run independently and the user should see all failures:
 
-```rust
+```text
 async fn validate_signup(data: SignupData, env: &AppEnv) -> Result<ValidSignup, Vec<SignupError>> {
     let effects: Vec<BoxedEffect<FieldCheck, SignupError, AppEnv>> = vec![
         validate_email(data.email).boxed(),
@@ -337,7 +337,7 @@ async fn validate_signup(data: SignupData, env: &AppEnv) -> Result<ValidSignup, 
 
 Use fixed-arity helpers when each subsystem has a distinct result:
 
-```rust
+```text
 async fn health(env: &AppEnv) -> HealthReport {
     let (database, cache, queue) = par3(
         check_database(),
@@ -358,7 +358,7 @@ async fn health(env: &AppEnv) -> HealthReport {
 
 Use `par_all_limit` when the remote system enforces a concurrency cap:
 
-```rust
+```text
 async fn import_customers(customers: Vec<Customer>, env: &AppEnv) -> ImportSummary {
     let effects: Vec<BoxedEffect<ImportReceipt, ImportError, AppEnv>> = customers
         .into_iter()
@@ -376,7 +376,7 @@ async fn import_customers(customers: Vec<Customer>, env: &AppEnv) -> ImportSumma
 
 Use `race` only when "first completed" is the desired behavior:
 
-```rust
+```text
 async fn query_fastest_index(
     term: SearchTerm,
     env: &AppEnv,
@@ -392,7 +392,7 @@ async fn query_fastest_index(
 
 If a fast failure should not win, use a fallback chain:
 
-```rust
+```text
 fn query_with_fallback(term: SearchTerm) -> impl Effect<Output = SearchResults, Error = SearchError, Env = AppEnv> {
     query_primary_index(term.clone())
         .fallback_to(query_replica_index(term))
@@ -405,7 +405,7 @@ fn query_with_fallback(term: SearchTerm) -> impl Effect<Output = SearchResults, 
 
 The parallel helpers use async concurrency. They do not spawn OS threads by themselves; each effect must be asynchronous or otherwise yield for concurrency to matter.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use std::time::{Duration, Instant};
 
@@ -469,7 +469,7 @@ For timing-sensitive tests, keep assertions loose enough to avoid flakes. Prefer
 
 ### Do Not Parallelize Dependent Operations
 
-```rust
+```text
 // Wrong: sending the email needs the user returned by create_user.
 let effects: Vec<BoxedEffect<(), AppError, AppEnv>> = vec![
     create_user(data).map(|_| ()).boxed(),
@@ -487,7 +487,7 @@ create_user(data)
 
 ### Use `Arc`, Not `Rc`, In Shared Environments
 
-```rust
+```text
 // Wrong: Rc is not Send + Sync.
 struct AppEnv {
     db: Rc<DatabasePool>,
@@ -504,7 +504,7 @@ struct AppEnv {
 
 Keep individual effect builders zero-cost, and box only when placing them into a homogeneous collection:
 
-```rust
+```text
 fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {
     from_async(move |env: &AppEnv| {
         let db = env.db.clone();

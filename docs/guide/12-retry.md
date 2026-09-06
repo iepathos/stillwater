@@ -10,13 +10,13 @@ Network requests fail. Databases have hiccups. External APIs rate-limit you. Rob
 
 Without retry:
 
-```rust
+```text
 let data = fetch_data().run(&env).await?;
 ```
 
 With retry:
 
-```rust
+```text
 use stillwater::effect::retry::retry;
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -70,7 +70,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 Jitter adds randomness to delays, preventing the "thundering herd" problem when many clients retry simultaneously. Enable it with the `jitter` feature:
 
 ```toml
-stillwater = { version = "1.0", features = ["jitter"] }
+stillwater = { version = "2.0", features = ["jitter"] }
 ```
 
 ```rust
@@ -88,7 +88,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 
 Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -107,7 +107,7 @@ assert_eq!(success.into_value(), 42);
 
 Only retries when a predicate returns true for the error. Use this to distinguish transient errors from permanent failures.
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -132,6 +132,8 @@ assert_eq!(effect.run(&()).await, Err(ApiError::Permanent));
 `retry_with_hooks` invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.
 
 ```rust
+# #[cfg(all(feature = "async", feature = "tracing"))]
+# {
 use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy};
 use std::time::Duration;
@@ -147,6 +149,7 @@ let effect = retry_with_hooks(
         );
     },
 );
+# }
 ```
 
 The `RetryEvent` contains:
@@ -162,7 +165,7 @@ The `RetryEvent` contains:
 
 Wrap an effect with a timeout:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::TimeoutError;
 use std::time::Duration;
@@ -187,7 +190,7 @@ match effect.run(&()).await {
 
 A common pattern is a per-attempt timeout inside a retry factory:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::{RetryPolicy, TimeoutError};
 use std::time::Duration;
@@ -230,7 +233,7 @@ pub struct RetryExhausted<E> {
 
 `with_timeout` wraps timeout and inner errors:
 
-```rust
+```text
 pub enum TimeoutError<E> {
     Timeout { duration: Duration },
     Inner(E),
@@ -241,7 +244,7 @@ pub enum TimeoutError<E> {
 
 ### HTTP Client With Retry
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -268,7 +271,7 @@ let effect = retry_if(
 
 ### Database Connection With Hooks
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -290,7 +293,7 @@ let effect = retry_with_hooks(
 
 Combine per-attempt timeout, conditional retry, max delay, jitter, and hooks when calling an unreliable external service:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy, TimeoutError};
 use std::time::Duration;
@@ -340,7 +343,7 @@ let effect = retry_with_hooks(
 
 For conditional retry without hooks, use `retry_if` around the same per-attempt effect:
 
-```rust
+```text
 let effect = retry_if(
     || {
         with_timeout(call_api(), Duration::from_secs(10))
@@ -376,7 +379,7 @@ assert_eq!(policy.delay_for_attempt(3), None);
 
 Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use `from_fn` or `check` before retrying:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn guarded_call() -> impl Effect<Output = ApiResponse, Error = ApiError, Env = AppEnv> {

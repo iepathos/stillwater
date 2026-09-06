@@ -151,7 +151,9 @@ cargo run --example resource_tracking
 | Form validation | Validation | Collect all field errors |
 | API request validation | Validation | Return all validation errors |
 | Collection validation | traverse | Validate multiple items, accumulate errors |
-| Batch processing | traverse_effect | Process collection with effects |
+| Ordered batch processing | traverse_effect_sequential | Stop at first effect failure |
+| Concurrent batch processing | traverse_effect_parallel | Run all effects concurrently |
+| Choosing an API layer | [API tiers](17-api-tiers.md) | Start core; adopt advanced APIs deliberately |
 | Database operations | Effect | Separate logic from I/O |
 | File operations | Effect + IO | Testable file processing |
 | Error debugging | ContextError | Add context trails |
@@ -177,7 +179,7 @@ cargo run --example resource_tracking
 
 ### Common Patterns
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Pattern 1: Independent validations

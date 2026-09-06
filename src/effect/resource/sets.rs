@@ -10,7 +10,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::resource::{Empty, Has, FileRes, DbRes};
 //!
 //! // Type representing "has FileRes"

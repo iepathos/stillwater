@@ -16,7 +16,7 @@ enum Aggregate {
 
 In a typical scenario, you might write:
 
-```rust
+```text
 impl Semigroup for Aggregate {
     fn combine(self, other: Self) -> Self {
         match (self, other) {
@@ -33,7 +33,7 @@ impl Semigroup for Aggregate {
 This pattern appears frequently in real-world code:
 
 **Aggregation Pipelines**: MapReduce systems where parallel workers combine results
-```rust
+```text
 // Workers return different aggregate types
 let results = vec![worker1.result(), worker2.result(), worker3.result()];
 // If types don't match, the program crashes!
@@ -46,7 +46,7 @@ let results = vec![worker1.result(), worker2.result(), worker3.result()];
 ```
 
 **Database Query Results**: Combining results from sharded queries
-```rust
+```text
 enum QueryResult {
     Rows(Vec<Row>),
     Count(usize),
@@ -56,7 +56,7 @@ enum QueryResult {
 ```
 
 **Plugin Systems**: Aggregating outputs from multiple plugins
-```rust
+```text
 enum PluginOutput {
     Metrics(Vec<Metric>),
     Logs(Vec<LogEntry>),
@@ -88,7 +88,7 @@ This means:
 
 Stillwater provides utilities to validate homogeneity before combining:
 
-```rust
+```text
 use stillwater::validation::homogeneous::validate_homogeneous;
 use stillwater::Validation;
 use std::mem::discriminant;
@@ -135,7 +135,7 @@ match result {
 
 Validates that all items in a collection have the same discriminant:
 
-```rust
+```text
 pub fn validate_homogeneous<T, D, E>(
     items: Vec<T>,
     discriminant: impl Fn(&T) -> D,
@@ -158,7 +158,7 @@ where
 
 Convenience function that validates and combines in one step:
 
-```rust
+```text
 pub fn combine_homogeneous<T, D, E>(
     items: Vec<T>,
     discriminant: impl Fn(&T) -> D,
@@ -170,7 +170,7 @@ where
 ```
 
 This is equivalent to:
-```rust
+```text
 validate_homogeneous(items, discriminant, make_error)
     .map(|items| items.into_iter().reduce(|a, b| a.combine(b)).unwrap())
 ```
@@ -188,7 +188,7 @@ pub trait DiscriminantName {
 ```
 
 Example implementation:
-```rust
+```text
 impl DiscriminantName for Aggregate {
     fn discriminant_name(&self) -> &'static str {
         match self {
@@ -213,7 +213,7 @@ pub struct TypeMismatchError {
 ```
 
 Use with `DiscriminantName`:
-```rust
+```text
 let result = validate_homogeneous(
     items,
     |a| std::mem::discriminant(a),
@@ -279,7 +279,7 @@ match result {
 
 ### Example 2: JSON Config Merging
 
-```rust
+```text
 use serde_json::Value;
 use stillwater::validation::homogeneous::{validate_homogeneous, DiscriminantName};
 use std::mem::discriminant;
@@ -331,7 +331,7 @@ match result {
 
 ### Example 3: Integration with Effect
 
-```rust
+```text
 use stillwater::{Effect, IO, Validation};
 use stillwater::validation::homogeneous::combine_homogeneous;
 
@@ -361,13 +361,13 @@ fn aggregate_with_validation(
 Always validate at system boundaries, not in the middle of business logic:
 
 ✅ **Good**: Validate at I/O boundaries
-```rust
+```text
 IO::read(load_results)
     .and_then(|results| validate_and_process(results))
 ```
 
 ❌ **Bad**: Validate in the middle of logic
-```rust
+```text
 fn process(items: Vec<T>) {
     // ... business logic ...
     validate_homogeneous(items, ...);  // Too late!
@@ -379,7 +379,7 @@ fn process(items: Vec<T>) {
 
 After validation, your `Semigroup::combine` can safely use `unreachable!()`:
 
-```rust
+```text
 impl Semigroup for MyEnum {
     fn combine(self, other: Self) -> Self {
         match (self, other) {
@@ -395,7 +395,7 @@ impl Semigroup for MyEnum {
 
 Use `DiscriminantName` to create clear error messages:
 
-```rust
+```text
 impl DiscriminantName for MyEnum {
     fn discriminant_name(&self) -> &'static str {
         match self {
@@ -416,7 +416,7 @@ let result = validate_homogeneous(
 
 Take advantage of error accumulation to report all issues at once:
 
-```rust
+```text
 match validate_homogeneous(...) {
     Validation::Failure(errors) => {
         // All errors are available
@@ -433,7 +433,7 @@ match validate_homogeneous(...) {
 
 Homogeneous validation composes naturally with other validations:
 
-```rust
+```text
 let type_check = validate_homogeneous(items, discriminant, make_error);
 let range_check = validate_ranges(items);
 
@@ -447,7 +447,7 @@ let all_checks = type_check.and(range_check);
 
 Empty collections always validate successfully:
 
-```rust
+```text
 let empty: Vec<MyEnum> = vec![];
 let result = validate_homogeneous(empty, discriminant, make_error);
 assert!(result.is_success());
@@ -459,7 +459,7 @@ assert!(result.is_success());
 
 Single-item collections always validate successfully:
 
-```rust
+```text
 let single = vec![MyEnum::A(42)];
 let result = validate_homogeneous(single, discriminant, make_error);
 assert!(result.is_success());
@@ -486,7 +486,7 @@ Benchmark results show no overhead compared to manual validation.
 
 ### Pattern 1: MapReduce Aggregation
 
-```rust
+```text
 // Validate before reducing
 let aggregated = combine_homogeneous(
     worker_results,
@@ -497,7 +497,7 @@ let aggregated = combine_homogeneous(
 
 ### Pattern 2: Config Merging
 
-```rust
+```text
 // Validate configs are same type before merging
 validate_homogeneous(configs, discriminant, make_error)
     .and_then(|configs| merge_configs(configs))
@@ -505,7 +505,7 @@ validate_homogeneous(configs, discriminant, make_error)
 
 ### Pattern 3: Database Sharding
 
-```rust
+```text
 // Validate shard results are consistent
 combine_homogeneous(
     shard_results,
@@ -516,7 +516,7 @@ combine_homogeneous(
 
 ### Pattern 4: Plugin Composition
 
-```rust
+```text
 // Validate all plugins return same output type
 validate_homogeneous(
     plugin_outputs,

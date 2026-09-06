@@ -38,7 +38,7 @@ Use `Validation::all_vec()` for homogeneous collections, or nest tuples: `Valida
 
 ### How do I convert Validation to Result?
 
-```rust
+```text
 let result: Result<T, E> = validation.into_result();
 ```
 
@@ -66,7 +66,9 @@ Create simple mock environments (just data structures). Pure functions in your E
 
 ### Does Effect have performance overhead?
 
-No! Stillwater follows the `futures` crate pattern: **zero-cost by default**. Each combinator returns a concrete type (like `Map`, `AndThen`) that the compiler can fully inline. No heap allocations occur for effect chains.
+No. Stillwater follows the `futures` crate pattern: combinators return concrete types such
+as `Map` and `AndThen`, so composition does not box by default. Captured application values,
+service calls, boxed collections, and `from_async_ref` may still allocate.
 
 When you need type erasure (collections, recursion, match arms), use `.boxed()` which allocates once. For I/O-bound work, this is negligible.
 
@@ -78,7 +80,7 @@ Use `.boxed()` in exactly three cases:
 2. **Recursion**: Breaking infinite type recursion
 3. **Match arms**: When different branches return different effect types
 
-```rust
+```text
 // Collections
 let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
     pure(1).boxed(),
@@ -94,7 +96,7 @@ fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
 
 ### Why did the API change in 0.11.0?
 
-Version 0.11.0 introduced a zero-cost Effect design following the `futures` crate pattern. The old API boxed every combinator; the new API uses concrete types by default.
+Version 0.11.0 introduced a concrete-combinator Effect design following the `futures` crate pattern. The old API boxed every combinator; the new API uses concrete types by default.
 
 Key changes:
 - `Effect::pure(x)` → `pure(x)`
@@ -121,7 +123,7 @@ No. Use it at I/O boundaries and major operation boundaries where context helps 
 
 Yes! Common pattern:
 
-```rust
+```text
 Effect::from_validation(validate_data(data))
     .and_then(|valid| save_to_db(valid))
 ```
@@ -132,7 +134,7 @@ Validate first (pure, accumulates errors), then lift to Effect for I/O.
 
 Map them to your error types:
 
-```rust
+```text
 from_async_ref(|env: &AppEnv| Box::pin(async move {
     env.db
         .query()
@@ -145,25 +147,29 @@ from_async_ref(|env: &AppEnv| Box::pin(async move {
 
 ### Is there overhead?
 
-No! The Effect trait is zero-cost by default:
+Effect composition does not box by default:
 - Each combinator returns a concrete type (like `Map<AndThen<Pure<...>, F>, G>`)
 - The compiler can fully inline the effect chain
-- No heap allocations occur
+- The combinator layer itself does not allocate
 
-Validation is just an enum with no overhead. Both compile to efficient code identical to hand-written async functions.
+Validation is an enum and Effect combinators are ordinary concrete structs. Application
+values, service calls, async implementations, and error collections can still allocate;
+benchmark the complete workload when overhead matters.
 
 ### When does allocation happen?
 
-Only when you explicitly call `.boxed()`:
+Stillwater allocates for explicit effect type erasure and for APIs whose contracts require it:
 - Storing effects in collections
 - Recursive effects
 - Match arms with different effect types
+- `from_async_ref`, which boxes a future once per run so it can borrow the environment
 
 For I/O-bound applications (API calls, database queries), boxing overhead is negligible compared to actual work.
 
 ### Can I use Stillwater in hot loops?
 
-Yes! The zero-cost design means you can use Effects in performance-sensitive code. Just avoid `.boxed()` in the hot path. For tight loops, benchmark to confirm.
+Yes. Prefer concrete effects in hot paths and benchmark the full workload; avoiding `.boxed()`
+removes type-erasure allocation but does not make captured application work allocation-free.
 
 ### Can I use no_std?
 
@@ -221,7 +227,7 @@ Yes. Stillwater 1.0 is stable with comprehensive unit, integration, and document
 
 Specify type parameters explicitly on constructor functions:
 
-```rust
+```text
 // Instead of:
 let effect = pure(42);
 
@@ -238,7 +244,7 @@ You're returning `impl Effect` but the caller expects a concrete type. Either:
 ### "recursive type has infinite size"
 
 Use `.boxed()` for recursive effects:
-```rust
+```text
 fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
     if n <= 0 { pure(0).boxed() }
     else { pure(n).and_then(move |_| countdown(n - 1)).boxed() }
@@ -249,7 +255,7 @@ fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
 
 Make sure your error type implements Semigroup:
 
-```rust
+```text
 use stillwater::Semigroup;
 
 impl Semigroup for MyError {
@@ -265,7 +271,7 @@ Or use `Vec<MyError>` which already implements Semigroup.
 
 Check your function signatures. `from_fn` expects functions returning `Result<T, E>`, not bare values:
 
-```rust
+```text
 // Wrong:
 from_fn(|db: &Db| db.fetch_user(id))  // If fetch_user returns User directly
 

@@ -9,7 +9,7 @@ use crate::effect::Effect;
 ///
 /// # Examples
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let count = get_count().fallback(0);

@@ -8,7 +8,7 @@
 //!
 //! Where Writer Effect accumulates all output:
 //!
-//! ```rust,ignore
+//! ```text
 //! // Writer Effect - O(n) memory, all logs collected
 //! let (result, logs) = traverse_writer(million_items, process)
 //!     .run_writer(&env).await;

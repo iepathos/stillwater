@@ -8,7 +8,7 @@ This document collects common patterns and recipes for using Stillwater effectiv
 
 When validating multiple independent fields:
 
-```rust
+```text
 use stillwater::Validation;
 
 fn validate_user_registration(input: UserInput) -> Validation<User, Vec<Error>> {
@@ -28,7 +28,7 @@ fn validate_user_registration(input: UserInput) -> Validation<User, Vec<Error>> 
 
 When one validation depends on another's result:
 
-```rust
+```text
 use stillwater::Validation;
 
 fn validate_and_check_unique(email: &str) -> Validation<Email, Vec<Error>> {
@@ -41,7 +41,7 @@ fn validate_and_check_unique(email: &str) -> Validation<Email, Vec<Error>> {
 
 Validate all items in a collection:
 
-```rust
+```text
 use stillwater::Validation;
 
 fn validate_all(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>> {
@@ -58,7 +58,7 @@ fn validate_all(items: Vec<Item>) -> Validation<Vec<ValidItem>, Vec<Error>> {
 
 Validate different fields based on conditions:
 
-```rust
+```text
 use stillwater::Validation;
 
 fn validate_payment(method: PaymentMethod, data: PaymentData) -> Validation<Payment, Vec<Error>> {
@@ -94,7 +94,7 @@ use stillwater::effect::prelude::*;
 
 Classic pattern for processing data:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn process_user_data(id: u64) -> impl Effect<Output = (), Error = Error, Env = Env> {
@@ -110,7 +110,7 @@ fn process_user_data(id: u64) -> impl Effect<Output = (), Error = Error, Env = E
 
 Validate input, then perform I/O if valid:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn create_user(input: UserInput) -> impl Effect<Output = User, Error = Error, Env = Env> {
@@ -125,7 +125,7 @@ fn create_user(input: UserInput) -> impl Effect<Output = User, Error = Error, En
 
 Common caching pattern:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn get_user(id: u64) -> impl Effect<Output = User, Error = Error, Env = Env> {
@@ -150,7 +150,7 @@ fn get_user(id: u64) -> impl Effect<Output = User, Error = Error, Env = Env> {
 
 Add context at each step:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn process_order(id: u64) -> impl Effect<Output = Receipt, Error = Error, Env = Env> {
@@ -175,7 +175,7 @@ fn process_order(id: u64) -> impl Effect<Output = Receipt, Error = Error, Env = 
 
 When effects are independent:
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 use tokio;
 
@@ -194,7 +194,7 @@ async fn load_dashboard(user_id: u64, env: &Env) -> Result<Dashboard, Error> {
 
 Use `zip` when you need both results from independent effects:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Basic zip: combine two independent effects into a tuple
@@ -252,7 +252,7 @@ fn test_pure_validation() {
 
 ### Pattern 2: Testing Effects with Mock Environment
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 struct MockEnv {
@@ -324,7 +324,7 @@ impl std::error::Error for UserError {}
 
 ### Pattern 2: Error Conversion
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn fetch_user(id: u64) -> impl Effect<Output = User, Error = AppError, Env = Env> {
@@ -337,7 +337,7 @@ fn fetch_user(id: u64) -> impl Effect<Output = User, Error = AppError, Env = Env
 
 ### Pattern 3: Error Context Trails
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn complex_operation() -> impl Effect<Output = Result, Error = ContextError<Error>, Env = Env> {
@@ -357,7 +357,7 @@ fn complex_operation() -> impl Effect<Output = Result, Error = ContextError<Erro
 
 ### Pattern 1: Building Complex Validations
 
-```rust
+```text
 fn validate_address(addr: &Address) -> Validation<ValidAddress, Vec<Error>> {
     Validation::all((
         validate_street(&addr.street),
@@ -384,7 +384,7 @@ fn validate_contact(contact: &Contact) -> Validation<ValidContact, Vec<Error>> {
 
 ### Pattern 2: Effect Pipelines
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 fn user_registration_pipeline(input: UserInput) -> impl Effect<Output = User, Error = Error, Env = Env> {
@@ -403,7 +403,7 @@ The bracket pattern ensures resources are properly released even when errors occ
 
 ### Pattern 1: Single Resource with Guaranteed Cleanup
 
-```rust
+```text
 use stillwater::effect::bracket::bracket;
 use stillwater::prelude::*;
 
@@ -427,7 +427,7 @@ let result = with_database_connection(|conn| {
 
 Resources are released in reverse order of acquisition (Last In, First Out):
 
-```rust
+```text
 use stillwater::effect::bracket::bracket2;
 
 fn with_db_and_file(
@@ -447,7 +447,7 @@ fn with_db_and_file(
 
 The `acquiring` builder provides ergonomic multi-resource management:
 
-```rust
+```text
 use stillwater::effect::bracket::acquiring;
 
 fn complex_operation() -> impl Effect<Output = Result, Error = AppError, Env = AppEnv> {
@@ -469,7 +469,7 @@ fn complex_operation() -> impl Effect<Output = Result, Error = AppError, Env = A
 
 When you need to distinguish between use errors and cleanup errors:
 
-```rust
+```text
 use stillwater::effect::bracket::{bracket_full, BracketError};
 
 fn with_explicit_errors() -> impl Effect<Output = Data, Error = BracketError<AppError>, Env = AppEnv> {
@@ -507,7 +507,7 @@ match result {
 
 When acquiring multiple resources, earlier acquisitions are rolled back if later ones fail:
 
-```rust
+```text
 use stillwater::effect::bracket::acquiring;
 
 // If file acquisition fails, connection is automatically released
@@ -529,7 +529,7 @@ let result = effect.execute(&env).await;  // Returns file acquisition error
 
 Encapsulate resource management in reusable abstractions:
 
-```rust
+```text
 use stillwater::effect::bracket::Resource;
 
 struct ConnectionPool {
@@ -573,7 +573,7 @@ let effect = pure::<_, String, ()>(1)
 
 ### Pattern 2: Batch Operations
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
 // Instead of many individual queries:

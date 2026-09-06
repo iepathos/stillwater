@@ -1,4 +1,4 @@
-//! Context error support for zero-cost effects.
+//! Context error support for concrete effects.
 //!
 //! This module provides the `EffectContext` trait for adding context to errors
 //! as they propagate through effect chains.
@@ -15,7 +15,7 @@ use crate::effect::trait_def::Effect;
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 /// use stillwater::effect::context::EffectContext;
 ///
