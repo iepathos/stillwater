@@ -1,30 +1,17 @@
-//! User Registration Example
+//! Canonical pure-core, imperative-shell example.
 //!
-//! End-to-end example demonstrating how Validation and Effect work together.
-//! Shows a realistic user registration flow:
-//! 1. Validate input data (pure, error accumulation)
-//! 2. Check uniqueness (effect with database)
-//! 3. Hash password (effect)
-//! 4. Save user (effect with database)
-//! 5. Send email (effect with email service)
+//! The shell loads facts, the pure core decides whether registration is valid,
+//! and the shell interprets the resulting plan. Saving and sending the welcome
+//! email are deliberately sequential: a save failure prevents the email. An
+//! email failure does not roll back a completed save; workflows that require
+//! compensation should use a saga or another explicit transaction protocol.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use stillwater::{
-    from_fn, from_validation, ContextError, Effect, EffectContext, EffectExt, Validation,
-};
 
-// ==================== Domain Types ====================
+use stillwater::prelude::*;
 
-#[derive(Debug, Clone)]
-struct User {
-    id: u64,
-    username: String,
-    email: String,
-    password_hash: String,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 struct RegistrationInput {
     username: String,
     email: String,
@@ -32,494 +19,452 @@ struct RegistrationInput {
     confirm_password: String,
 }
 
-// ==================== Pure Validation ====================
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct RegistrationFacts {
+    username_taken: bool,
+    email_taken: bool,
+}
 
-/// Validate username format
-fn validate_username(username: &str) -> Validation<(), Vec<String>> {
-    let mut errors = Vec::new();
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct RegistrationPlan {
+    username: String,
+    email: String,
+    password: String,
+}
 
-    if username.is_empty() {
-        errors.push("Username is required".to_string());
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct User {
+    id: u64,
+    username: String,
+    email: String,
+    password_hash: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum RegistrationError {
+    UsernameRequired,
+    UsernameLength,
+    UsernameCharacters,
+    EmailRequired,
+    EmailFormat,
+    PasswordLength,
+    PasswordUppercase,
+    PasswordLowercase,
+    PasswordNumber,
+    PasswordMismatch,
+    UsernameTaken,
+    EmailTaken,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum InfrastructureError {
+    LoadFacts,
+    HashPassword,
+    SaveUser,
+    SendEmail,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum AppError {
+    Rejected(NonEmptyVec<RegistrationError>),
+    Infrastructure(InfrastructureError),
+}
+
+fn validation_from_errors(
+    errors: Vec<RegistrationError>,
+) -> Validation<(), NonEmptyVec<RegistrationError>> {
+    match NonEmptyVec::from_vec(errors) {
+        Some(errors) => Validation::failure(errors),
+        None => Validation::success(()),
     }
-    if username.len() < 3 || username.len() > 20 {
-        errors.push("Username must be between 3 and 20 characters".to_string());
+}
+
+fn validate_username(username: &str) -> Validation<(), NonEmptyVec<RegistrationError>> {
+    let mut errors = Vec::new();
+    if username.is_empty() {
+        errors.push(RegistrationError::UsernameRequired);
+    }
+    if !(3..=20).contains(&username.len()) {
+        errors.push(RegistrationError::UsernameLength);
     }
     if !username
         .chars()
-        .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+        .all(|character| character.is_alphanumeric() || matches!(character, '_' | '-'))
     {
-        errors.push(
-            "Username can only contain letters, numbers, underscores, and hyphens".to_string(),
-        );
+        errors.push(RegistrationError::UsernameCharacters);
     }
-
-    if errors.is_empty() {
-        Validation::success(())
-    } else {
-        Validation::failure(errors)
-    }
+    validation_from_errors(errors)
 }
 
-/// Validate email format
-fn validate_email(email: &str) -> Validation<(), Vec<String>> {
+fn validate_email(email: &str) -> Validation<(), NonEmptyVec<RegistrationError>> {
     let mut errors = Vec::new();
-
     if email.is_empty() {
-        errors.push("Email is required".to_string());
+        errors.push(RegistrationError::EmailRequired);
     }
-    if !email.contains('@') {
-        errors.push("Email must contain @".to_string());
+    if !email.contains('@') || !email.contains('.') || email.len() > 254 {
+        errors.push(RegistrationError::EmailFormat);
     }
-    if !email.contains('.') {
-        errors.push("Email must contain a domain".to_string());
-    }
-    if email.len() > 254 {
-        errors.push("Email is too long".to_string());
-    }
-
-    if errors.is_empty() {
-        Validation::success(())
-    } else {
-        Validation::failure(errors)
-    }
+    validation_from_errors(errors)
 }
 
-/// Validate password strength
-fn validate_password(password: &str) -> Validation<(), Vec<String>> {
+fn validate_password(password: &str) -> Validation<(), NonEmptyVec<RegistrationError>> {
     let mut errors = Vec::new();
-
     if password.len() < 8 {
-        errors.push("Password must be at least 8 characters".to_string());
+        errors.push(RegistrationError::PasswordLength);
     }
-    if !password.chars().any(|c| c.is_uppercase()) {
-        errors.push("Password must contain an uppercase letter".to_string());
+    if !password.chars().any(char::is_uppercase) {
+        errors.push(RegistrationError::PasswordUppercase);
     }
-    if !password.chars().any(|c| c.is_lowercase()) {
-        errors.push("Password must contain a lowercase letter".to_string());
+    if !password.chars().any(char::is_lowercase) {
+        errors.push(RegistrationError::PasswordLowercase);
     }
-    if !password.chars().any(|c| c.is_numeric()) {
-        errors.push("Password must contain a number".to_string());
+    if !password.chars().any(char::is_numeric) {
+        errors.push(RegistrationError::PasswordNumber);
     }
+    validation_from_errors(errors)
+}
 
-    if errors.is_empty() {
+fn validate_password_match(
+    password: &str,
+    confirmation: &str,
+) -> Validation<(), NonEmptyVec<RegistrationError>> {
+    if password == confirmation {
         Validation::success(())
     } else {
-        Validation::failure(errors)
+        Validation::fail(RegistrationError::PasswordMismatch)
     }
 }
 
-/// Validate passwords match
-fn validate_passwords_match(password: &str, confirm: &str) -> Validation<(), Vec<String>> {
-    if password == confirm {
+fn require_available(
+    available: bool,
+    error: RegistrationError,
+) -> Validation<(), NonEmptyVec<RegistrationError>> {
+    if available {
         Validation::success(())
     } else {
-        Validation::failure(vec!["Passwords do not match".to_string()])
+        Validation::fail(error)
     }
 }
 
-/// Validate all input fields (pure validation with error accumulation)
-fn validate_registration_input(input: &RegistrationInput) -> Validation<(), Vec<String>> {
-    let v1 = validate_username(&input.username);
-    let v2 = validate_email(&input.email);
-    let v3 = validate_password(&input.password);
-    let v4 = validate_passwords_match(&input.password, &input.confirm_password);
-    Validation::<((), (), (), ()), Vec<String>>::all((v1, v2, v3, v4)).map(|_| ())
-}
-
-// ==================== Services (Environment) ====================
-
-/// Mock database service
-#[derive(Clone)]
-struct Database {
-    users: Arc<Mutex<HashMap<u64, User>>>,
-    next_id: Arc<Mutex<u64>>,
-}
-
-impl Database {
-    fn new() -> Self {
-        Self {
-            users: Arc::new(Mutex::new(HashMap::new())),
-            next_id: Arc::new(Mutex::new(1)),
-        }
-    }
-
-    fn username_exists(&self, username: &str) -> bool {
-        self.users
-            .lock()
-            .unwrap()
-            .values()
-            .any(|u| u.username == username)
-    }
-
-    fn email_exists(&self, email: &str) -> bool {
-        self.users
-            .lock()
-            .unwrap()
-            .values()
-            .any(|u| u.email == email)
-    }
-
-    fn save_user(&self, user: User) {
-        self.users.lock().unwrap().insert(user.id, user);
-    }
-
-    fn get_next_id(&self) -> u64 {
-        let mut id = self.next_id.lock().unwrap();
-        let current = *id;
-        *id += 1;
-        current
-    }
-
-    fn count(&self) -> usize {
-        self.users.lock().unwrap().len()
-    }
-}
-
-/// Mock password hasher
-#[derive(Clone, Copy)]
-struct PasswordHasher;
-
-impl PasswordHasher {
-    fn hash(&self, password: &str) -> String {
-        // In real code, use bcrypt or argon2
-        format!("hashed_{}", password)
-    }
-}
-
-/// Mock email service
-#[derive(Clone)]
-struct EmailService {
-    sent_emails: Arc<Mutex<Vec<String>>>,
-}
-
-impl EmailService {
-    fn new() -> Self {
-        Self {
-            sent_emails: Arc::new(Mutex::new(Vec::new())),
-        }
-    }
-
-    fn send_welcome_email(&self, email: &str) {
-        let message = format!("Welcome email sent to {}", email);
-        self.sent_emails.lock().unwrap().push(message.clone());
-        println!("  [EMAIL] {}", message);
-    }
-
-    fn sent_count(&self) -> usize {
-        self.sent_emails.lock().unwrap().len()
-    }
-}
-
-/// Application environment
-#[derive(Clone)]
-struct Env {
-    db: Database,
-    hasher: PasswordHasher,
-    email: EmailService,
-}
-
-impl Env {
-    fn new() -> Self {
-        Self {
-            db: Database::new(),
-            hasher: PasswordHasher,
-            email: EmailService::new(),
-        }
-    }
-}
-
-impl AsRef<Database> for Env {
-    fn as_ref(&self) -> &Database {
-        &self.db
-    }
-}
-
-impl AsRef<PasswordHasher> for Env {
-    fn as_ref(&self) -> &PasswordHasher {
-        &self.hasher
-    }
-}
-
-impl AsRef<EmailService> for Env {
-    fn as_ref(&self) -> &EmailService {
-        &self.email
-    }
-}
-
-// ==================== Effects ====================
-
-/// Check if username is already taken (effectful - requires database)
-fn check_username_available(
-    username: String,
-) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
-    let username_for_context = username.clone();
-    from_fn(move |env: &Env| {
-        if env.db.username_exists(&username) {
-            Err(format!("Username '{}' is already taken", username))
-        } else {
-            Ok(())
-        }
-    })
-    .context(format!(
-        "checking if username '{}' is available",
-        username_for_context
-    ))
-}
-
-/// Check if email is already registered (effectful - requires database)
-fn check_email_available(
-    email: String,
-) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
-    let email_for_context = email.clone();
-    from_fn(move |env: &Env| {
-        if env.db.email_exists(&email) {
-            Err(format!("Email '{}' is already registered", email))
-        } else {
-            Ok(())
-        }
-    })
-    .context(format!(
-        "checking if email '{}' is available",
-        email_for_context
-    ))
-}
-
-/// Hash password (effectful - uses hasher service)
-fn hash_password(
-    password: String,
-) -> impl Effect<Output = String, Error = ContextError<String>, Env = Env> {
-    from_fn(move |env: &Env| Ok::<_, String>(env.hasher.hash(&password)))
-        .context("hashing password".to_string())
-}
-
-/// Save user to database
-fn save_user(user: User) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
-    let username_for_context = user.username.clone();
-    from_fn(move |env: &Env| {
-        env.db.save_user(user.clone());
-        Ok(user.clone())
-    })
-    .context(format!("saving user '{}'", username_for_context))
-}
-
-/// Send welcome email
-fn send_welcome_email(
-    email: String,
-) -> impl Effect<Output = (), Error = ContextError<String>, Env = Env> {
-    let email_for_context = email.clone();
-    from_fn(move |env: &Env| {
-        env.email.send_welcome_email(&email);
-        Ok(())
-    })
-    .context(format!("sending welcome email to '{}'", email_for_context))
-}
-
-// ==================== Registration Workflow ====================
-
-/// Complete registration workflow combining validation and effects
-fn register_user(
+/// Pure core: all decisions depend only on input data and loaded facts.
+fn decide_registration(
     input: RegistrationInput,
-) -> impl Effect<Output = User, Error = ContextError<String>, Env = Env> {
-    // Step 1: Pure validation (convert Validation to Effect)
-    from_validation(validate_registration_input(&input).map_err(|errors| errors.join("; ")))
-        .context("validating registration input".to_string())
-        // Step 2: Check username availability
-        .and_then(move |_| {
-            let input_clone = input.clone();
-            check_username_available(input.username.clone()).map(move |_| input_clone)
+    facts: RegistrationFacts,
+) -> Validation<RegistrationPlan, NonEmptyVec<RegistrationError>> {
+    Validation::<(), NonEmptyVec<RegistrationError>>::all((
+        validate_username(&input.username),
+        validate_email(&input.email),
+        validate_password(&input.password),
+        validate_password_match(&input.password, &input.confirm_password),
+        require_available(!facts.username_taken, RegistrationError::UsernameTaken),
+        require_available(!facts.email_taken, RegistrationError::EmailTaken),
+    ))
+    .map(|_| RegistrationPlan {
+        username: input.username,
+        email: input.email,
+        password: input.password,
+    })
+}
+
+trait UserRepository: Send + Sync {
+    fn registration_facts<'a>(
+        &'a self,
+        username: &'a str,
+        email: &'a str,
+    ) -> BoxFuture<'a, Result<RegistrationFacts, InfrastructureError>>;
+
+    fn save<'a>(&'a self, user: User) -> BoxFuture<'a, Result<User, InfrastructureError>>;
+}
+
+trait PasswordHasher: Send + Sync {
+    fn hash(&self, password: &str) -> Result<String, InfrastructureError>;
+}
+
+trait EmailSender: Send + Sync {
+    fn send_welcome<'a>(&'a self, user: &'a User)
+        -> BoxFuture<'a, Result<(), InfrastructureError>>;
+}
+
+#[derive(Clone)]
+struct AppEnv {
+    users: Arc<dyn UserRepository>,
+    passwords: Arc<dyn PasswordHasher>,
+    email: Arc<dyn EmailSender>,
+}
+
+fn load_registration_facts(
+    input: RegistrationInput,
+) -> impl Effect<Output = (RegistrationInput, RegistrationFacts), Error = AppError, Env = AppEnv> {
+    from_async_ref(move |env: &AppEnv| {
+        Box::pin(async move {
+            env.users
+                .registration_facts(&input.username, &input.email)
+                .await
+                .map(|facts| (input, facts))
+                .map_err(AppError::Infrastructure)
         })
-        // Step 3: Check email availability
-        .and_then(move |input| {
-            let input_clone = input.clone();
-            check_email_available(input.email.clone()).map(move |_| input_clone)
+    })
+}
+
+fn interpret_registration(
+    plan: RegistrationPlan,
+) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
+    let RegistrationPlan {
+        username,
+        email,
+        password,
+    } = plan;
+
+    from_fn(move |env: &AppEnv| {
+        env.passwords
+            .hash(&password)
+            .map(|password_hash| User {
+                id: 0,
+                username,
+                email,
+                password_hash,
+            })
+            .map_err(AppError::Infrastructure)
+    })
+    .and_then(|user| {
+        from_async_ref(move |env: &AppEnv| {
+            Box::pin(async move { env.users.save(user).await.map_err(AppError::Infrastructure) })
         })
-        // Step 4: Hash password
-        .and_then(move |input| {
-            let input_clone = input.clone();
-            hash_password(input.password.clone()).map(move |hash| (input_clone, hash))
-        })
-        // Step 5: Create user object
-        .and_then(|(input, password_hash)| {
-            from_fn(move |env: &Env| {
-                let user = User {
-                    id: env.db.get_next_id(),
-                    username: input.username.clone(),
-                    email: input.email.clone(),
-                    password_hash,
-                };
-                Ok((user, input.email.clone()))
+    })
+    .and_then(|user| {
+        let result = user.clone();
+        from_async_ref(move |env: &AppEnv| {
+            Box::pin(async move {
+                env.email
+                    .send_welcome(&user)
+                    .await
+                    .map(|()| result)
+                    .map_err(AppError::Infrastructure)
             })
         })
-        // Step 6: Save user
-        .and_then(|(user, email)| save_user(user.clone()).map(move |user| (user, email)))
-        // Step 7: Send welcome email
-        .and_then(|(user, email)| send_welcome_email(email).map(move |_| user.clone()))
+    })
 }
 
-// ==================== Examples ====================
+/// Imperative shell: load, decide, then interpret in an explicit order.
+fn register_user(
+    input: RegistrationInput,
+) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
+    load_registration_facts(input)
+        .and_then(|(input, facts)| {
+            from_validation(decide_registration(input, facts).map_err(AppError::Rejected))
+        })
+        .and_then(interpret_registration)
+}
 
-async fn example_successful_registration() {
-    println!("\n=== Example 1: Successful Registration ===");
+#[derive(Default)]
+struct InMemoryServices {
+    users: Mutex<HashMap<u64, User>>,
+    events: Mutex<Vec<&'static str>>,
+    next_id: Mutex<u64>,
+    load_error: Mutex<bool>,
+    hash_error: Mutex<bool>,
+    save_error: Mutex<bool>,
+    email_error: Mutex<bool>,
+}
 
-    let env = Env::new();
-
-    let input = RegistrationInput {
-        username: "alice_smith".to_string(),
-        email: "alice@example.com".to_string(),
-        password: "SecurePass123".to_string(),
-        confirm_password: "SecurePass123".to_string(),
-    };
-
-    match register_user(input).run(&env).await {
-        Ok(user) => {
-            println!("✓ User registered successfully!");
-            println!("  ID: {}", user.id);
-            println!("  Username: {}", user.username);
-            println!("  Email: {}", user.email);
-            println!(
-                "  Password hashed: {}",
-                user.password_hash.starts_with("hashed_")
-            );
-            println!("  Total users: {}", env.db.count());
-            println!("  Emails sent: {}", env.email.sent_count());
+impl InMemoryServices {
+    fn app_env(self: &Arc<Self>) -> AppEnv {
+        AppEnv {
+            users: self.clone(),
+            passwords: self.clone(),
+            email: self.clone(),
         }
-        Err(e) => println!("✗ Registration failed:\n{}", e),
+    }
+
+    fn record(&self, event: &'static str) {
+        self.events.lock().unwrap().push(event);
+    }
+
+    fn events(&self) -> Vec<&'static str> {
+        self.events.lock().unwrap().clone()
     }
 }
 
-async fn example_validation_errors() {
-    println!("\n=== Example 2: Validation Errors ===");
+impl UserRepository for InMemoryServices {
+    fn registration_facts<'a>(
+        &'a self,
+        username: &'a str,
+        email: &'a str,
+    ) -> BoxFuture<'a, Result<RegistrationFacts, InfrastructureError>> {
+        Box::pin(async move {
+            self.record("load_facts");
+            if *self.load_error.lock().unwrap() {
+                return Err(InfrastructureError::LoadFacts);
+            }
+            let users = self.users.lock().unwrap();
+            Ok(RegistrationFacts {
+                username_taken: users.values().any(|user| user.username == username),
+                email_taken: users.values().any(|user| user.email == email),
+            })
+        })
+    }
 
-    let env = Env::new();
-
-    let input = RegistrationInput {
-        username: "ab".to_string(),                // Too short
-        email: "invalid-email".to_string(),        // No @ or .
-        password: "weak".to_string(),              // Missing uppercase, number
-        confirm_password: "different".to_string(), // Doesn't match
-    };
-
-    match register_user(input).run(&env).await {
-        Ok(user) => println!("✓ User registered: {}", user.username),
-        Err(e) => {
-            println!("✗ Registration failed (validation errors):");
-            println!("{}", e);
-        }
+    fn save<'a>(&'a self, mut user: User) -> BoxFuture<'a, Result<User, InfrastructureError>> {
+        Box::pin(async move {
+            self.record("save");
+            if *self.save_error.lock().unwrap() {
+                return Err(InfrastructureError::SaveUser);
+            }
+            let mut next_id = self.next_id.lock().unwrap();
+            *next_id += 1;
+            user.id = *next_id;
+            self.users.lock().unwrap().insert(user.id, user.clone());
+            Ok(user)
+        })
     }
 }
 
-async fn example_duplicate_username() {
-    println!("\n=== Example 3: Duplicate Username ===");
-
-    let env = Env::new();
-
-    // Register first user
-    let input1 = RegistrationInput {
-        username: "bob".to_string(),
-        email: "bob1@example.com".to_string(),
-        password: "Password123".to_string(),
-        confirm_password: "Password123".to_string(),
-    };
-
-    register_user(input1).run(&env).await.ok();
-    println!("  First user registered");
-
-    // Try to register with same username
-    let input2 = RegistrationInput {
-        username: "bob".to_string(), // Duplicate!
-        email: "bob2@example.com".to_string(),
-        password: "Password123".to_string(),
-        confirm_password: "Password123".to_string(),
-    };
-
-    match register_user(input2).run(&env).await {
-        Ok(_) => println!("✓ User registered"),
-        Err(e) => {
-            println!("✗ Registration failed:");
-            println!("{}", e);
+impl PasswordHasher for InMemoryServices {
+    fn hash(&self, password: &str) -> Result<String, InfrastructureError> {
+        self.record("hash");
+        if *self.hash_error.lock().unwrap() {
+            Err(InfrastructureError::HashPassword)
+        } else {
+            Ok(format!("hashed:{password}"))
         }
     }
 }
 
-async fn example_duplicate_email() {
-    println!("\n=== Example 4: Duplicate Email ===");
-
-    let env = Env::new();
-
-    // Register first user
-    let input1 = RegistrationInput {
-        username: "charlie".to_string(),
-        email: "charlie@example.com".to_string(),
-        password: "Password123".to_string(),
-        confirm_password: "Password123".to_string(),
-    };
-
-    register_user(input1).run(&env).await.ok();
-    println!("  First user registered");
-
-    // Try to register with same email
-    let input2 = RegistrationInput {
-        username: "charlie2".to_string(),
-        email: "charlie@example.com".to_string(), // Duplicate!
-        password: "Password123".to_string(),
-        confirm_password: "Password123".to_string(),
-    };
-
-    match register_user(input2).run(&env).await {
-        Ok(_) => println!("✓ User registered"),
-        Err(e) => {
-            println!("✗ Registration failed:");
-            println!("{}", e);
-        }
+impl EmailSender for InMemoryServices {
+    fn send_welcome<'a>(
+        &'a self,
+        _user: &'a User,
+    ) -> BoxFuture<'a, Result<(), InfrastructureError>> {
+        Box::pin(async move {
+            self.record("email");
+            if *self.email_error.lock().unwrap() {
+                Err(InfrastructureError::SendEmail)
+            } else {
+                Ok(())
+            }
+        })
     }
 }
 
-async fn example_multiple_registrations() {
-    println!("\n=== Example 5: Multiple Successful Registrations ===");
-
-    let env = Env::new();
-
-    let users = vec![
-        ("alice", "alice@example.com"),
-        ("bob", "bob@example.com"),
-        ("charlie", "charlie@example.com"),
-    ];
-
-    for (username, email) in users {
-        let input = RegistrationInput {
-            username: username.to_string(),
-            email: email.to_string(),
-            password: "SecurePass123".to_string(),
-            confirm_password: "SecurePass123".to_string(),
-        };
-
-        match register_user(input).run(&env).await {
-            Ok(user) => println!("  ✓ Registered: {} ({})", user.username, user.email),
-            Err(e) => println!("  ✗ Failed: {}", e),
-        }
+fn valid_input() -> RegistrationInput {
+    RegistrationInput {
+        username: "stillwater_user".to_string(),
+        email: "user@example.com".to_string(),
+        password: "CalmWater7".to_string(),
+        confirm_password: "CalmWater7".to_string(),
     }
-
-    println!("\nTotal users: {}", env.db.count());
-    println!("Total emails sent: {}", env.email.sent_count());
 }
-
-// ==================== Main ====================
 
 #[tokio::main]
 async fn main() {
-    println!("User Registration Examples");
-    println!("==========================");
-    println!();
-    println!("This example demonstrates how Validation and Effect work together:");
-    println!("1. Pure validation with error accumulation (Validation)");
-    println!("2. Effectful operations with context (Effect)");
-    println!("3. Composing a complete registration workflow");
+    let services = Arc::new(InMemoryServices::default());
+    let result = register_user(valid_input()).run(&services.app_env()).await;
+    println!("registration: {result:?}");
+    println!("shell order: {:?}", services.events());
+}
 
-    example_successful_registration().await;
-    example_validation_errors().await;
-    example_duplicate_username().await;
-    example_duplicate_email().await;
-    example_multiple_registrations().await;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    println!("\n=== All examples completed successfully! ===");
+    #[test]
+    fn pure_decision_accepts_valid_input() {
+        let result = decide_registration(valid_input(), RegistrationFacts::default());
+        assert!(result.is_success());
+    }
+
+    #[test]
+    fn pure_decision_accumulates_input_and_duplicate_errors() {
+        let result = decide_registration(
+            RegistrationInput {
+                username: "!".to_string(),
+                email: "bad".to_string(),
+                password: "short".to_string(),
+                confirm_password: "different".to_string(),
+            },
+            RegistrationFacts {
+                username_taken: true,
+                email_taken: true,
+            },
+        );
+
+        let Validation::Failure(errors) = result else {
+            panic!("invalid registration should be rejected");
+        };
+        let errors = errors.into_vec();
+        assert!(errors.contains(&RegistrationError::UsernameLength));
+        assert!(errors.contains(&RegistrationError::UsernameCharacters));
+        assert!(errors.contains(&RegistrationError::EmailFormat));
+        assert!(errors.contains(&RegistrationError::PasswordLength));
+        assert!(errors.contains(&RegistrationError::PasswordUppercase));
+        assert!(errors.contains(&RegistrationError::PasswordNumber));
+        assert!(errors.contains(&RegistrationError::PasswordMismatch));
+        assert!(errors.contains(&RegistrationError::UsernameTaken));
+        assert!(errors.contains(&RegistrationError::EmailTaken));
+    }
+
+    #[tokio::test]
+    async fn interpreter_saves_before_sending_email() {
+        let services = Arc::new(InMemoryServices::default());
+        let result = register_user(valid_input()).run(&services.app_env()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(
+            services.events(),
+            vec!["load_facts", "hash", "save", "email"]
+        );
+    }
+
+    #[tokio::test]
+    async fn save_failure_prevents_email() {
+        let services = Arc::new(InMemoryServices::default());
+        *services.save_error.lock().unwrap() = true;
+
+        let result = register_user(valid_input()).run(&services.app_env()).await;
+
+        assert_eq!(
+            result,
+            Err(AppError::Infrastructure(InfrastructureError::SaveUser))
+        );
+        assert_eq!(services.events(), vec!["load_facts", "hash", "save"]);
+    }
+
+    #[tokio::test]
+    async fn end_to_end_success_persists_the_user() {
+        let services = Arc::new(InMemoryServices::default());
+        let user = register_user(valid_input())
+            .run(&services.app_env())
+            .await
+            .unwrap();
+
+        assert!(user.id > 0);
+        assert_eq!(user.password_hash, "hashed:CalmWater7");
+        assert_eq!(services.users.lock().unwrap().get(&user.id), Some(&user));
+    }
+
+    #[tokio::test]
+    async fn end_to_end_rejection_does_not_start_interpretation() {
+        let services = Arc::new(InMemoryServices::default());
+        let mut input = valid_input();
+        input.confirm_password = "not-the-password".to_string();
+
+        let result = register_user(input).run(&services.app_env()).await;
+
+        assert!(matches!(result, Err(AppError::Rejected(_))));
+        assert_eq!(services.events(), vec!["load_facts"]);
+    }
+
+    #[tokio::test]
+    async fn end_to_end_infrastructure_error_is_preserved() {
+        let services = Arc::new(InMemoryServices::default());
+        *services.load_error.lock().unwrap() = true;
+
+        let result = register_user(valid_input()).run(&services.app_env()).await;
+
+        assert_eq!(
+            result,
+            Err(AppError::Infrastructure(InfrastructureError::LoadFacts))
+        );
+        assert_eq!(services.events(), vec!["load_facts"]);
+    }
 }
