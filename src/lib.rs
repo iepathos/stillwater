@@ -159,7 +159,10 @@ pub mod prelude {
     pub use crate::retry::{RetryEvent, RetryExhausted, RetryPolicy, TimeoutError};
     pub use crate::semigroup::{First, Intersection, Last, Semigroup};
     pub use crate::testing::{MockEnv, TestEffect};
-    pub use crate::traverse::{sequence, sequence_effect, traverse, traverse_effect};
+    pub use crate::traverse::{
+        sequence, sequence_effect_parallel, sequence_effect_sequential, traverse,
+        traverse_effect_parallel, traverse_effect_sequential,
+    };
     pub use crate::validation::Validation;
     pub use crate::{assert_failure, assert_success, assert_validation_errors};
 }

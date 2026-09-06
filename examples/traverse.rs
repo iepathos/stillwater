@@ -11,7 +11,9 @@
 
 use stillwater::effect::{fail, from_fn, pure};
 use stillwater::prelude::*;
-use stillwater::traverse::{sequence, sequence_effect, traverse, traverse_effect};
+use stillwater::traverse::{
+    sequence, sequence_effect_sequential, traverse, traverse_effect_sequential,
+};
 use stillwater::BoxedEffect;
 
 // ==================== Basic Traverse ====================
@@ -204,7 +206,7 @@ fn example_batch_user_validation() {
 
 /// Example 4: Traverse with effects
 ///
-/// Demonstrates using traverse_effect for batch processing with effects.
+/// Demonstrates sequential effect traversal for batch processing.
 #[tokio::main]
 async fn example_effect_traverse() {
     println!("\n=== Example 4: Effect Traverse ===");
@@ -215,7 +217,7 @@ async fn example_effect_traverse() {
 
     let numbers = vec![1, 2, 3, 4, 5];
     println!("Processing numbers with effect:");
-    let effect = traverse_effect(numbers, process_number);
+    let effect = traverse_effect_sequential(numbers, process_number);
     match effect.run_standalone().await {
         Ok(results) => println!("  Results: {:?}", results),
         Err(error) => println!("  Error: {}", error),
@@ -235,7 +237,7 @@ async fn example_effect_traverse() {
 
     let mixed = vec![1, 2, -3, 4];
     println!("\nProcessing with validation (fail-fast):");
-    let effect = traverse_effect(mixed, validate_and_process);
+    let effect = traverse_effect_sequential(mixed, validate_and_process);
     match effect.run_standalone().await {
         Ok(results) => println!("  Results: {:?}", results),
         Err(error) => println!("  Error (stopped at first): {}", error),
@@ -280,7 +282,7 @@ async fn example_batch_file_processing() {
     ];
 
     println!("Reading files:");
-    let effect = traverse_effect(files, read_file);
+    let effect = traverse_effect_sequential(files, read_file);
     match effect.run_standalone().await {
         Ok(contents) => {
             println!("  Read {} files:", contents.len());
@@ -298,7 +300,7 @@ async fn example_batch_file_processing() {
     ];
 
     println!("\nReading mixed files (fail-fast):");
-    let effect = traverse_effect(mixed_files, read_file);
+    let effect = traverse_effect_sequential(mixed_files, read_file);
     match effect.run_standalone().await {
         Ok(contents) => println!("  Read: {:?}", contents),
         Err(error) => println!("  Error: {}", error),
@@ -309,7 +311,7 @@ async fn example_batch_file_processing() {
 
 /// Example 6: Sequencing effects
 ///
-/// Demonstrates using sequence_effect to convert Vec<Effect> to Effect<Vec>.
+/// Demonstrates converting a `Vec<Effect>` into a sequential `Effect<Vec>`.
 #[tokio::main]
 async fn example_sequence_effect() {
     println!("\n=== Example 6: Sequence Effect ===");
@@ -319,7 +321,7 @@ async fn example_sequence_effect() {
         vec![pure(1).boxed(), pure(2).boxed(), pure(3).boxed()];
 
     println!("Sequence pure effects:");
-    let result_effect = sequence_effect(effects);
+    let result_effect = sequence_effect_sequential(effects);
     match result_effect.run_standalone().await {
         Ok(values) => println!("  Values: {:?}", values),
         Err(error) => println!("  Error: {}", error),
@@ -333,7 +335,7 @@ async fn example_sequence_effect() {
     ];
 
     println!("\nSequence with failure (fail-fast):");
-    let result_effect = sequence_effect(mixed_effects);
+    let result_effect = sequence_effect_sequential(mixed_effects);
     match result_effect.run_standalone().await {
         Ok(values) => println!("  Values: {:?}", values),
         Err(error) => println!("  Error: {}", error),

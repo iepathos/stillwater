@@ -38,7 +38,7 @@
 //! ## Effect
 //!
 //! ```
-//! use stillwater::{BoxedEffect, traverse::traverse_effect};
+//! use stillwater::{BoxedEffect, traverse::traverse_effect_sequential};
 //! use stillwater::effect::prelude::*;
 //!
 //! # tokio_test::block_on(async {
@@ -47,7 +47,7 @@
 //! }
 //!
 //! let numbers = vec![1, 2, 3];
-//! let effect = traverse_effect(numbers, process);
+//! let effect = traverse_effect_sequential(numbers, process);
 //! let result = effect.run(&()).await;
 //! assert_eq!(result, Ok(vec![2, 4, 6]));
 //! # });
@@ -138,10 +138,10 @@ where
     Validation::all_vec(iter.into_iter().collect())
 }
 
-/// Traverse a collection with an effect function.
+/// Traverse a collection sequentially with an effect function.
 ///
-/// Applies `f` to each element sequentially, collecting all results.
-/// Uses fail-fast semantics - stops at the first error.
+/// Constructs and runs one effect at a time, collecting results in input order.
+/// On failure, later effects are neither constructed nor run.
 ///
 /// # Type Parameters
 ///
@@ -155,7 +155,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use stillwater::{BoxedEffect, traverse::traverse_effect};
+/// use stillwater::{BoxedEffect, traverse::traverse_effect_sequential};
 /// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
@@ -163,14 +163,17 @@ where
 ///     pure(x * 2).boxed()
 /// }
 ///
-/// let result = traverse_effect(vec![1, 2, 3], double);
+/// let result = traverse_effect_sequential(vec![1, 2, 3], double);
 /// assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
 /// # });
 /// ```
-pub fn traverse_effect<T, U, E, Env, F, I>(iter: I, f: F) -> BoxedEffect<Vec<U>, E, Env>
+pub fn traverse_effect_sequential<T, U, E, Env, F, I>(
+    iter: I,
+    mut f: F,
+) -> BoxedEffect<Vec<U>, E, Env>
 where
     I: IntoIterator<Item = T>,
-    F: Fn(T) -> BoxedEffect<U, E, Env> + Clone + Send + 'static,
+    F: FnMut(T) -> BoxedEffect<U, E, Env> + Send + 'static,
     T: Send + 'static,
     U: Send + 'static,
     E: Send + 'static,
@@ -178,18 +181,52 @@ where
 {
     use crate::effect::prelude::*;
     let items: Vec<_> = iter.into_iter().collect();
-    let effects: Vec<BoxedEffect<U, E, Env>> = items.into_iter().map(f).collect();
     from_async(move |env: &Env| {
         let env = env.clone();
-        async move { par_try_all(effects, &env).await }
+        async move {
+            let mut values = Vec::with_capacity(items.len());
+            for item in items {
+                values.push(f(item).run(&env).await?);
+            }
+            Ok(values)
+        }
     })
     .boxed()
 }
 
-/// Sequence a collection of effects.
+/// Traverse a collection in parallel with an effect function.
 ///
-/// Converts a collection of effects into an effect of a collection.
-/// Executes effects sequentially with fail-fast semantics.
+/// Constructs all effects when the returned effect runs, then runs them
+/// concurrently. All effects run to completion. Successful values and the
+/// first returned error are ordered by input position, not completion time.
+pub fn traverse_effect_parallel<T, U, E, Env, F, I>(
+    iter: I,
+    mut f: F,
+) -> BoxedEffect<Vec<U>, E, Env>
+where
+    I: IntoIterator<Item = T>,
+    F: FnMut(T) -> BoxedEffect<U, E, Env> + Send + 'static,
+    T: Send + 'static,
+    U: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    use crate::effect::prelude::*;
+    let items: Vec<_> = iter.into_iter().collect();
+    from_async(move |env: &Env| {
+        let env = env.clone();
+        async move {
+            let effects = items.into_iter().map(&mut f).collect();
+            par_try_all(effects, &env).await
+        }
+    })
+    .boxed()
+}
+
+/// Sequence a collection of effects sequentially.
+///
+/// Runs one effect at a time and stops at the first error. Effects after the
+/// failure are not run. Successful values retain input order.
 ///
 /// # Type Parameters
 ///
@@ -201,7 +238,7 @@ where
 /// # Examples
 ///
 /// ```
-/// use stillwater::{BoxedEffect, traverse::sequence_effect};
+/// use stillwater::{BoxedEffect, traverse::sequence_effect_sequential};
 /// use stillwater::effect::prelude::*;
 ///
 /// # tokio_test::block_on(async {
@@ -210,14 +247,40 @@ where
 ///     pure(2).boxed(),
 ///     pure(3).boxed(),
 /// ];
-/// let result = sequence_effect(effects);
+/// let result = sequence_effect_sequential(effects);
 /// assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
 /// # });
 /// ```
-pub fn sequence_effect<T, E, Env, I>(iter: I) -> BoxedEffect<Vec<T>, E, Env>
+pub fn sequence_effect_sequential<T, E, Env, I>(iter: I) -> BoxedEffect<Vec<T>, E, Env>
 where
-    I: IntoIterator<Item = BoxedEffect<T, E, Env>> + Send + 'static,
-    I::IntoIter: Send,
+    I: IntoIterator<Item = BoxedEffect<T, E, Env>>,
+    T: Send + 'static,
+    E: Send + 'static,
+    Env: Clone + Send + Sync + 'static,
+{
+    use crate::effect::prelude::*;
+    let effects: Vec<BoxedEffect<T, E, Env>> = iter.into_iter().collect();
+    from_async(move |env: &Env| {
+        let env = env.clone();
+        async move {
+            let mut values = Vec::with_capacity(effects.len());
+            for effect in effects {
+                values.push(effect.run(&env).await?);
+            }
+            Ok(values)
+        }
+    })
+    .boxed()
+}
+
+/// Sequence a collection of effects in parallel.
+///
+/// Runs all effects concurrently and waits for all of them to complete.
+/// Successful values and the first returned error are ordered by input
+/// position, not completion time.
+pub fn sequence_effect_parallel<T, E, Env, I>(iter: I) -> BoxedEffect<Vec<T>, E, Env>
+where
+    I: IntoIterator<Item = BoxedEffect<T, E, Env>>,
     T: Send + 'static,
     E: Send + 'static,
     Env: Clone + Send + Sync + 'static,
@@ -323,7 +386,7 @@ mod tests {
             pure(x * 2).boxed()
         }
 
-        let result = traverse_effect(vec![1, 2, 3], double);
+        let result = traverse_effect_sequential(vec![1, 2, 3], double);
         assert_eq!(result.run(&()).await, Ok(vec![2, 4, 6]));
     }
 
@@ -338,7 +401,7 @@ mod tests {
             }
         }
 
-        let result = traverse_effect(vec![1, -2, 3], check_positive);
+        let result = traverse_effect_sequential(vec![1, -2, 3], check_positive);
         assert!(result.run(&()).await.is_err());
     }
 
@@ -349,7 +412,7 @@ mod tests {
             pure(x * 2).boxed()
         }
 
-        let result = traverse_effect(Vec::<i32>::new(), double);
+        let result = traverse_effect_sequential(Vec::<i32>::new(), double);
         assert_eq!(result.run(&()).await, Ok(vec![]));
     }
 
@@ -362,7 +425,7 @@ mod tests {
             pure(2).boxed(),
             pure(3).boxed(),
         ];
-        let result = sequence_effect(effects);
+        let result = sequence_effect_sequential(effects);
         assert_eq!(result.run(&()).await, Ok(vec![1, 2, 3]));
     }
 
@@ -374,7 +437,7 @@ mod tests {
             fail("error".to_string()).boxed(),
             pure(3).boxed(),
         ];
-        let result = sequence_effect(effects);
+        let result = sequence_effect_sequential(effects);
         assert!(result.run(&()).await.is_err());
     }
 
@@ -382,7 +445,7 @@ mod tests {
     async fn test_sequence_effect_empty() {
         use crate::effect::prelude::*;
         let effects: Vec<BoxedEffect<i32, String, ()>> = vec![];
-        let result = sequence_effect(effects);
+        let result = sequence_effect_sequential(effects);
         assert_eq!(result.run(&()).await, Ok(vec![]));
     }
 
@@ -418,7 +481,124 @@ mod tests {
         }
 
         let env = Env { multiplier: 3 };
-        let result = traverse_effect(vec![1, 2, 3], multiply);
+        let result = traverse_effect_sequential(vec![1, 2, 3], multiply);
         assert_eq!(result.run(&env).await, Ok(vec![3, 6, 9]));
+    }
+
+    #[tokio::test]
+    async fn sequential_traversal_stops_before_constructing_later_effects() {
+        use crate::effect::prelude::*;
+        use std::sync::{Arc, Mutex};
+
+        let constructed = Arc::new(Mutex::new(Vec::new()));
+        let observed = Arc::clone(&constructed);
+        let effect = traverse_effect_sequential(vec![1, 2, 3], move |item| {
+            observed.lock().unwrap().push(item);
+            if item == 2 {
+                fail("stop").boxed()
+            } else {
+                pure(item).boxed()
+            }
+        });
+
+        assert!(constructed.lock().unwrap().is_empty());
+        assert_eq!(effect.run(&()).await, Err("stop"));
+        assert_eq!(*constructed.lock().unwrap(), vec![1, 2]);
+    }
+
+    #[tokio::test]
+    async fn sequential_sequence_runs_in_strict_order() {
+        use crate::effect::prelude::*;
+        use std::sync::{Arc, Mutex};
+
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let effects = (1..=3)
+            .map(|item| {
+                let events = Arc::clone(&events);
+                from_async(move |_: &()| async move {
+                    events.lock().unwrap().push(format!("start-{item}"));
+                    tokio::task::yield_now().await;
+                    events.lock().unwrap().push(format!("end-{item}"));
+                    Ok::<_, &'static str>(item)
+                })
+                .boxed()
+            })
+            .collect::<Vec<_>>();
+
+        let result = sequence_effect_sequential(effects).run(&()).await;
+
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+        assert_eq!(
+            *events.lock().unwrap(),
+            vec!["start-1", "end-1", "start-2", "end-2", "start-3", "end-3"]
+        );
+    }
+
+    #[tokio::test]
+    async fn parallel_traversal_overlaps_and_preserves_input_order() {
+        use crate::effect::prelude::*;
+        use std::sync::Arc;
+        use std::time::Duration;
+        use tokio::sync::Barrier;
+
+        let barrier = Arc::new(Barrier::new(3));
+        let effect = traverse_effect_parallel(vec![1_u64, 2, 3], move |item| {
+            let barrier = Arc::clone(&barrier);
+            from_async(move |_: &()| async move {
+                barrier.wait().await;
+                tokio::time::sleep(Duration::from_millis((4 - item) * 5)).await;
+                Ok::<_, &'static str>(item)
+            })
+            .boxed()
+        });
+
+        let result = tokio::time::timeout(Duration::from_secs(1), effect.run(&()))
+            .await
+            .expect("parallel effects should all reach the barrier");
+
+        assert_eq!(result, Ok(vec![1, 2, 3]));
+    }
+
+    #[tokio::test]
+    async fn parallel_sequence_waits_for_other_effects_after_failure() {
+        use crate::effect::prelude::*;
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::Arc;
+
+        let completed = Arc::new(AtomicBool::new(false));
+        let completed_later = Arc::clone(&completed);
+        let effects = vec![
+            fail::<i32, _, ()>("first").boxed(),
+            from_async(move |_: &()| async move {
+                tokio::task::yield_now().await;
+                completed_later.store(true, Ordering::SeqCst);
+                Ok::<_, &'static str>(2)
+            })
+            .boxed(),
+        ];
+
+        let result = sequence_effect_parallel(effects).run(&()).await;
+
+        assert_eq!(result, Err("first"));
+        assert!(completed.load(Ordering::SeqCst));
+    }
+
+    #[tokio::test]
+    async fn explicit_effect_traversals_accept_empty_inputs() {
+        use crate::effect::prelude::*;
+
+        let sequential =
+            traverse_effect_sequential(Vec::<i32>::new(), |_| pure::<_, String, ()>(0).boxed());
+        let parallel =
+            traverse_effect_parallel(Vec::<i32>::new(), |_| pure::<_, String, ()>(0).boxed());
+        let sequential_sequence =
+            sequence_effect_sequential(Vec::<BoxedEffect<i32, String, ()>>::new());
+        let parallel_sequence =
+            sequence_effect_parallel(Vec::<BoxedEffect<i32, String, ()>>::new());
+
+        assert_eq!(sequential.run(&()).await, Ok(vec![]));
+        assert_eq!(parallel.run(&()).await, Ok(vec![]));
+        assert_eq!(sequential_sequence.run(&()).await, Ok(vec![]));
+        assert_eq!(parallel_sequence.run(&()).await, Ok(vec![]));
     }
 }
