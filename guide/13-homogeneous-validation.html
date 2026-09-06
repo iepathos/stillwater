@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,14 +184,11 @@
 <p>When you have an enum where each variant forms a Semigroup, but different variants cannot be combined, use homogeneous validation to ensure type consistency before combining.</p>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Many Rust programs use discriminated unions (enums) where each variant represents a different type of data, but each variant can be combined with other values of the same variant:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum Aggregate {
+<pre><code class="language-rust">enum Aggregate {
     Sum(f64),      // Sum + Sum = Sum (valid)
     Count(usize),  // Count + Count = Count (valid)
     // But: Sum + Count = ??? (type error!)
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>In a typical scenario, you might write:</p>
 <pre><code class="language-text">impl Semigroup for Aggregate {
     fn combine(self, other: Self) -&gt; Self {
@@ -211,11 +208,8 @@ let results = vec![worker1.result(), worker2.result(), worker3.result()];
 // If types don't match, the program crashes!
 </code></pre>
 <p><strong>JSON/Config Merging</strong>: Combining configuration from multiple sources</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// serde_json::Value has variants for Object, Array, Number, etc.
-// Merging an Object with an Array doesn't make sense
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust">// serde_json::Value has variants for Object, Array, Number, etc.
+// Merging an Object with an Array doesn't make sense</code></pre>
 <p><strong>Database Query Results</strong>: Combining results from sharded queries</p>
 <pre><code class="language-text">enum QueryResult {
     Rows(Vec&lt;Row&gt;),
@@ -330,12 +324,9 @@ where
 <h3 id="helper-types"><a class="header" href="#helper-types">Helper Types</a></h3>
 <h4 id="discriminantname-trait"><a class="header" href="#discriminantname-trait"><code>DiscriminantName</code> Trait</a></h4>
 <p>Provides human-readable names for discriminants:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait DiscriminantName {
+<pre><code class="language-rust">pub trait DiscriminantName {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Example implementation:</p>
 <pre><code class="language-text">impl DiscriminantName for Aggregate {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str {
@@ -349,14 +340,11 @@ where
 </code></pre>
 <h4 id="typemismatcherror"><a class="header" href="#typemismatcherror"><code>TypeMismatchError</code></a></h4>
 <p>A standardized error type for type mismatches:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct TypeMismatchError {
+<pre><code class="language-rust">pub struct TypeMismatchError {
     pub index: usize,
     pub expected: String,
     pub got: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Use with <code>DiscriminantName</code>:</p>
 <pre><code class="language-text">let result = validate_homogeneous(
     items,
@@ -366,9 +354,7 @@ where
 </code></pre>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <h3 id="example-1-aggregation-pipeline"><a class="header" href="#example-1-aggregation-pipeline">Example 1: Aggregation Pipeline</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::validation::homogeneous::combine_homogeneous;
+<pre><code class="language-rust">use stillwater::validation::homogeneous::combine_homogeneous;
 use stillwater::{Semigroup, Validation};
 use std::mem::discriminant;
 
@@ -416,8 +402,7 @@ match result {
     Validation::Failure(errors) =&gt; {
         eprintln!("Validation errors: {:?}", errors);
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="example-2-json-config-merging"><a class="header" href="#example-2-json-config-merging">Example 2: JSON Config Merging</a></h3>
 <pre><code class="language-text">use serde_json::Value;
 use stillwater::validation::homogeneous::{validate_homogeneous, DiscriminantName};
@@ -469,9 +454,7 @@ match result {
 </code></pre>
 <h3 id="example-3-integration-with-effect"><a class="header" href="#example-3-integration-with-effect">Example 3: Integration with Effect</a></h3>
 <p>Load values in the shell, then lift the pure validation into the effect’s error channel.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use stillwater::validation::homogeneous::validate_homogeneous;
 
 #[derive(Clone)]
@@ -486,8 +469,7 @@ tokio_test::block_on(async {
         )));
     let result = effect.run(&amp;Env { results: vec![2, 4, 3] }).await;
     assert_eq!(result, Err(vec!["parity mismatch at 2".to_string()]));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <h3 id="1-validate-at-boundaries"><a class="header" href="#1-validate-at-boundaries">1. Validate at Boundaries</a></h3>
 <p>Always validate at system boundaries, not in the middle of business logic:</p>

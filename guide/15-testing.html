@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,9 +187,7 @@ error propagation, and persisted state using explicit service implementations.</
 place equivalent bodies in ordinary Rust or Tokio tests. Do not hide doctest examples
 inside test-only modules: a passing doctest can otherwise contain unchecked code.</p>
 <h2 id="pure-decisions-and-accumulated-errors"><a class="header" href="#pure-decisions-and-accumulated-errors">Pure decisions and accumulated errors</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, assert_success, assert_failure, assert_validation_errors};
+<pre><code class="language-rust">use stillwater::{Validation, assert_success, assert_failure, assert_validation_errors};
 
 fn adult(age: u8) -&gt; Validation&lt;u8, Vec&lt;&amp;'static str&gt;&gt; {
     if age &gt;= 18 { Validation::success(age) } else { Validation::failure(vec!["underage"]) }
@@ -200,16 +198,13 @@ assert_failure!(adult(17));
 assert_validation_errors!(adult(17), vec!["underage"]);
 
 let checks = Validation::&lt;u8, Vec&lt;&amp;str&gt;&gt;::all((adult(16), adult(17)));
-assert_eq!(checks.into_result(), Err(vec!["underage", "underage"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(checks.into_result(), Err(vec!["underage", "underage"]));</code></pre>
 <p>Prefer asserting exact outputs and errors over checking only success/failure. Include
 boundary values and verify that independent failures accumulate.</p>
 <h2 id="explicit-test-environments"><a class="header" href="#explicit-test-environments">Explicit test environments</a></h2>
 <p>Small environments often need no builder. <code>MockEnv</code> is available when tuple composition
 helps construct a fixture; each <code>with</code> adds one nested pair.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::testing::MockEnv;
+<pre><code class="language-rust">use stillwater::testing::MockEnv;
 
 let (((), minimum_age), users) = MockEnv::new()
     .with(|| 18_u8)
@@ -217,12 +212,9 @@ let (((), minimum_age), users) = MockEnv::new()
     .build();
 
 assert_eq!(minimum_age, 18);
-assert!(users.is_empty());
-<span class="boring">}</span></code></pre>
+assert!(users.is_empty());</code></pre>
 <h2 id="shell-ordering-and-failure-boundaries"><a class="header" href="#shell-ordering-and-failure-boundaries">Shell ordering and failure boundaries</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::{Arc, Mutex};
+<pre><code class="language-rust">use std::sync::{Arc, Mutex};
 use stillwater::prelude::*;
 
 #[derive(Clone, Default)]
@@ -240,8 +232,7 @@ tokio_test::block_on(async {
     }));
     assert_eq!(workflow.run(&amp;env).await, Err("database unavailable"));
     assert_eq!(*env.events.lock().unwrap(), vec!["save"]);
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>The <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 also tests stale availability facts at commit time, rejected inputs, hashing failure,
 save failure, and email failure after persistence. Check persisted state as well as return
@@ -250,17 +241,14 @@ values: an error does not imply that earlier operations were rolled back.</p>
 <p>Add <code>proptest</code> as a development dependency. Stillwater’s optional <code>proptest</code> feature
 also supplies <code>Arbitrary</code> implementations for supported library types. A runner can
 execute a property directly, which works in a doctest as well as in a normal test.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::{prelude::*, test_runner::TestRunner};
+<pre><code class="language-rust">use proptest::{prelude::*, test_runner::TestRunner};
 use stillwater::Validation;
 
 TestRunner::default().run(&amp;any::&lt;i32&gt;(), |value| {
     let result = Validation::&lt;_, Vec&lt;String&gt;&gt;::success(value).map(|x| x);
     prop_assert_eq!(result, Validation::Success(value));
     Ok(())
-}).unwrap();
-<span class="boring">}</span></code></pre>
+}).unwrap();</code></pre>
 <p>Choose domain properties too: for example, rejected registration decisions never emit
 plans, and independent validation errors retain deterministic order. Bound arithmetic
 inputs or use checked operations so overflow does not accidentally become the property.</p>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,9 +184,7 @@
 <p>Use composition to describe a small operation clearly. Prefer a named domain struct or
 ordinary function when a long chain makes the data flow difficult to follow.</p>
 <h2 id="accumulate-independent-validations"><a class="header" href="#accumulate-independent-validations">Accumulate independent validations</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let values = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all((
     Validation::&lt;_, Vec&lt;&amp;str&gt;&gt;::success(1),
@@ -198,12 +196,9 @@ let failures = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all_vec(vec![
     Validation::failure(vec!["name"]),
     Validation::failure(vec!["email"]),
 ]);
-assert_eq!(failures.into_result(), Err(vec!["name", "email"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(failures.into_result(), Err(vec!["name", "email"]));</code></pre>
 <h2 id="map-chain-and-translate-errors"><a class="header" href="#map-chain-and-translate-errors">Map, chain, and translate errors</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = pure::&lt;_, &amp;str, ()&gt;(21)
@@ -211,15 +206,12 @@ tokio_test::block_on(async {
         .and_then(|value| from_result(Ok(value + 1)))
         .map_err(str::to_string);
     assert_eq!(effect.run(&amp;()).await, Ok(43));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>map</code> transforms a value; <code>and_then</code> constructs a dependent effect; <code>map_err</code> translates
 an error at a boundary. None of these automatically accumulates failures.</p>
 <h2 id="write-a-small-reusable-wrapper"><a class="header" href="#write-a-small-reusable-wrapper">Write a small reusable wrapper</a></h2>
 <p>Accept an effect through its trait instead of using the removed generic Effect struct.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn require_positive&lt;E&gt;(effect: E) -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = E::Env&gt;
 where
@@ -231,8 +223,7 @@ where
 tokio_test::block_on(async {
     assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(1)).run(&amp;()).await, Ok(1));
     assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(0)).run(&amp;()).await, Err("must be positive"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Retry requires a factory because running an effect consumes it. Use the existing
 <a href="12-retry.html">retry and timeout helpers</a> rather than a wrapper that pretends to rerun
 the same effect. See <a href="03-effects.html">effects</a> for the core architecture.</p>

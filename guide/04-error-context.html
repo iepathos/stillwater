@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,19 +184,14 @@
 <p>Keep domain errors structured for decisions and matching. Add contextual information
 when an infrastructure operation crosses an application boundary.</p>
 <h2 id="wrap-an-error"><a class="header" href="#wrap-an-error">Wrap an error</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+<pre><code class="language-rust">use stillwater::ContextError;
 
 let error = ContextError::new("connection refused")
     .context("loading registration facts");
 assert_eq!(error.inner(), &amp;"connection refused");
-assert_eq!(error.context_trail(), &amp;["loading registration facts"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(error.context_trail(), &amp;["loading registration facts"]);</code></pre>
 <h2 id="add-context-to-an-effect"><a class="header" href="#add-context-to-an-effect">Add context to an effect</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = fail::&lt;(), _, ()&gt;("connection refused")
@@ -208,20 +203,16 @@ tokio_test::block_on(async {
         error.context_trail(),
         &amp;["loading registration facts", "registering user"],
     );
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>The first <code>context</code> wraps the error in <code>ContextError</code>. Use <code>context_chain</code> to append
 information to that same wrapper; calling <code>context</code> again would nest wrappers.</p>
 <h2 id="preserve-successful-values"><a class="header" href="#preserve-successful-values">Preserve successful values</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = pure::&lt;_, &amp;str, ()&gt;(42).context("calculating total");
     assert_eq!(effect.run(&amp;()).await, Ok(42));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Context strings can allocate. Put useful operation names and identifiers at boundaries,
 avoid secrets such as passwords or tokens, and retain the underlying error for callers.
 A context trail does not imply that preceding writes were rolled back.</p>

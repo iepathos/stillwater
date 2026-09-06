@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8f033762.js";
+            window.path_to_searchindex_js = "searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-21dc18f9.js"></script>
+        <script src="toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -576,9 +576,7 @@ Rust’s ownership rules. The helper functions already extract only what they ne
 <p>Ordinary Rust functions and Stillwater effects can both use hand-written service
 implementations; neither requires a mocking framework. Stillwater’s contribution is
 a consistent environment boundary for the composed operations.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -588,8 +586,7 @@ tokio_test::block_on(async {
     let env = Env { users: HashMap::from([(123, "Test".to_string())]) };
     let effect = from_fn(|env: &amp;Env| env.users.get(&amp;123).cloned().ok_or("not found"));
     assert_eq!(effect.run(&amp;env).await, Ok("Test".to_string()));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use recording service implementations to verify calls and persistent state. The
 <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 demonstrates the larger workflow and its failure boundaries.</p>

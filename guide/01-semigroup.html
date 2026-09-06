@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,35 +181,28 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="semigroup-the-foundation-for-combining-values"><a class="header" href="#semigroup-the-foundation-for-combining-values">Semigroup: The Foundation for Combining Values</a></h1>
+<p>Run these examples with Cargo using the <a href="../running-examples.html">local setup and chapter-test instructions</a>.</p>
 <h2 id="what-is-a-semigroup"><a class="header" href="#what-is-a-semigroup">What is a Semigroup?</a></h2>
 <p>A Semigroup is a simple but powerful concept: a type with an associative binary operation that combines two values into one.</p>
 <p>In Rust terms, it’s a trait with one method:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait Semigroup: Sized {
+<pre><code class="language-rust">pub trait Semigroup: Sized {
     fn combine(self, other: Self) -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>The key property is <strong>associativity</strong>: the order of combining doesn’t matter.</p>
 <pre><code class="language-text">// These two operations must produce the same result:
 a.combine(b).combine(c) == a.combine(b.combine(c))
 </code></pre>
 <h2 id="why-does-this-matter"><a class="header" href="#why-does-this-matter">Why Does This Matter?</a></h2>
 <p>Semigroup is the foundation for error accumulation in Stillwater. When validating multiple fields, we need to combine error collections:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validation 1 fails with: vec!["Email invalid"]
+<pre><code class="language-rust">// Validation 1 fails with: vec!["Email invalid"]
 // Validation 2 fails with: vec!["Age too young"]
-// Combined failure:         vec!["Email invalid", "Age too young"]
-<span class="boring">}</span></code></pre>
+// Combined failure:         vec!["Email invalid", "Age too young"]</code></pre>
 <p>To combine these errors, we need a Semigroup implementation for <code>Vec&lt;E&gt;</code>.</p>
 <h2 id="built-in-implementations"><a class="header" href="#built-in-implementations">Built-in Implementations</a></h2>
 <p>Stillwater provides Semigroup implementations for common types:</p>
 <h3 id="vectors"><a class="header" href="#vectors">Vectors</a></h3>
 <p>Concatenates two vectors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -218,23 +211,17 @@ assert_eq!(v1.combine(v2), vec![1, 2, 3, 4, 5, 6]);
 // Empty vectors work too
 let empty: Vec&lt;i32&gt; = vec![];
 let values = vec![1, 2, 3];
-assert_eq!(empty.combine(values), vec![1, 2, 3]);
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(values), vec![1, 2, 3]);</code></pre>
 <h3 id="strings"><a class="header" href="#strings">Strings</a></h3>
 <p>Concatenates two strings:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let s1 = "Hello, ".to_string();
 let s2 = "World!".to_string();
-assert_eq!(s1.combine(s2), "Hello, World!");
-<span class="boring">}</span></code></pre>
+assert_eq!(s1.combine(s2), "Hello, World!");</code></pre>
 <h3 id="tuples"><a class="header" href="#tuples">Tuples</a></h3>
 <p>Combines tuples component-wise (up to 12 elements):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let t1 = (vec![1], "a".to_string());
 let t2 = (vec![2], "b".to_string());
@@ -249,13 +236,10 @@ let t2 = (vec![3], "b".to_string(), vec![4]);
 assert_eq!(
     t1.combine(t2),
     (vec![1, 3], "ab".to_string(), vec![2, 4])
-);
-<span class="boring">}</span></code></pre>
+);</code></pre>
 <h2 id="implementing-semigroup-for-custom-types"><a class="header" href="#implementing-semigroup-for-custom-types">Implementing Semigroup for Custom Types</a></h2>
 <p>You can implement Semigroup for your own error types:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq)]
 struct ValidationErrors {
@@ -274,13 +258,10 @@ let e1 = ValidationErrors { errors: vec!["Email invalid".to_string()] };
 let e2 = ValidationErrors { errors: vec!["Age too young".to_string()] };
 let combined = e1.combine(e2);
 
-assert_eq!(combined.errors, vec!["Email invalid", "Age too young"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(combined.errors, vec!["Email invalid", "Age too young"]);</code></pre>
 <h3 id="more-complex-examples"><a class="header" href="#more-complex-examples">More Complex Examples</a></h3>
 <p>You can implement Semigroup for domain-specific error types:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq)]
 enum ValidationError {
@@ -299,13 +280,10 @@ impl Semigroup for ValidationResult {
         self.errors.extend(other.errors);
         self
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="important-ownership-semantics"><a class="header" href="#important-ownership-semantics">Important: Ownership Semantics</a></h2>
 <p>The <code>combine</code> method takes ownership of both values:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -313,12 +291,9 @@ let result = v1.combine(v2);
 
 // v1 and v2 are now moved, can't use them anymore
 // This won't compile:
-// println!("{:?}", v1);
-<span class="boring">}</span></code></pre>
+// println!("{:?}", v1);</code></pre>
 <p>If you need to preserve the original values, clone them first:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -327,13 +302,10 @@ let result = v1.clone().combine(v2.clone());
 // v1 and v2 are still usable
 assert_eq!(v1, vec![1, 2, 3]);
 assert_eq!(v2, vec![4, 5, 6]);
-assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
-<span class="boring">}</span></code></pre>
+assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);</code></pre>
 <h2 id="associativity-law"><a class="header" href="#associativity-law">Associativity Law</a></h2>
 <p>All Semigroup implementations must be associative. This means:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let a = vec![1, 2];
 let b = vec![3, 4];
@@ -344,8 +316,7 @@ let left = a.clone().combine(b.clone()).combine(c.clone());
 let right = a.combine(b.combine(c));
 
 assert_eq!(left, right);
-// Both equal [1, 2, 3, 4, 5, 6]
-<span class="boring">}</span></code></pre>
+// Both equal [1, 2, 3, 4, 5, 6]</code></pre>
 <p>This property is crucial for validation: it means we can combine errors in any order and get the same result.</p>
 <h2 id="why-not-monoid"><a class="header" href="#why-not-monoid">Why Not Monoid?</a></h2>
 <p>You might wonder why Stillwater uses Semigroup instead of Monoid (which adds an “empty” element). The reason is practical:</p>
@@ -355,9 +326,7 @@ assert_eq!(left, right);
 <li><strong>Validation::all handles the empty case</strong> - You don’t combine zero validations</li>
 </ol>
 <p>If you need a Monoid, you can easily extend Semigroup:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 trait Monoid: Semigroup {
     fn empty() -&gt; Self;
@@ -367,8 +336,7 @@ impl&lt;T&gt; Monoid for Vec&lt;T&gt; {
     fn empty() -&gt; Self {
         Vec::new()
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="real-world-example-form-validation-errors"><a class="header" href="#real-world-example-form-validation-errors">Real-World Example: Form Validation Errors</a></h2>
 <p>Here’s how Semigroup enables multi-field form validation:</p>
 <pre><code class="language-text">use stillwater::{Semigroup, Validation};
@@ -425,9 +393,7 @@ match validate_form("invalid", "short", 15) {
 <h3 id="hashmaps-and-btrees"><a class="header" href="#hashmaps-and-btrees">HashMaps and BTrees</a></h3>
 <h4 id="hashmapk-v-semigroup"><a class="header" href="#hashmapk-v-semigroup">HashMap&lt;K, V: Semigroup&gt;</a></h4>
 <p>Combines two maps by merging their entries. When keys conflict, their values are combined using the value’s Semigroup instance:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust">use std::collections::HashMap;
 use stillwater::Semigroup;
 
 let mut map1 = HashMap::new();
@@ -444,12 +410,9 @@ let combined = map1.combine(map2);
 //   "errors": ["error1", "error2"],  // Combined with Vec semigroup
 //   "warnings": ["warn1"],            // From map1 only
 //   "info": ["info1"]                 // From map2 only
-// }
-<span class="boring">}</span></code></pre>
+// }</code></pre>
 <p><strong>Use case: Configuration Merging</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust">use std::collections::HashMap;
 use stillwater::Semigroup;
 
 #[derive(Clone)]
@@ -481,13 +444,10 @@ let user_config = Config {
 };
 
 // user_config values override default_config values
-// (String semigroup concatenates, but you'd typically use Last wrapper for configs)
-<span class="boring">}</span></code></pre>
+// (String semigroup concatenates, but you'd typically use Last wrapper for configs)</code></pre>
 <h4 id="btreemapk-v-semigroup"><a class="header" href="#btreemapk-v-semigroup">BTreeMap&lt;K, V: Semigroup&gt;</a></h4>
 <p>Same as HashMap but maintains sorted keys:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::BTreeMap;
+<pre><code class="language-rust">use std::collections::BTreeMap;
 use stillwater::Semigroup;
 
 let mut map1 = BTreeMap::new();
@@ -499,26 +459,20 @@ map2.insert("a", vec![4, 5]);
 map2.insert("c", vec![6]);
 
 let combined = map1.combine(map2);
-// Keys in sorted order: {a: [1,2,4,5], b: [3], c: [6]}
-<span class="boring">}</span></code></pre>
+// Keys in sorted order: {a: [1,2,4,5], b: [3], c: [6]}</code></pre>
 <h3 id="sets"><a class="header" href="#sets">Sets</a></h3>
 <h4 id="hashset"><a class="header" href="#hashset">HashSet<t></t></a></h4>
 <p>Combines two sets using union:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::Semigroup;
 
 let set1: HashSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
 let set2: HashSet&lt;_&gt; = [3, 4, 5].iter().cloned().collect();
 
 let combined = set1.combine(set2);
-// Result: {1, 2, 3, 4, 5}
-<span class="boring">}</span></code></pre>
+// Result: {1, 2, 3, 4, 5}</code></pre>
 <p><strong>Use case: Feature Flags</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::Semigroup;
 
 #[derive(Clone)]
@@ -543,26 +497,20 @@ let premium_features = Features {
 };
 
 let all_features = base_features.combine(premium_features);
-// All features enabled
-<span class="boring">}</span></code></pre>
+// All features enabled</code></pre>
 <h4 id="btreeset"><a class="header" href="#btreeset">BTreeSet<t></t></a></h4>
 <p>Same as HashSet but maintains sorted elements:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::BTreeSet;
+<pre><code class="language-rust">use std::collections::BTreeSet;
 use stillwater::Semigroup;
 
 let set1: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
 let set2: BTreeSet&lt;_&gt; = [3, 4, 5].iter().cloned().collect();
 
 let combined = set1.combine(set2);
-// Elements in sorted order: {1, 2, 3, 4, 5}
-<span class="boring">}</span></code></pre>
+// Elements in sorted order: {1, 2, 3, 4, 5}</code></pre>
 <h3 id="optiont-semigroup"><a class="header" href="#optiont-semigroup">Option&lt;T: Semigroup&gt;</a></h3>
 <p>Lifts a Semigroup operation to Option, combining inner values when both are Some:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let opt1 = Some(vec![1, 2]);
 let opt2 = Some(vec![3, 4]);
@@ -575,8 +523,7 @@ assert_eq!(some.clone().combine(none), some);
 
 let none1: Option&lt;Vec&lt;i32&gt;&gt; = None;
 let none2: Option&lt;Vec&lt;i32&gt;&gt; = None;
-assert_eq!(none1.combine(none2), None);
-<span class="boring">}</span></code></pre>
+assert_eq!(none1.combine(none2), None);</code></pre>
 <p><strong>Combination rules:</strong></p>
 <ul>
 <li><code>Some(a).combine(Some(b))</code> = <code>Some(a.combine(b))</code></li>
@@ -585,9 +532,7 @@ assert_eq!(none1.combine(none2), None);
 <li><code>None.combine(None)</code> = <code>None</code></li>
 </ul>
 <p><strong>Use case: Optional Error Accumulation</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 fn validate_optional_field(
     value: Option&lt;String&gt;,
@@ -606,23 +551,19 @@ let error2 = None;
 let error3 = Some(vec!["Error 2".to_string()]);
 
 let all_errors = error1.combine(error2).combine(error3);
-// Some(vec!["Error 1", "Error 2"])
-<span class="boring">}</span></code></pre>
+// Some(vec!["Error 1", "Error 2"])</code></pre>
 <h2 id="wrapper-types-for-alternative-semantics"><a class="header" href="#wrapper-types-for-alternative-semantics">Wrapper Types for Alternative Semantics</a></h2>
 <p>Sometimes you want different combining behavior. Stillwater provides wrapper types for common alternatives:</p>
 <h3 id="first---keep-first-value"><a class="header" href="#first---keep-first-value">First<t> - Keep First Value</t></a></h3>
 <p>Always keeps the first (left) value, discarding the second:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{First, Semigroup};
+<pre><code class="language-rust">use stillwater::{First, Semigroup};
 
 let first = First(1).combine(First(2));
 assert_eq!(first.0, 1); // Keeps first
 
 // Useful for configuration: first definition wins
 let config_value = First("default").combine(First("override"));
-assert_eq!(config_value.0, "default");
-<span class="boring">}</span></code></pre>
+assert_eq!(config_value.0, "default");</code></pre>
 <p><strong>Use case: Default Values</strong></p>
 <pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{First, Semigroup};
@@ -646,17 +587,14 @@ let final_config = user_config.combine(defaults);
 </code></pre>
 <h3 id="last---keep-last-value"><a class="header" href="#last---keep-last-value">Last<t> - Keep Last Value</t></a></h3>
 <p>Always keeps the last (right) value, discarding the first:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Last, Semigroup};
+<pre><code class="language-rust">use stillwater::{Last, Semigroup};
 
 let last = Last(1).combine(Last(2));
 assert_eq!(last.0, 2); // Keeps last
 
 // Useful for configuration: last definition wins (override)
 let config_value = Last("default").combine(Last("override"));
-assert_eq!(config_value.0, "override");
-<span class="boring">}</span></code></pre>
+assert_eq!(config_value.0, "override");</code></pre>
 <p><strong>Use case: Layered Configuration</strong></p>
 <pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{Last, Semigroup};
@@ -680,9 +618,7 @@ let final_cfg = default_cfg.combine(env_cfg);
 </code></pre>
 <h3 id="intersection---set-intersection"><a class="header" href="#intersection---set-intersection">Intersection<set> - Set Intersection</set></a></h3>
 <p>Alternative to the default union operation for sets:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::{Intersection, Semigroup};
 
 let set1: HashSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
@@ -693,12 +629,9 @@ let i2 = Intersection(set2);
 let result = i1.combine(i2);
 
 let expected: HashSet&lt;_&gt; = [2, 3].iter().cloned().collect();
-assert_eq!(result.0, expected); // Only common elements
-<span class="boring">}</span></code></pre>
+assert_eq!(result.0, expected); // Only common elements</code></pre>
 <p><strong>Use case: Required Permissions</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::{Intersection, Semigroup};
 
 // User must have ALL these permissions (intersection)
@@ -708,8 +641,7 @@ let user_perms: HashSet&lt;_&gt; =
     ["read", "write", "delete"].iter().cloned().collect();
 
 let effective_perms = Intersection(admin_perms).combine(Intersection(user_perms));
-// Result: ["read", "write", "delete"] - what user actually has
-<span class="boring">}</span></code></pre>
+// Result: ["read", "write", "delete"] - what user actually has</code></pre>
 <h2 id="real-world-example-error-aggregation-by-type"><a class="header" href="#real-world-example-error-aggregation-by-type">Real-World Example: Error Aggregation by Type</a></h2>
 <p>Here’s how these implementations enable sophisticated error handling:</p>
 <pre><code class="language-text">use std::collections::HashMap;
@@ -750,9 +682,7 @@ let all_errors = validation_errors.combine(permission_errors);
 </code></pre>
 <h2 id="testing-your-semigroup-implementation"><a class="header" href="#testing-your-semigroup-implementation">Testing Your Semigroup Implementation</a></h2>
 <p>When implementing Semigroup, test the associativity law:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq, Clone)]
 struct MyErrors(Vec&lt;String&gt;);
@@ -774,8 +704,7 @@ fn check_associativity() {
 
     assert_eq!(left, right);
 }
-check_associativity();
-<span class="boring">}</span></code></pre>
+check_associativity();</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
 <li><strong>Semigroup</strong> is a type with an associative <code>combine</code> operation</li>

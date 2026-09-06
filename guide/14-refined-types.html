@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -232,9 +232,7 @@ fn save_user(name: &amp;NonEmptyString, age: &amp;PositiveI32) {
 </code></pre>
 <h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
 <h3 id="creating-refined-values"><a class="header" href="#creating-refined-values">Creating Refined Values</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, Positive};
 
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -252,12 +250,9 @@ println!("Name: {}", name.get());      // Reference
 println!("Length: {}", name.len());    // Deref allows direct access
 
 // Consume the wrapper
-let inner: String = name.into_inner();
-<span class="boring">}</span></code></pre>
+let inner: String = name.into_inner();</code></pre>
 <h3 id="transforming-refined-values"><a class="header" href="#transforming-refined-values">Transforming Refined Values</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
@@ -268,24 +263,18 @@ let doubled = n.try_map(|x| x * 2);
 assert!(doubled.is_ok());
 
 let negated = PositiveI32::new(5).unwrap().try_map(|x| -x);
-assert!(negated.is_err()); // -5 is not positive
-<span class="boring">}</span></code></pre>
+assert!(negated.is_err()); // -5 is not positive</code></pre>
 <h3 id="unsafe-construction-use-with-care"><a class="header" href="#unsafe-construction-use-with-care">Unsafe Construction (Use with Care)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
 // Only use when you KNOW the value is valid
 // No predicate check is performed!
-let n = PositiveI32::new_unchecked(42);
-<span class="boring">}</span></code></pre>
+let n = PositiveI32::new_unchecked(42);</code></pre>
 <h2 id="built-in-predicates"><a class="header" href="#built-in-predicates">Built-in Predicates</a></h2>
 <h3 id="numeric-predicates"><a class="header" href="#numeric-predicates">Numeric Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive, NonNegative, Negative, NonZero, InRange};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive, NonNegative, Negative, NonZero, InRange};
 
 // Positive: value &gt; 0
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -311,12 +300,9 @@ assert!(NonZeroI32::new(0).is_err());
 // InRange: MIN &lt;= value &lt;= MAX
 type Percentage = Refined&lt;i32, InRange&lt;0, 100&gt;&gt;;
 assert!(Percentage::new(50).is_ok());
-assert!(Percentage::new(101).is_err());
-<span class="boring">}</span></code></pre>
+assert!(Percentage::new(101).is_err());</code></pre>
 <h3 id="string-predicates"><a class="header" href="#string-predicates">String Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Trimmed, MaxLength, MinLength};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, Trimmed, MaxLength, MinLength};
 
 // NonEmpty: string is not empty
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
@@ -336,12 +322,9 @@ assert!(ShortString::new("this is too long".to_string()).is_err());
 // MinLength&lt;N&gt;: length &gt;= N
 type Password = Refined&lt;String, MinLength&lt;8&gt;&gt;;
 assert!(Password::new("secure_password".to_string()).is_ok());
-assert!(Password::new("short".to_string()).is_err());
-<span class="boring">}</span></code></pre>
+assert!(Password::new("short".to_string()).is_err());</code></pre>
 <h3 id="collection-predicates"><a class="header" href="#collection-predicates">Collection Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, MaxSize, MinSize};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, MaxSize, MinSize};
 
 // NonEmpty for Vec
 type NonEmptyList = Refined&lt;Vec&lt;i32&gt;, NonEmpty&gt;;
@@ -356,13 +339,10 @@ assert!(SmallVec::new(vec![1, 2, 3, 4, 5, 6]).is_err());
 // MinSize&lt;N&gt;: size &gt;= N
 type AtLeastTwo = Refined&lt;Vec&lt;i32&gt;, MinSize&lt;2&gt;&gt;;
 assert!(AtLeastTwo::new(vec![1, 2]).is_ok());
-assert!(AtLeastTwo::new(vec![1]).is_err());
-<span class="boring">}</span></code></pre>
+assert!(AtLeastTwo::new(vec![1]).is_err());</code></pre>
 <h2 id="predicate-combinators"><a class="header" href="#predicate-combinators">Predicate Combinators</a></h2>
 <h3 id="and-both-must-hold"><a class="header" href="#and-both-must-hold">And: Both Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, And, NonEmpty, Trimmed, MaxLength};
+<pre><code class="language-rust">use stillwater::refined::{Refined, And, NonEmpty, Trimmed, MaxLength};
 
 // String must be non-empty AND trimmed
 type CleanString = Refined&lt;String, And&lt;NonEmpty, Trimmed&gt;&gt;;
@@ -371,35 +351,26 @@ assert!(CleanString::new("".to_string()).is_err());
 assert!(CleanString::new("  hello  ".to_string()).is_err());
 
 // Chain multiple with nested And
-type ValidUsername = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;20&gt;&gt;&gt;;
-<span class="boring">}</span></code></pre>
+type ValidUsername = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;20&gt;&gt;&gt;;</code></pre>
 <h3 id="or-at-least-one-must-hold"><a class="header" href="#or-at-least-one-must-hold">Or: At Least One Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Or, Positive, Negative};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Or, Positive, Negative};
 
 // Value must be positive OR negative (i.e., non-zero)
 type NonZeroAlt = Refined&lt;i32, Or&lt;Positive, Negative&gt;&gt;;
 assert!(NonZeroAlt::new(5).is_ok());
 assert!(NonZeroAlt::new(-5).is_ok());
-assert!(NonZeroAlt::new(0).is_err());
-<span class="boring">}</span></code></pre>
+assert!(NonZeroAlt::new(0).is_err());</code></pre>
 <h3 id="not-must-not-hold"><a class="header" href="#not-must-not-hold">Not: Must NOT Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Not, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Not, Positive};
 
 // Value must NOT be positive (i.e., &lt;= 0)
 type NotPositive = Refined&lt;i32, Not&lt;Positive&gt;&gt;;
 assert!(NotPositive::new(0).is_ok());
 assert!(NotPositive::new(-5).is_ok());
-assert!(NotPositive::new(5).is_err());
-<span class="boring">}</span></code></pre>
+assert!(NotPositive::new(5).is_err());</code></pre>
 <h2 id="custom-predicates"><a class="header" href="#custom-predicates">Custom Predicates</a></h2>
 <p>Define your own predicates by implementing the <code>Predicate</code> trait:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Predicate};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Predicate};
 
 // Custom predicate for even numbers
 pub struct Even;
@@ -422,13 +393,10 @@ impl Predicate&lt;i32&gt; for Even {
 
 type EvenI32 = Refined&lt;i32, Even&gt;;
 assert!(EvenI32::new(42).is_ok());
-assert!(EvenI32::new(41).is_err());
-<span class="boring">}</span></code></pre>
+assert!(EvenI32::new(41).is_err());</code></pre>
 <h2 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h2>
 <p>Stillwater provides convenient aliases for common patterns:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{
+<pre><code class="language-rust">use stillwater::refined::{
     NonEmptyString, TrimmedString, NonEmptyTrimmedString,
     PositiveI32, NonNegativeI64, NonZeroU32,
     Port, Percentage,
@@ -449,13 +417,10 @@ let progress = Percentage::new(75).unwrap();  // 0-100
 
 // Bounded types with const generics
 type Username = BoundedString&lt;20&gt;;
-type SmallList = BoundedVec&lt;i32, 10&gt;;
-<span class="boring">}</span></code></pre>
+type SmallList = BoundedVec&lt;i32, 10&gt;;</code></pre>
 <h2 id="validation-integration"><a class="header" href="#validation-integration">Validation Integration</a></h2>
 <h3 id="single-validation"><a class="header" href="#single-validation">Single Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 use stillwater::Validation;
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -465,12 +430,9 @@ let result = PositiveI32::validate(42);
 assert!(result.is_success());
 
 let result = PositiveI32::validate(-5);
-assert!(result.is_failure());
-<span class="boring">}</span></code></pre>
+assert!(result.is_failure());</code></pre>
 <h3 id="error-accumulation"><a class="header" href="#error-accumulation">Error Accumulation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, PositiveI32};
+<pre><code class="language-rust">use stillwater::refined::{NonEmptyString, PositiveI32};
 use stillwater::Validation;
 
 fn validate_user(
@@ -489,12 +451,9 @@ match result {
         assert_eq!(errors.len(), 2); // Both errors collected
     }
     _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="field-context"><a class="header" href="#field-context">Field Context</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, FieldError, ValidationFieldExt};
+<pre><code class="language-rust">use stillwater::refined::{NonEmptyString, FieldError, ValidationFieldExt};
 use stillwater::Validation;
 
 // Add field context to errors
@@ -507,8 +466,7 @@ match result {
         println!("{}", err); // "username: string cannot be empty"
     }
     _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="effect-integration"><a class="header" href="#effect-integration">Effect Integration</a></h2>
 <p>Use refined types in effect chains:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
@@ -582,16 +540,13 @@ fn process_user(user: User) {
 </code></pre>
 <h2 id="zero-cost-abstraction"><a class="header" href="#zero-cost-abstraction">Zero-Cost Abstraction</a></h2>
 <p><code>Refined&lt;T, P&gt;</code> has the same memory layout as <code>T</code>. The predicate <code>P</code> exists only at compile time via <code>PhantomData</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::mem::size_of;
+<pre><code class="language-rust">use std::mem::size_of;
 use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
 // Same size as the wrapped type
-assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());
-<span class="boring">}</span></code></pre>
+assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());</code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Validate at the boundary</strong>: Parse input into refined types as early as possible</li>

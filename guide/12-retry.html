@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,9 +205,7 @@ let data = retry(
 <h2 id="retrypolicy"><a class="header" href="#retrypolicy">RetryPolicy</a></h2>
 <p><code>RetryPolicy</code> is a pure data structure describing retry behavior. It is composable and testable without executing any effects.</p>
 <h3 id="creating-policies"><a class="header" href="#creating-policies">Creating Policies</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let constant = RetryPolicy::constant(Duration::from_millis(100))
@@ -220,31 +218,24 @@ let exponential = RetryPolicy::exponential(Duration::from_millis(100))
     .with_max_retries(5);
 
 let fibonacci = RetryPolicy::fibonacci(Duration::from_millis(100))
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
+    .with_max_retries(5);</code></pre>
 <h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
     .with_max_retries(5)
-    .with_max_delay(Duration::from_secs(30));
-<span class="boring">}</span></code></pre>
+    .with_max_delay(Duration::from_secs(30));</code></pre>
 <h3 id="jitter-support"><a class="header" href="#jitter-support">Jitter Support</a></h3>
 <p>Jitter adds randomness to delays, preventing the “thundering herd” problem when many clients retry simultaneously. Enable it with the <code>jitter</code> feature:</p>
 <pre><code class="language-toml">stillwater = { version = "2.0", features = ["jitter"] }
 </code></pre>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
     .with_jitter(0.25)
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
+    .with_max_retries(5);</code></pre>
 <h2 id="retry-functions"><a class="header" href="#retry-functions">Retry Functions</a></h2>
 <h3 id="retry---basic-retry"><a class="header" href="#retry---basic-retry"><code>retry</code> - Basic Retry</a></h3>
 <p>Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.</p>
@@ -283,9 +274,7 @@ assert_eq!(effect.run(&amp;()).await, Err(ApiError::Permanent));
 </code></pre>
 <h3 id="retry_with_hooks---retry-with-observability"><a class="header" href="#retry_with_hooks---retry-with-observability"><code>retry_with_hooks</code> - Retry With Observability</a></h3>
 <p><code>retry_with_hooks</code> invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#[cfg(all(feature = "async", feature = "tracing"))]
+<pre><code class="language-rust"><span class="boring">#[cfg(all(feature = "async", feature = "tracing"))]
 </span><span class="boring">{
 </span>use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy};
@@ -302,8 +291,7 @@ let effect = retry_with_hooks(
         );
     },
 );
-<span class="boring">}
-</span><span class="boring">}</span></code></pre>
+<span class="boring">}</span></code></pre>
 <p>The <code>RetryEvent</code> contains:</p>
 <ul>
 <li><code>attempt</code> - Which attempt just failed, using 1-based numbering</li>
@@ -359,16 +347,13 @@ let effect = retry(
 <li><code>Err(RetryExhausted&lt;E&gt;)</code> when retries are exhausted</li>
 </ul>
 <p>The wrapper currently stores the inner value in <code>final_error</code> and exposes <code>into_value()</code> for extraction.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Duration;
+<pre><code class="language-rust">use std::time::Duration;
 
 pub struct RetryExhausted&lt;E&gt; {
     pub final_error: E,
     pub attempts: u32,
     pub total_duration: Duration,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="timeouterrore"><a class="header" href="#timeouterrore"><code>TimeoutError&lt;E&gt;</code></a></h3>
 <p><code>with_timeout</code> wraps timeout and inner errors:</p>
 <pre><code class="language-text">pub enum TimeoutError&lt;E&gt; {
@@ -481,9 +466,7 @@ let effect = retry_with_hooks(
 </code></pre>
 <h3 id="policy-testing"><a class="header" href="#policy-testing">Policy Testing</a></h3>
 <p><code>RetryPolicy</code> is just data, so you can test retry timing without running any effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
@@ -493,8 +476,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
 assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
 assert_eq!(policy.delay_for_attempt(2), Some(Duration::from_millis(250)));
-assert_eq!(policy.delay_for_attempt(3), None);
-<span class="boring">}</span></code></pre>
+assert_eq!(policy.delay_for_attempt(3), None);</code></pre>
 <h3 id="circuit-breaker-integration"><a class="header" href="#circuit-breaker-integration">Circuit-Breaker Integration</a></h3>
 <p>Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use <code>from_fn</code> or <code>check</code> before retrying:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;

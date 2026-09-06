@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8f033762.js";
+            window.path_to_searchindex_js = "searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-21dc18f9.js"></script>
+        <script src="toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -209,9 +209,7 @@ an explicit step rather than relying on the old factory timing.</p>
 environment for execution and return boxed effects. Concurrent completion order does
 not change output ordering or which error is returned: the first error by input position
 wins after all children finish. Dropping the parent future cancels unfinished children.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let batch = traverse_effect_parallel([1, 2, 3], |value| {
@@ -225,15 +223,12 @@ tokio_test::block_on(async {
         pure(3).boxed(),
     ]);
     assert_eq!(ordered.run(&amp;()).await, Err("stop"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h3 id="replace-legacy-aliases-and-constructors"><a class="header" href="#replace-legacy-aliases-and-constructors">Replace legacy aliases and constructors</a></h3>
 <p><code>LegacyEffect</code> and <code>LegacyConstructors</code> have been removed, not just deprecated.
 Use free constructors, return <code>impl Effect</code> for concrete composition, and use
 <code>BoxedEffect</code> when a single erased type is needed. <code>RunStandalone</code> remains supported.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn concrete() -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = ()&gt; {
     pure(42)
@@ -246,8 +241,7 @@ fn erased() -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
 tokio_test::block_on(async {
     assert_eq!(concrete().run_standalone().await, Ok(42));
     assert_eq!(erased().run(&amp;()).await, Ok(42));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h3 id="replace-bracket_simple"><a class="header" href="#replace-bracket_simple">Replace bracket_simple</a></h3>
 <p>The removed function accepted <code>(acquire, use_fn, release_fn)</code>. The replacement
 <code>bracket</code> accepts <code>(acquire, release_fn, use_fn)</code>.</p>
@@ -256,9 +250,7 @@ future with output <code>Result&lt;(), E&gt;</code>. It is an async callback, no
 The error type also needs <code>Debug</code>. If use needs owned data, explicitly clone the
 necessary data before constructing its effect; the resource itself no longer needs
 <code>Clone</code> just to enter the use callback.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+<pre><code class="language-rust">use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use stillwater::prelude::*;
 
 tokio_test::block_on(async {
@@ -274,13 +266,10 @@ tokio_test::block_on(async {
     );
     assert_eq!(effect.run(&amp;()).await, Ok(10));
     assert!(released.load(Ordering::SeqCst));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>bracket</code> logs cleanup errors and returns the use result. Choose <code>bracket_full</code> when
 cleanup failure must be returned to the caller:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = bracket_full(
@@ -292,8 +281,7 @@ tokio_test::block_on(async {
         effect.run(&amp;()).await,
         Err(BracketError::CleanupError("cleanup failed")),
     );
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>These async brackets do not mask cancellation or guarantee cleanup after panic.
 Use normal ownership/RAII where possible and design asynchronous cleanup protocols explicitly.</p>
 <h3 id="features-and-allocation-expectations"><a class="header" href="#features-and-allocation-expectations">Features and allocation expectations</a></h3>

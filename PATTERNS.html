@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8f033762.js";
+            window.path_to_searchindex_js = "searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-21dc18f9.js"></script>
+        <script src="toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -247,10 +247,7 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&l
 </code></pre>
 <h2 id="effect-patterns"><a class="header" href="#effect-patterns">Effect Patterns</a></h2>
 <p>All Effect patterns use the free function style with the prelude import:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust">use stillwater::effect::prelude::*;</code></pre>
 <h3 id="pattern-1-read-transform-write"><a class="header" href="#pattern-1-read-transform-write">Pattern 1: Read, Transform, Write</a></h3>
 <p>Classic pattern for processing data:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
@@ -374,9 +371,7 @@ fn chained_example() -&gt; impl Effect&lt;Output = i32, Error = String, Env = ()
 <h2 id="testing-patterns"><a class="header" href="#testing-patterns">Testing Patterns</a></h2>
 <h3 id="pattern-1-testing-pure-functions"><a class="header" href="#pattern-1-testing-pure-functions">Pattern 1: Testing Pure Functions</a></h3>
 <p>Pure functions need no mocking:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
     if email.contains('@') {
@@ -386,8 +381,7 @@ fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str
     }
 }
 assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
-assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));</code></pre>
 <h3 id="pattern-2-testing-effects-with-mock-environment"><a class="header" href="#pattern-2-testing-effects-with-mock-environment">Pattern 2: Testing Effects with Mock Environment</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 
@@ -415,9 +409,7 @@ async fn test_user_workflow() {
 }
 </code></pre>
 <h3 id="pattern-3-testing-error-cases"><a class="header" href="#pattern-3-testing-error-cases">Pattern 3: Testing Error Cases</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Default)]
@@ -426,13 +418,10 @@ struct Env { users: HashMap&lt;u64, String&gt; }
 tokio_test::block_on(async {
     let effect = from_fn(|env: &amp;Env| env.users.get(&amp;999).cloned().ok_or("not found"));
     assert_eq!(effect.run(&amp;Env::default()).await, Err("not found"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="error-handling-patterns"><a class="header" href="#error-handling-patterns">Error Handling Patterns</a></h2>
 <h3 id="pattern-1-domain-specific-errors"><a class="header" href="#pattern-1-domain-specific-errors">Pattern 1: Domain-Specific Errors</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug)]
+<pre><code class="language-rust">#[derive(Debug)]
 enum UserError {
     NotFound(u64),
     InvalidEmail(String),
@@ -449,8 +438,7 @@ impl std::fmt::Display for UserError {
     }
 }
 
-impl std::error::Error for UserError {}
-<span class="boring">}</span></code></pre>
+impl std::error::Error for UserError {}</code></pre>
 <h3 id="pattern-2-error-conversion"><a class="header" href="#pattern-2-error-conversion">Pattern 2: Error Conversion</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 
@@ -646,9 +634,7 @@ let result = pool.connection()
 </code></pre>
 <h2 id="performance-patterns"><a class="header" href="#performance-patterns">Performance Patterns</a></h2>
 <h3 id="pattern-1-avoid-excessive-boxing"><a class="header" href="#pattern-1-avoid-excessive-boxing">Pattern 1: Avoid Excessive Boxing</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-rust">use stillwater::effect::prelude::*;
 
 // Instead of creating many small effects:
 let effect = pure::&lt;_, String, ()&gt;(1)
@@ -658,8 +644,7 @@ let effect = pure::&lt;_, String, ()&gt;(1)
 
 // Combine transformations:
 let effect = pure::&lt;_, String, ()&gt;(1)
-    .map(|x| (x + 1) * 2 - 3);
-<span class="boring">}</span></code></pre>
+    .map(|x| (x + 1) * 2 - 3);</code></pre>
 <h3 id="pattern-2-batch-operations"><a class="header" href="#pattern-2-batch-operations">Pattern 2: Batch Operations</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 

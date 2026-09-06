@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8f033762.js";
+            window.path_to_searchindex_js = "searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-21dc18f9.js"></script>
+        <script src="toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,6 +182,7 @@
 <p>Stillwater is a Rust library for pragmatic functional programming focused on validation and effect composition.</p>
 <h2 id="start-here"><a class="header" href="#start-here">Start Here</a></h2>
 <ul>
+<li><a href="#running-the-examples">Running the Examples</a> - Local Cargo setup and chapter tests; no browser Playground required</li>
 <li><a href="guide">User Guide</a> - Progressive tutorials for core concepts and patterns</li>
 <li><a href="#common-patterns-and-recipes">Patterns</a> - Recipes for common validation and effect workflows</li>
 <li><a href="#frequently-asked-questions">FAQ</a> - Answers to common questions</li>
@@ -199,6 +200,78 @@
 <li><a href="#compile-time-resource-tracking">Compile-Time Resource Tracking</a></li>
 <li><a href="#api-tiers-and-composition-decisions">API Tiers and Composition Decisions</a></li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="running-the-examples"><a class="header" href="#running-the-examples">Running the Examples</a></h1>
+<p>Run Stillwater examples locally with Cargo. Browser Run buttons are disabled:
+the public Rust Playground does not include Stillwater, even for examples using
+the 1.x API. Publishing 2.0 does not automatically install it in that service.
+Code remains selectable and copyable, and Rust examples remain covered by Cargo
+doctests.</p>
+<h2 id="run-examples-from-this-checkout"><a class="header" href="#run-examples-from-this-checkout">Run examples from this checkout</a></h2>
+<p>Install Rust 1.89 or newer, then clone the repository:</p>
+<pre><code class="language-sh">git clone https://github.com/iepathos/stillwater.git
+cd stillwater
+cargo test --doc --all-features
+</code></pre>
+<p>This tests the Rust examples against the checked-out library and its declared
+dependencies, including before 2.0 is published. To test just the Semigroup chapter:</p>
+<pre><code class="language-sh">cargo test --doc --all-features book_doctests::semigroup
+</code></pre>
+<p>To run a complete application example:</p>
+<pre><code class="language-sh">cargo run --example user_registration --all-features
+</code></pre>
+<p>Other complete programs are in the repository’s <code>examples/</code> directory. Use
+<code>--all-features</code> when running them so feature-gated examples are available.</p>
+<h2 id="copy-a-snippet-into-a-standalone-project"><a class="header" href="#copy-a-snippet-into-a-standalone-project">Copy a snippet into a standalone project</a></h2>
+<p>From the directory containing your <code>stillwater</code> checkout, create a sibling project:</p>
+<pre><code class="language-sh">cargo new stillwater-book-example
+cd stillwater-book-example
+</code></pre>
+<p>Replace its <code>Cargo.toml</code> with:</p>
+<pre><code class="language-toml">[package]
+name = "stillwater-book-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+stillwater = { path = "../stillwater" }
+</code></pre>
+<p>Replace <code>src/main.rs</code> with this complete version of the Semigroup vector example:</p>
+<pre><code class="language-rust">use stillwater::Semigroup;
+
+fn main() {
+    let v1 = vec![1, 2, 3];
+    let v2 = vec![4, 5, 6];
+    assert_eq!(v1.combine(v2), vec![1, 2, 3, 4, 5, 6]);
+
+    let empty: Vec&lt;i32&gt; = vec![];
+    let values = vec![1, 2, 3];
+    assert_eq!(empty.combine(values), vec![1, 2, 3]);
+    println!("Semigroup examples passed.");
+}</code></pre>
+<p>Then run:</p>
+<pre><code class="language-sh">cargo run
+</code></pre>
+<p>After 2.0 is published, you can replace the path dependency with
+<code>stillwater = "2.0"</code> to use crates.io. The path-based instructions above work now
+and are exercised automatically in a fresh project by CI.</p>
+<h2 id="understand-the-different-kinds-of-examples"><a class="header" href="#understand-the-different-kinds-of-examples">Understand the different kinds of examples</a></h2>
+<ul>
+<li>Most chapter snippets are function bodies. Put them inside <code>fn main()</code> when
+copying into a binary project, unless they already define it.</li>
+<li>Use the eye button to reveal hidden setup lines before copying examples that
+need them. Async examples may use <code>tokio_test::block_on</code>; a standalone project
+must add <code>tokio-test = "0.4"</code> as a dependency for that helper. The checkout’s
+doctest commands already provide this and other test dependencies.</li>
+<li>Feature-specific APIs need their Cargo features enabled. See
+<a href="#api-tiers-and-composition-decisions">API tiers</a> and the relevant chapter.</li>
+<li><code>compile_fail</code> examples intentionally demonstrate compiler rejection;
+<code>no_run</code> examples are compile-checked but not executed by doctests.</li>
+<li>Plain-text sketches and historical examples illustrate ideas, not complete
+programs. They are not presented as runnable applications.</li>
+</ul>
+<p>The chapter doctests and complete application examples are the supported way to
+run broader examples with the correct dependencies and setup.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="stillwater-user-guide"><a class="header" href="#stillwater-user-guide">Stillwater User Guide</a></h1>
 <p>Welcome to the Stillwater user guide! This guide will help you understand and master the core concepts of Stillwater.</p>
@@ -368,14 +441,16 @@
 <h3 id="for-experienced-users"><a class="header" href="#for-experienced-users">For Experienced Users</a></h3>
 <p>Jump to the chapters that interest you. Each chapter is self-contained with links to related concepts.</p>
 <h3 id="running-examples"><a class="header" href="#running-examples">Running Examples</a></h3>
-<p>All examples in this guide are runnable. You can find them in the <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> directory:</p>
-<pre><code class="language-bash">cargo run --example validation
-cargo run --example effects
-cargo run --example monoid
-cargo run --example form_validation
-cargo run --example recover_patterns
-cargo run --example retry_patterns
-cargo run --example resource_tracking
+<p>See <a href="#running-the-examples">Running the Examples</a> for local setup, copy/paste
+instructions, and chapter doctests. Browser execution is disabled because the
+public Rust Playground does not include Stillwater. Rust snippets are checked
+with Cargo; plain-text sketches are not complete programs.</p>
+<p>Run complete programs from the <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> directory in a repository checkout:</p>
+<pre><code class="language-bash">cargo run --example form_validation --all-features
+cargo run --example user_registration --all-features
+cargo run --example recover_patterns --all-features
+cargo run --example retry_patterns --all-features
+cargo run --example resource_tracking --all-features
 </code></pre>
 <h2 id="quick-reference"><a class="header" href="#quick-reference">Quick Reference</a></h2>
 <h3 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h3>
@@ -451,35 +526,28 @@ fetch_from_cache(key)
 <p>Ready to dive in? Start with <a href="#semigroup-the-foundation-for-combining-values">Chapter 1: Semigroup</a>!</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="semigroup-the-foundation-for-combining-values"><a class="header" href="#semigroup-the-foundation-for-combining-values">Semigroup: The Foundation for Combining Values</a></h1>
+<p>Run these examples with Cargo using the <a href="#running-the-examples">local setup and chapter-test instructions</a>.</p>
 <h2 id="what-is-a-semigroup"><a class="header" href="#what-is-a-semigroup">What is a Semigroup?</a></h2>
 <p>A Semigroup is a simple but powerful concept: a type with an associative binary operation that combines two values into one.</p>
 <p>In Rust terms, it’s a trait with one method:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait Semigroup: Sized {
+<pre><code class="language-rust">pub trait Semigroup: Sized {
     fn combine(self, other: Self) -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>The key property is <strong>associativity</strong>: the order of combining doesn’t matter.</p>
 <pre><code class="language-text">// These two operations must produce the same result:
 a.combine(b).combine(c) == a.combine(b.combine(c))
 </code></pre>
 <h2 id="why-does-this-matter"><a class="header" href="#why-does-this-matter">Why Does This Matter?</a></h2>
 <p>Semigroup is the foundation for error accumulation in Stillwater. When validating multiple fields, we need to combine error collections:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validation 1 fails with: vec!["Email invalid"]
+<pre><code class="language-rust">// Validation 1 fails with: vec!["Email invalid"]
 // Validation 2 fails with: vec!["Age too young"]
-// Combined failure:         vec!["Email invalid", "Age too young"]
-<span class="boring">}</span></code></pre>
+// Combined failure:         vec!["Email invalid", "Age too young"]</code></pre>
 <p>To combine these errors, we need a Semigroup implementation for <code>Vec&lt;E&gt;</code>.</p>
 <h2 id="built-in-implementations"><a class="header" href="#built-in-implementations">Built-in Implementations</a></h2>
 <p>Stillwater provides Semigroup implementations for common types:</p>
 <h3 id="vectors"><a class="header" href="#vectors">Vectors</a></h3>
 <p>Concatenates two vectors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -488,23 +556,17 @@ assert_eq!(v1.combine(v2), vec![1, 2, 3, 4, 5, 6]);
 // Empty vectors work too
 let empty: Vec&lt;i32&gt; = vec![];
 let values = vec![1, 2, 3];
-assert_eq!(empty.combine(values), vec![1, 2, 3]);
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(values), vec![1, 2, 3]);</code></pre>
 <h3 id="strings"><a class="header" href="#strings">Strings</a></h3>
 <p>Concatenates two strings:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let s1 = "Hello, ".to_string();
 let s2 = "World!".to_string();
-assert_eq!(s1.combine(s2), "Hello, World!");
-<span class="boring">}</span></code></pre>
+assert_eq!(s1.combine(s2), "Hello, World!");</code></pre>
 <h3 id="tuples"><a class="header" href="#tuples">Tuples</a></h3>
 <p>Combines tuples component-wise (up to 12 elements):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let t1 = (vec![1], "a".to_string());
 let t2 = (vec![2], "b".to_string());
@@ -519,13 +581,10 @@ let t2 = (vec![3], "b".to_string(), vec![4]);
 assert_eq!(
     t1.combine(t2),
     (vec![1, 3], "ab".to_string(), vec![2, 4])
-);
-<span class="boring">}</span></code></pre>
+);</code></pre>
 <h2 id="implementing-semigroup-for-custom-types"><a class="header" href="#implementing-semigroup-for-custom-types">Implementing Semigroup for Custom Types</a></h2>
 <p>You can implement Semigroup for your own error types:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq)]
 struct ValidationErrors {
@@ -544,13 +603,10 @@ let e1 = ValidationErrors { errors: vec!["Email invalid".to_string()] };
 let e2 = ValidationErrors { errors: vec!["Age too young".to_string()] };
 let combined = e1.combine(e2);
 
-assert_eq!(combined.errors, vec!["Email invalid", "Age too young"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(combined.errors, vec!["Email invalid", "Age too young"]);</code></pre>
 <h3 id="more-complex-examples"><a class="header" href="#more-complex-examples">More Complex Examples</a></h3>
 <p>You can implement Semigroup for domain-specific error types:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq)]
 enum ValidationError {
@@ -569,13 +625,10 @@ impl Semigroup for ValidationResult {
         self.errors.extend(other.errors);
         self
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="important-ownership-semantics"><a class="header" href="#important-ownership-semantics">Important: Ownership Semantics</a></h2>
 <p>The <code>combine</code> method takes ownership of both values:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -583,12 +636,9 @@ let result = v1.combine(v2);
 
 // v1 and v2 are now moved, can't use them anymore
 // This won't compile:
-// println!("{:?}", v1);
-<span class="boring">}</span></code></pre>
+// println!("{:?}", v1);</code></pre>
 <p>If you need to preserve the original values, clone them first:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let v1 = vec![1, 2, 3];
 let v2 = vec![4, 5, 6];
@@ -597,13 +647,10 @@ let result = v1.clone().combine(v2.clone());
 // v1 and v2 are still usable
 assert_eq!(v1, vec![1, 2, 3]);
 assert_eq!(v2, vec![4, 5, 6]);
-assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);
-<span class="boring">}</span></code></pre>
+assert_eq!(result, vec![1, 2, 3, 4, 5, 6]);</code></pre>
 <h2 id="associativity-law"><a class="header" href="#associativity-law">Associativity Law</a></h2>
 <p>All Semigroup implementations must be associative. This means:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let a = vec![1, 2];
 let b = vec![3, 4];
@@ -614,8 +661,7 @@ let left = a.clone().combine(b.clone()).combine(c.clone());
 let right = a.combine(b.combine(c));
 
 assert_eq!(left, right);
-// Both equal [1, 2, 3, 4, 5, 6]
-<span class="boring">}</span></code></pre>
+// Both equal [1, 2, 3, 4, 5, 6]</code></pre>
 <p>This property is crucial for validation: it means we can combine errors in any order and get the same result.</p>
 <h2 id="why-not-monoid"><a class="header" href="#why-not-monoid">Why Not Monoid?</a></h2>
 <p>You might wonder why Stillwater uses Semigroup instead of Monoid (which adds an “empty” element). The reason is practical:</p>
@@ -625,9 +671,7 @@ assert_eq!(left, right);
 <li><strong>Validation::all handles the empty case</strong> - You don’t combine zero validations</li>
 </ol>
 <p>If you need a Monoid, you can easily extend Semigroup:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 trait Monoid: Semigroup {
     fn empty() -&gt; Self;
@@ -637,8 +681,7 @@ impl&lt;T&gt; Monoid for Vec&lt;T&gt; {
     fn empty() -&gt; Self {
         Vec::new()
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="real-world-example-form-validation-errors"><a class="header" href="#real-world-example-form-validation-errors">Real-World Example: Form Validation Errors</a></h2>
 <p>Here’s how Semigroup enables multi-field form validation:</p>
 <pre><code class="language-text">use stillwater::{Semigroup, Validation};
@@ -695,9 +738,7 @@ match validate_form("invalid", "short", 15) {
 <h3 id="hashmaps-and-btrees"><a class="header" href="#hashmaps-and-btrees">HashMaps and BTrees</a></h3>
 <h4 id="hashmapk-v-semigroup"><a class="header" href="#hashmapk-v-semigroup">HashMap&lt;K, V: Semigroup&gt;</a></h4>
 <p>Combines two maps by merging their entries. When keys conflict, their values are combined using the value’s Semigroup instance:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust">use std::collections::HashMap;
 use stillwater::Semigroup;
 
 let mut map1 = HashMap::new();
@@ -714,12 +755,9 @@ let combined = map1.combine(map2);
 //   "errors": ["error1", "error2"],  // Combined with Vec semigroup
 //   "warnings": ["warn1"],            // From map1 only
 //   "info": ["info1"]                 // From map2 only
-// }
-<span class="boring">}</span></code></pre>
+// }</code></pre>
 <p><strong>Use case: Configuration Merging</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-rust">use std::collections::HashMap;
 use stillwater::Semigroup;
 
 #[derive(Clone)]
@@ -751,13 +789,10 @@ let user_config = Config {
 };
 
 // user_config values override default_config values
-// (String semigroup concatenates, but you'd typically use Last wrapper for configs)
-<span class="boring">}</span></code></pre>
+// (String semigroup concatenates, but you'd typically use Last wrapper for configs)</code></pre>
 <h4 id="btreemapk-v-semigroup"><a class="header" href="#btreemapk-v-semigroup">BTreeMap&lt;K, V: Semigroup&gt;</a></h4>
 <p>Same as HashMap but maintains sorted keys:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::BTreeMap;
+<pre><code class="language-rust">use std::collections::BTreeMap;
 use stillwater::Semigroup;
 
 let mut map1 = BTreeMap::new();
@@ -769,26 +804,20 @@ map2.insert("a", vec![4, 5]);
 map2.insert("c", vec![6]);
 
 let combined = map1.combine(map2);
-// Keys in sorted order: {a: [1,2,4,5], b: [3], c: [6]}
-<span class="boring">}</span></code></pre>
+// Keys in sorted order: {a: [1,2,4,5], b: [3], c: [6]}</code></pre>
 <h3 id="sets"><a class="header" href="#sets">Sets</a></h3>
 <h4 id="hashset"><a class="header" href="#hashset">HashSet<t></t></a></h4>
 <p>Combines two sets using union:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::Semigroup;
 
 let set1: HashSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
 let set2: HashSet&lt;_&gt; = [3, 4, 5].iter().cloned().collect();
 
 let combined = set1.combine(set2);
-// Result: {1, 2, 3, 4, 5}
-<span class="boring">}</span></code></pre>
+// Result: {1, 2, 3, 4, 5}</code></pre>
 <p><strong>Use case: Feature Flags</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::Semigroup;
 
 #[derive(Clone)]
@@ -813,26 +842,20 @@ let premium_features = Features {
 };
 
 let all_features = base_features.combine(premium_features);
-// All features enabled
-<span class="boring">}</span></code></pre>
+// All features enabled</code></pre>
 <h4 id="btreeset"><a class="header" href="#btreeset">BTreeSet<t></t></a></h4>
 <p>Same as HashSet but maintains sorted elements:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::BTreeSet;
+<pre><code class="language-rust">use std::collections::BTreeSet;
 use stillwater::Semigroup;
 
 let set1: BTreeSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
 let set2: BTreeSet&lt;_&gt; = [3, 4, 5].iter().cloned().collect();
 
 let combined = set1.combine(set2);
-// Elements in sorted order: {1, 2, 3, 4, 5}
-<span class="boring">}</span></code></pre>
+// Elements in sorted order: {1, 2, 3, 4, 5}</code></pre>
 <h3 id="optiont-semigroup"><a class="header" href="#optiont-semigroup">Option&lt;T: Semigroup&gt;</a></h3>
 <p>Lifts a Semigroup operation to Option, combining inner values when both are Some:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 let opt1 = Some(vec![1, 2]);
 let opt2 = Some(vec![3, 4]);
@@ -845,8 +868,7 @@ assert_eq!(some.clone().combine(none), some);
 
 let none1: Option&lt;Vec&lt;i32&gt;&gt; = None;
 let none2: Option&lt;Vec&lt;i32&gt;&gt; = None;
-assert_eq!(none1.combine(none2), None);
-<span class="boring">}</span></code></pre>
+assert_eq!(none1.combine(none2), None);</code></pre>
 <p><strong>Combination rules:</strong></p>
 <ul>
 <li><code>Some(a).combine(Some(b))</code> = <code>Some(a.combine(b))</code></li>
@@ -855,9 +877,7 @@ assert_eq!(none1.combine(none2), None);
 <li><code>None.combine(None)</code> = <code>None</code></li>
 </ul>
 <p><strong>Use case: Optional Error Accumulation</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 fn validate_optional_field(
     value: Option&lt;String&gt;,
@@ -876,23 +896,19 @@ let error2 = None;
 let error3 = Some(vec!["Error 2".to_string()]);
 
 let all_errors = error1.combine(error2).combine(error3);
-// Some(vec!["Error 1", "Error 2"])
-<span class="boring">}</span></code></pre>
+// Some(vec!["Error 1", "Error 2"])</code></pre>
 <h2 id="wrapper-types-for-alternative-semantics"><a class="header" href="#wrapper-types-for-alternative-semantics">Wrapper Types for Alternative Semantics</a></h2>
 <p>Sometimes you want different combining behavior. Stillwater provides wrapper types for common alternatives:</p>
 <h3 id="first---keep-first-value"><a class="header" href="#first---keep-first-value">First<t> - Keep First Value</t></a></h3>
 <p>Always keeps the first (left) value, discarding the second:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{First, Semigroup};
+<pre><code class="language-rust">use stillwater::{First, Semigroup};
 
 let first = First(1).combine(First(2));
 assert_eq!(first.0, 1); // Keeps first
 
 // Useful for configuration: first definition wins
 let config_value = First("default").combine(First("override"));
-assert_eq!(config_value.0, "default");
-<span class="boring">}</span></code></pre>
+assert_eq!(config_value.0, "default");</code></pre>
 <p><strong>Use case: Default Values</strong></p>
 <pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{First, Semigroup};
@@ -916,17 +932,14 @@ let final_config = user_config.combine(defaults);
 </code></pre>
 <h3 id="last---keep-last-value"><a class="header" href="#last---keep-last-value">Last<t> - Keep Last Value</t></a></h3>
 <p>Always keeps the last (right) value, discarding the first:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Last, Semigroup};
+<pre><code class="language-rust">use stillwater::{Last, Semigroup};
 
 let last = Last(1).combine(Last(2));
 assert_eq!(last.0, 2); // Keeps last
 
 // Useful for configuration: last definition wins (override)
 let config_value = Last("default").combine(Last("override"));
-assert_eq!(config_value.0, "override");
-<span class="boring">}</span></code></pre>
+assert_eq!(config_value.0, "override");</code></pre>
 <p><strong>Use case: Layered Configuration</strong></p>
 <pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{Last, Semigroup};
@@ -950,9 +963,7 @@ let final_cfg = default_cfg.combine(env_cfg);
 </code></pre>
 <h3 id="intersection---set-intersection"><a class="header" href="#intersection---set-intersection">Intersection<set> - Set Intersection</set></a></h3>
 <p>Alternative to the default union operation for sets:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::{Intersection, Semigroup};
 
 let set1: HashSet&lt;_&gt; = [1, 2, 3].iter().cloned().collect();
@@ -963,12 +974,9 @@ let i2 = Intersection(set2);
 let result = i1.combine(i2);
 
 let expected: HashSet&lt;_&gt; = [2, 3].iter().cloned().collect();
-assert_eq!(result.0, expected); // Only common elements
-<span class="boring">}</span></code></pre>
+assert_eq!(result.0, expected); // Only common elements</code></pre>
 <p><strong>Use case: Required Permissions</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+<pre><code class="language-rust">use std::collections::HashSet;
 use stillwater::{Intersection, Semigroup};
 
 // User must have ALL these permissions (intersection)
@@ -978,8 +986,7 @@ let user_perms: HashSet&lt;_&gt; =
     ["read", "write", "delete"].iter().cloned().collect();
 
 let effective_perms = Intersection(admin_perms).combine(Intersection(user_perms));
-// Result: ["read", "write", "delete"] - what user actually has
-<span class="boring">}</span></code></pre>
+// Result: ["read", "write", "delete"] - what user actually has</code></pre>
 <h2 id="real-world-example-error-aggregation-by-type"><a class="header" href="#real-world-example-error-aggregation-by-type">Real-World Example: Error Aggregation by Type</a></h2>
 <p>Here’s how these implementations enable sophisticated error handling:</p>
 <pre><code class="language-text">use std::collections::HashMap;
@@ -1020,9 +1027,7 @@ let all_errors = validation_errors.combine(permission_errors);
 </code></pre>
 <h2 id="testing-your-semigroup-implementation"><a class="header" href="#testing-your-semigroup-implementation">Testing Your Semigroup Implementation</a></h2>
 <p>When implementing Semigroup, test the associativity law:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-rust">use stillwater::Semigroup;
 
 #[derive(Debug, PartialEq, Clone)]
 struct MyErrors(Vec&lt;String&gt;);
@@ -1044,8 +1049,7 @@ fn check_associativity() {
 
     assert_eq!(left, right);
 }
-check_associativity();
-<span class="boring">}</span></code></pre>
+check_associativity();</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
 <li><strong>Semigroup</strong> is a type with an associative <code>combine</code> operation</li>
@@ -1167,9 +1171,7 @@ let result = validate_email(email)
 <p>Stillwater provides declarative validation combinators that eliminate verbose <code>and_then</code> boilerplate:</p>
 <h4 id="using-ensure-with-predicates"><a class="header" href="#using-ensure-with-predicates">Using <code>ensure()</code> with Predicates</a></h4>
 <p>The <code>ensure()</code> method validates a success value using composable predicates from the <code>predicate</code> module:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, predicate::*};
+<pre><code class="language-rust">use stillwater::{Validation, predicate::*};
 
 // Single validation
 let result = Validation::success(String::from("hello"))
@@ -1191,13 +1193,10 @@ let result = Validation::success(String::from("hello123"))
     .ensure(len_min(3), "too short")      // passes
     .ensure(len_max(10), "too long")      // passes
     .ensure(is_alphabetic(), "not alpha"); // fails
-// Result: Failure("not alpha")
-<span class="boring">}</span></code></pre>
+// Result: Failure("not alpha")</code></pre>
 <h4 id="using-ensure_fn-with-closures"><a class="header" href="#using-ensure_fn-with-closures">Using <code>ensure_fn()</code> with Closures</a></h4>
 <p>For inline predicates, use <code>ensure_fn()</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(5)
     .ensure_fn(|x| *x &gt; 0, "must be positive");
@@ -1205,36 +1204,27 @@ assert_eq!(result, Validation::Success(5));
 
 let result = Validation::success(-5)
     .ensure_fn(|x| *x &gt; 0, "must be positive");
-assert_eq!(result, Validation::Failure("must be positive"));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("must be positive"));</code></pre>
 <h4 id="using-ensure_with-for-lazy-errors"><a class="header" href="#using-ensure_with-for-lazy-errors">Using <code>ensure_with()</code> for Lazy Errors</a></h4>
 <p>When you need the value to construct the error message:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, predicate::*};
+<pre><code class="language-rust">use stillwater::{Validation, predicate::*};
 
 let result = Validation::success(String::from("hi"))
     .ensure_with(len_min(3), |s| format!("'{}' is too short", s));
-assert_eq!(result, Validation::Failure("'hi' is too short".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("'hi' is too short".to_string()));</code></pre>
 <h4 id="using-ensure_fn_with-with-closures-and-lazy-errors"><a class="header" href="#using-ensure_fn_with-with-closures-and-lazy-errors">Using <code>ensure_fn_with()</code> with Closures and Lazy Errors</a></h4>
 <p>Combine closure predicates with error factories:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(-5)
     .ensure_fn_with(
         |x| *x &gt; 0,
         |x| format!("{} is not positive", x)
     );
-assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));</code></pre>
 <h4 id="using-unless-for-inverse-validation"><a class="header" href="#using-unless-for-inverse-validation">Using <code>unless()</code> for Inverse Validation</a></h4>
 <p>The <code>unless()</code> method fails when the predicate is TRUE (inverse of <code>ensure_fn</code>):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 // Fail if negative
 let result = Validation::success(5)
@@ -1243,18 +1233,14 @@ assert_eq!(result, Validation::Success(5));
 
 let result = Validation::success(-5)
     .unless(|x| *x &lt; 0, "must not be negative");
-assert_eq!(result, Validation::Failure("must not be negative"));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("must not be negative"));</code></pre>
 <h4 id="using-filter_or-alias"><a class="header" href="#using-filter_or-alias">Using <code>filter_or()</code> Alias</a></h4>
 <p><code>filter_or()</code> is an alias for <code>ensure_fn()</code> following functional programming conventions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(5)
     .filter_or(|x| *x &gt; 0, "must be positive");
-assert_eq!(result, Validation::Success(5));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Success(5));</code></pre>
 <h4 id="why-use-validation-combinators"><a class="header" href="#why-use-validation-combinators">Why Use Validation Combinators?</a></h4>
 <p><strong>Before</strong> (verbose):</p>
 <pre><code class="language-text">validate_email(email)
@@ -1293,12 +1279,9 @@ assert_eq!(r, Err(vec!["error"]));
 </code></pre>
 <h2 id="error-accumulation-with-semigroup"><a class="header" href="#error-accumulation-with-semigroup">Error Accumulation with Semigroup</a></h2>
 <p>For <code>Validation::all()</code> to work, your error type must implement <code>Semigroup</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait Semigroup {
+<pre><code class="language-rust">pub trait Semigroup {
     fn combine(self, other: Self) -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Common implementations:</p>
 <ul>
 <li><code>Vec&lt;T&gt;</code>: Concatenate vectors</li>
@@ -1512,9 +1495,7 @@ fn validate_all_items(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidIt
 }
 </code></pre>
 <p>The <code>traverse</code> function applies a validation to each element and accumulates all errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+<pre><code class="language-rust">use stillwater::{Validation, traverse::traverse};
 
 fn validate_positive(x: i32) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
     if x &gt; 0 {
@@ -1535,8 +1516,7 @@ match result {
         assert_eq!(errors.len(), 2); // Both negative numbers
     }
     _ =&gt; panic!("Expected failure"),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>For more advanced patterns, see the <a href="#traverse-and-sequence-patterns">Traverse Patterns guide</a>.</p>
 <p><strong>Alternative using <code>all_vec</code> (less convenient)</strong>:</p>
 <pre><code class="language-text">use stillwater::Validation;
@@ -1570,9 +1550,7 @@ fn validate_config(input: ConfigInput) -&gt; Validation&lt;Config, Vec&lt;Error&
 </code></pre>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <p>Validation is pure - testing is trivial:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
     if email.contains('@') {
@@ -1588,13 +1566,10 @@ let result = Validation::&lt;&amp;str, Vec&lt;&amp;str&gt;&gt;::all((
     validate_email("bad"),
     validate_email("also bad"),
 ));
-assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));</code></pre>
 <h2 id="advanced-custom-error-types"><a class="header" href="#advanced-custom-error-types">Advanced: Custom Error Types</a></h2>
 <p>You can use any error type that implements Semigroup:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, Semigroup};
+<pre><code class="language-rust">use stillwater::{Validation, Semigroup};
 
 #[derive(Debug, Clone)]
 struct ValidationContext {
@@ -1628,8 +1603,7 @@ fn validate_with_context(
     } else {
         Validation::success(value.to_string())
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
 <p>Validation has minimal overhead:</p>
 <ul>
@@ -1695,9 +1669,7 @@ constructing a fresh effect.</p>
 <h2 id="start-with-a-pure-decision"><a class="header" href="#start-with-a-pure-decision">Start with a pure decision</a></h2>
 <p>Load the external facts a decision needs, pass input and facts to a pure function, then
 interpret the resulting plain plan. The decision needs no runtime or service mocks.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{NonEmptyVec, Validation};
+<pre><code class="language-rust">use stillwater::{NonEmptyVec, Validation};
 
 #[derive(Debug, PartialEq)]
 struct Plan { username: String }
@@ -1724,8 +1696,7 @@ assert_eq!(decide("calm".into(), false).into_result(), Ok(Plan { username: "calm
 assert_eq!(
     decide("".into(), true).into_result().unwrap_err().into_vec(),
     vec![Rejection::EmptyUsername, Rejection::UsernameTaken],
-);
-<span class="boring">}</span></code></pre>
+);</code></pre>
 <p>The complete <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 connects this architecture to narrow repository, password-hasher, and email-sender traits.
 Its shell loads facts, calls the decision, then hashes, saves, and sends email in order.</p>
@@ -1737,9 +1708,7 @@ infrastructure failures have distinct outcomes.</p>
 retry protocol; use an application-owned outbox or an explicit compensation protocol
 when delivery or rollback is a requirement. The example’s hasher is a test double.</p>
 <h2 id="constructors-and-execution"><a class="header" href="#constructors-and-execution">Constructors and execution</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let chain = pure::&lt;_, String, ()&gt;(20)
@@ -1752,13 +1721,10 @@ tokio_test::block_on(async {
 
     let existing = from_result::&lt;_, &amp;str, ()&gt;(Ok(7));
     assert_eq!(existing.run(&amp;()).await, Ok(7));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use <code>from_fn</code> for synchronous fallible operations. Keep slow blocking work off an async
 executor’s worker thread using the runtime’s blocking-work facilities.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Env { limit: usize }
@@ -1767,16 +1733,13 @@ tokio_test::block_on(async {
     let effect = from_fn(|env: &amp;Env| Ok::&lt;_, &amp;str&gt;(env.limit))
         .ensure(|limit| *limit &gt; 0, "limit must be positive");
     assert_eq!(effect.run(&amp;Env { limit: 10 }).await, Ok(10));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>ensure</code> short-circuits on the first failed predicate. Use <code>Validation</code> in the pure
 decision when independent checks must accumulate errors.</p>
 <h2 id="owned-and-borrowed-async-work"><a class="header" href="#owned-and-borrowed-async-work">Owned and borrowed async work</a></h2>
 <p><code>from_async</code> accepts a future whose type does not borrow the supplied environment.
 Clone a cheap shared handle before building that future.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::Arc;
+<pre><code class="language-rust">use std::sync::Arc;
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -1788,13 +1751,10 @@ tokio_test::block_on(async {
         async move { Ok::&lt;_, &amp;str&gt;(name.len()) }
     });
     assert_eq!(effect.run(&amp;Env { name: Arc::new("water".into()) }).await, Ok(5));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use <code>from_async_ref</code> when the operation must borrow the environment across an await.
 It accepts a boxed future, adding one future allocation in the usual <code>Box::pin</code> usage.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Env { name: String }
@@ -1807,15 +1767,12 @@ tokio_test::block_on(async {
         })
     });
     assert_eq!(effect.run(&amp;Env { name: "water".into() }).await, Ok(5));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="concrete-types-and-explicit-type-erasure"><a class="header" href="#concrete-types-and-explicit-type-erasure">Concrete types and explicit type erasure</a></h2>
 <p>Most combinators store their inputs and closures directly. Return <code>impl Effect</code> when
 callers do not need to name that concrete type. Use <code>BoxedEffect</code> at boundaries that
 require a single erased type, such as heterogeneous collections or different branches.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn choose(cached: bool) -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
     if cached {
@@ -1828,8 +1785,7 @@ fn choose(cached: bool) -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
 tokio_test::block_on(async {
     assert_eq!(choose(true).run(&amp;()).await, Ok(42));
     assert_eq!(choose(false).run(&amp;()).await, Err("cache miss"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Concrete types do not promise allocation-free execution or a fixed performance ratio.
 <code>from_async_ref</code> boxes its future; helpers returning <code>BoxedEffect</code> (including <code>IO</code>,
 effect traversal, and retry) erase types internally. User operations, captured data,
@@ -1850,19 +1806,14 @@ or panic; ordinary Rust ownership and <code>Drop</code> still matter.</p>
 <p>Keep domain errors structured for decisions and matching. Add contextual information
 when an infrastructure operation crosses an application boundary.</p>
 <h2 id="wrap-an-error"><a class="header" href="#wrap-an-error">Wrap an error</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+<pre><code class="language-rust">use stillwater::ContextError;
 
 let error = ContextError::new("connection refused")
     .context("loading registration facts");
 assert_eq!(error.inner(), &amp;"connection refused");
-assert_eq!(error.context_trail(), &amp;["loading registration facts"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(error.context_trail(), &amp;["loading registration facts"]);</code></pre>
 <h2 id="add-context-to-an-effect"><a class="header" href="#add-context-to-an-effect">Add context to an effect</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = fail::&lt;(), _, ()&gt;("connection refused")
@@ -1874,20 +1825,16 @@ tokio_test::block_on(async {
         error.context_trail(),
         &amp;["loading registration facts", "registering user"],
     );
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>The first <code>context</code> wraps the error in <code>ContextError</code>. Use <code>context_chain</code> to append
 information to that same wrapper; calling <code>context</code> again would nest wrappers.</p>
 <h2 id="preserve-successful-values"><a class="header" href="#preserve-successful-values">Preserve successful values</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = pure::&lt;_, &amp;str, ()&gt;(42).context("calculating total");
     assert_eq!(effect.run(&amp;()).await, Ok(42));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Context strings can allocate. Put useful operation names and identifiers at boundaries,
 avoid secrets such as passwords or tokens, and retain the underlying error for callers.
 A context trail does not imply that preceding writes were rolled back.</p>
@@ -1967,9 +1914,7 @@ effect.run(&amp;env).await  // AppEnv automatically provides Database
 <p>Use composition to describe a small operation clearly. Prefer a named domain struct or
 ordinary function when a long chain makes the data flow difficult to follow.</p>
 <h2 id="accumulate-independent-validations"><a class="header" href="#accumulate-independent-validations">Accumulate independent validations</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let values = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all((
     Validation::&lt;_, Vec&lt;&amp;str&gt;&gt;::success(1),
@@ -1981,12 +1926,9 @@ let failures = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all_vec(vec![
     Validation::failure(vec!["name"]),
     Validation::failure(vec!["email"]),
 ]);
-assert_eq!(failures.into_result(), Err(vec!["name", "email"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(failures.into_result(), Err(vec!["name", "email"]));</code></pre>
 <h2 id="map-chain-and-translate-errors"><a class="header" href="#map-chain-and-translate-errors">Map, chain, and translate errors</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = pure::&lt;_, &amp;str, ()&gt;(21)
@@ -1994,15 +1936,12 @@ tokio_test::block_on(async {
         .and_then(|value| from_result(Ok(value + 1)))
         .map_err(str::to_string);
     assert_eq!(effect.run(&amp;()).await, Ok(43));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>map</code> transforms a value; <code>and_then</code> constructs a dependent effect; <code>map_err</code> translates
 an error at a boundary. None of these automatically accumulates failures.</p>
 <h2 id="write-a-small-reusable-wrapper"><a class="header" href="#write-a-small-reusable-wrapper">Write a small reusable wrapper</a></h2>
 <p>Accept an effect through its trait instead of using the removed generic Effect struct.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn require_positive&lt;E&gt;(effect: E) -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = E::Env&gt;
 where
@@ -2014,8 +1953,7 @@ where
 tokio_test::block_on(async {
     assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(1)).run(&amp;()).await, Ok(1));
     assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(0)).run(&amp;()).await, Err("must be positive"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Retry requires a factory because running an effect consumes it. Use the existing
 <a href="#retry-and-resilience-patterns">retry and timeout helpers</a> rather than a wrapper that pretends to rerun
 the same effect. See <a href="#effects-pure-core-imperative-shell">effects</a> for the core architecture.</p>
@@ -2107,33 +2045,25 @@ Validation::all((
 <h2 id="basic-examples"><a class="header" href="#basic-examples">Basic Examples</a></h2>
 <h3 id="vec-monoid"><a class="header" href="#vec-monoid">Vec Monoid</a></h3>
 <p>Vectors form a monoid with the empty vector as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let v = vec![1, 2, 3];
 let empty: Vec&lt;i32&gt; = Monoid::empty();
 
 assert_eq!(v.clone().combine(empty.clone()), v);  // right identity
-assert_eq!(empty.combine(v.clone()), v);          // left identity
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(v.clone()), v);          // left identity</code></pre>
 <h3 id="string-monoid"><a class="header" href="#string-monoid">String Monoid</a></h3>
 <p>Strings form a monoid with the empty string as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let s = "hello".to_string();
 let empty: String = Monoid::empty();
 
 assert_eq!(s.clone().combine(empty.clone()), s);
-assert_eq!(empty.combine(s.clone()), s);
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(s.clone()), s);</code></pre>
 <h3 id="option-monoid"><a class="header" href="#option-monoid">Option Monoid</a></h3>
 <p>Options lift a Semigroup into a Monoid with <code>None</code> as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let some_vec = Some(vec![1, 2, 3]);
 let none: Option&lt;Vec&lt;i32&gt;&gt; = None;
@@ -2144,8 +2074,7 @@ assert_eq!(some_vec.clone().combine(none.clone()), some_vec);
 // Some values combine their contents
 let v1 = Some(vec![1, 2]);
 let v2 = Some(vec![3, 4]);
-assert_eq!(v1.combine(v2), Some(vec![1, 2, 3, 4]));
-<span class="boring">}</span></code></pre>
+assert_eq!(v1.combine(v2), Some(vec![1, 2, 3, 4]));</code></pre>
 <h2 id="numeric-monoids"><a class="header" href="#numeric-monoids">Numeric Monoids</a></h2>
 <p>Since Rust primitives can’t implement external traits and numbers have multiple valid monoid instances (addition vs multiplication), Stillwater provides wrapper types.</p>
 <h3 id="sum-monoid"><a class="header" href="#sum-monoid">Sum Monoid</a></h3>
@@ -2180,21 +2109,16 @@ assert_eq!(total, Product(24));
 </code></pre>
 <h3 id="max-and-min"><a class="header" href="#max-and-min">Max and Min</a></h3>
 <p>Maximum and minimum operations (note: these are Semigroups but not Monoids without bounded types):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::{Max, Min};
+<pre><code class="language-rust">use stillwater::monoid::{Max, Min};
 use stillwater::Semigroup;
 
 let max = Max(5).combine(Max(10));
 assert_eq!(max, Max(10));
 
 let min = Min(5).combine(Min(10));
-assert_eq!(min, Min(5));
-<span class="boring">}</span></code></pre>
+assert_eq!(min, Min(5));</code></pre>
 <p>For unbounded types, use <code>Option&lt;Max&lt;T&gt;&gt;</code> or <code>Option&lt;Min&lt;T&gt;&gt;</code> to get a Monoid:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 use stillwater::monoid::Max;
 
 let m1: Option&lt;Max&lt;i32&gt;&gt; = Some(Max(5));
@@ -2202,14 +2126,11 @@ let m2: Option&lt;Max&lt;i32&gt;&gt; = Some(Max(10));
 let empty: Option&lt;Max&lt;i32&gt;&gt; = Monoid::empty();
 
 assert_eq!(m1.combine(m2), Some(Max(10)));
-assert_eq!(m1.combine(empty), m1);
-<span class="boring">}</span></code></pre>
+assert_eq!(m1.combine(empty), m1);</code></pre>
 <h2 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h2>
 <h3 id="fold_all"><a class="header" href="#fold_all">fold_all</a></h3>
 <p>The <code>fold_all</code> function leverages the identity element to fold a collection without requiring an initial value:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::fold_all;
+<pre><code class="language-rust">use stillwater::monoid::fold_all;
 
 // Combine vectors
 let vecs = vec![vec![1, 2], vec![3, 4], vec![5]];
@@ -2223,23 +2144,17 @@ let strings = vec![
     "World".to_string(),
 ];
 let result = fold_all(strings);
-assert_eq!(result, "Hello World");
-<span class="boring">}</span></code></pre>
+assert_eq!(result, "Hello World");</code></pre>
 <h3 id="reduce"><a class="header" href="#reduce">reduce</a></h3>
 <p>Alias for <code>fold_all</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::reduce;
+<pre><code class="language-rust">use stillwater::monoid::reduce;
 
 let vecs = vec![vec![1], vec![2], vec![3]];
 let result: Vec&lt;i32&gt; = reduce(vecs);
-assert_eq!(result, vec![1, 2, 3]);
-<span class="boring">}</span></code></pre>
+assert_eq!(result, vec![1, 2, 3]);</code></pre>
 <h2 id="tuple-monoids"><a class="header" href="#tuple-monoids">Tuple Monoids</a></h2>
 <p>Tuples of monoids are themselves monoids, combining component-wise:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 use stillwater::monoid::fold_all;
 
 let t1 = (vec![1], "a".to_string());
@@ -2259,8 +2174,7 @@ let tuples = vec![
     (vec![3], "c".to_string()),
 ];
 let result = fold_all(tuples);
-assert_eq!(result, (vec![1, 2, 3], "abc".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, (vec![1, 2, 3], "abc".to_string()));</code></pre>
 <h2 id="integration-with-validation"><a class="header" href="#integration-with-validation">Integration with Validation</a></h2>
 <p>Monoids work seamlessly with Validation for combining results:</p>
 <pre><code class="language-text">use stillwater::{Validation, Monoid};
@@ -2333,21 +2247,16 @@ assert_eq!(result.0, vec!["error1", "error2"]);
 </code></pre>
 <h2 id="common-patterns-1"><a class="header" href="#common-patterns-1">Common Patterns</a></h2>
 <h3 id="accumulating-results"><a class="header" href="#accumulating-results">Accumulating Results</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::{Sum, fold_all};
+<pre><code class="language-rust">use stillwater::monoid::{Sum, fold_all};
 
 fn calculate_total(items: Vec&lt;i32&gt;) -&gt; Sum&lt;i32&gt; {
     fold_all(items.into_iter().map(Sum))
 }
 
 let total = calculate_total(vec![1, 2, 3, 4, 5]);
-assert_eq!(total, Sum(15));
-<span class="boring">}</span></code></pre>
+assert_eq!(total, Sum(15));</code></pre>
 <h3 id="combining-configurations"><a class="header" href="#combining-configurations">Combining Configurations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Semigroup, Monoid, monoid::fold_all};
+<pre><code class="language-rust">use stillwater::{Semigroup, Monoid, monoid::fold_all};
 
 #[derive(Debug, Clone, PartialEq)]
 struct Config {
@@ -2373,8 +2282,7 @@ let configs = vec![
 ];
 
 let merged = fold_all(configs);
-assert_eq!(merged.values, vec!["a", "b", "c"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(merged.values, vec!["a", "b", "c"]);</code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Verify laws</strong>: Ensure your implementation satisfies identity and associativity</li>
@@ -2396,9 +2304,7 @@ assert_eq!(merged.values, vec!["a", "b", "c"]);
 Keep business decisions in ordinary functions accepting plain data. Reader helpers
 provide access to configuration and services without introducing global state.</p>
 <h2 id="project-a-value-with-asks"><a class="header" href="#project-a-value-with-asks">Project a value with asks</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Config { retry_limit: usize, region: String }
@@ -2407,14 +2313,11 @@ tokio_test::block_on(async {
     let effect = asks::&lt;_, &amp;str, Config, _&gt;(|config| config.region.clone());
     let config = Config { retry_limit: 3, region: "west".into() };
     assert_eq!(effect.run(&amp;config).await, Ok("west".to_string()));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use <code>from_fn</code> for fallible synchronous access and <code>from_async_ref</code> for service calls
 that borrow the environment across an await. <code>asks</code> itself produces a successful value.</p>
 <h2 id="clone-the-environment-with-ask"><a class="header" href="#clone-the-environment-with-ask">Clone the environment with ask</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Config { limit: usize }
@@ -2422,14 +2325,11 @@ struct Config { limit: usize }
 tokio_test::block_on(async {
     let env = Config { limit: 3 };
     assert_eq!(ask::&lt;&amp;str, Config&gt;().run(&amp;env).await, Ok(env));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>ask</code> clones the whole environment. Store shared services behind cheap handles such as
 <code>Arc</code>; do not assume that a <code>Clone</code> bound means cloning is free.</p>
 <h2 id="scope-configuration-with-local"><a class="header" href="#scope-configuration-with-local">Scope configuration with local</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Config { limit: usize }
@@ -2440,8 +2340,7 @@ tokio_test::block_on(async {
     let env = Config { limit: 3 };
     assert_eq!(scoped.run(&amp;env).await, Ok(4));
     assert_eq!(env.limit, 3);
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>The transformed environment is local to the inner effect. This does not clone or isolate
 external state behind shared handles: two environments containing the same <code>Arc</code> still
 refer to the same service.</p>
@@ -2802,9 +2701,7 @@ assert!(elapsed &lt; Duration::from_millis(200));
 </ul>
 <h2 id="testing-parallel-effects"><a class="header" href="#testing-parallel-effects">Testing Parallel Effects</a></h2>
 <p>Parallel effects use the same environment pattern as sequential effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effects: Vec&lt;BoxedEffect&lt;u64, &amp;str, ()&gt;&gt; = vec![
@@ -2817,8 +2714,7 @@ tokio_test::block_on(async {
 
     let effects = vec![pure::&lt;_, &amp;str, ()&gt;(1).boxed(), pure(3).boxed()];
     assert_eq!(par_all(effects, &amp;()).await, Ok(vec![1, 3]));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>This checks result collection, not overlap. For concurrency tests, use a barrier or
 channel to control child progress and a timeout to detect deadlock. Avoid exact timing assertions.</p>
 <h2 id="common-pitfalls-1"><a class="header" href="#common-pitfalls-1">Common Pitfalls</a></h2>
@@ -2877,9 +2773,7 @@ results or effects that have already been constructed.</p>
 <h2 id="validation-accumulates-errors"><a class="header" href="#validation-accumulates-errors">Validation accumulates errors</a></h2>
 <p><code>traverse</code> and <code>sequence</code> in this module operate on <code>Validation</code>. They preserve input
 order and combine errors using <code>Semigroup</code>.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::{traverse, sequence}};
+<pre><code class="language-rust">use stillwater::{Validation, traverse::{traverse, sequence}};
 
 fn positive(value: i32) -&gt; Validation&lt;i32, Vec&lt;i32&gt;&gt; {
     if value &gt; 0 { Validation::success(value) } else { Validation::failure(vec![value]) }
@@ -2890,14 +2784,11 @@ assert_eq!(traverse([1, -2, -3], positive), Validation::Failure(vec![-2, -3]));
 assert_eq!(traverse([], positive), Validation::Success(vec![]));
 
 let checks = [positive(-1), positive(2), positive(-3)];
-assert_eq!(sequence(checks), Validation::Failure(vec![-1, -3]));
-<span class="boring">}</span></code></pre>
+assert_eq!(sequence(checks), Validation::Failure(vec![-1, -3]));</code></pre>
 <h2 id="sequential-effect-traversal"><a class="header" href="#sequential-effect-traversal">Sequential effect traversal</a></h2>
 <p><code>traverse_effect_sequential</code> calls the factory for one item, awaits that child, and
 only then proceeds. After an error, later child effects are neither constructed nor run.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::{Arc, Mutex};
+<pre><code class="language-rust">use std::sync::{Arc, Mutex};
 use stillwater::prelude::*;
 
 tokio_test::block_on(async {
@@ -2910,16 +2801,13 @@ tokio_test::block_on(async {
     assert!(constructed.lock().unwrap().is_empty());
     assert_eq!(effect.run(&amp;()).await, Err("stop"));
     assert_eq!(*constructed.lock().unwrap(), vec![1, 2]);
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="parallel-effect-traversal"><a class="header" href="#parallel-effect-traversal">Parallel effect traversal</a></h2>
 <p><code>traverse_effect_parallel</code> constructs all children when the returned effect executes,
 then polls them concurrently. It waits for the entire batch, even after an error.
 Successful values retain input order; if multiple children fail, the error at the
 earliest input position is returned.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = traverse_effect_parallel([1, 2, 3], |item| {
@@ -2929,16 +2817,13 @@ tokio_test::block_on(async {
         }).boxed()
     });
     assert_eq!(effect.run(&amp;()).await, Ok(vec![2, 4, 6]));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Concurrent polling does not move CPU work onto separate threads. A child that blocks
 its poll can block progress for the whole batch. For large I/O batches, use
 <code>par_all_limit</code> or chunking to bound concurrency. Neither parallel traversal variant
 provides rollback or keeps children running after the parent future is dropped.</p>
 <h2 id="sequence-existing-effects"><a class="header" href="#sequence-existing-effects">Sequence existing effects</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let ordered = sequence_effect_sequential(vec![
@@ -2952,8 +2837,7 @@ tokio_test::block_on(async {
         fail("second input").boxed(),
     ]);
     assert_eq!(concurrent.run(&amp;()).await, Err("first input"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Sequential sequencing stops running children after the first error, but their construction
 has already happened. Use traversal when child construction must also be deferred.</p>
 <h2 id="construction-memory-and-testing"><a class="header" href="#construction-memory-and-testing">Construction, memory, and testing</a></h2>
@@ -2996,9 +2880,7 @@ let data = retry(
 <h2 id="retrypolicy"><a class="header" href="#retrypolicy">RetryPolicy</a></h2>
 <p><code>RetryPolicy</code> is a pure data structure describing retry behavior. It is composable and testable without executing any effects.</p>
 <h3 id="creating-policies"><a class="header" href="#creating-policies">Creating Policies</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let constant = RetryPolicy::constant(Duration::from_millis(100))
@@ -3011,31 +2893,24 @@ let exponential = RetryPolicy::exponential(Duration::from_millis(100))
     .with_max_retries(5);
 
 let fibonacci = RetryPolicy::fibonacci(Duration::from_millis(100))
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
+    .with_max_retries(5);</code></pre>
 <h3 id="policy-configuration"><a class="header" href="#policy-configuration">Policy Configuration</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
     .with_max_retries(5)
-    .with_max_delay(Duration::from_secs(30));
-<span class="boring">}</span></code></pre>
+    .with_max_delay(Duration::from_secs(30));</code></pre>
 <h3 id="jitter-support"><a class="header" href="#jitter-support">Jitter Support</a></h3>
 <p>Jitter adds randomness to delays, preventing the “thundering herd” problem when many clients retry simultaneously. Enable it with the <code>jitter</code> feature:</p>
 <pre><code class="language-toml">stillwater = { version = "2.0", features = ["jitter"] }
 </code></pre>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
     .with_jitter(0.25)
-    .with_max_retries(5);
-<span class="boring">}</span></code></pre>
+    .with_max_retries(5);</code></pre>
 <h2 id="retry-functions"><a class="header" href="#retry-functions">Retry Functions</a></h2>
 <h3 id="retry---basic-retry"><a class="header" href="#retry---basic-retry"><code>retry</code> - Basic Retry</a></h3>
 <p>Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.</p>
@@ -3074,9 +2949,7 @@ assert_eq!(effect.run(&amp;()).await, Err(ApiError::Permanent));
 </code></pre>
 <h3 id="retry_with_hooks---retry-with-observability"><a class="header" href="#retry_with_hooks---retry-with-observability"><code>retry_with_hooks</code> - Retry With Observability</a></h3>
 <p><code>retry_with_hooks</code> invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span><span class="boring">#[cfg(all(feature = "async", feature = "tracing"))]
+<pre><code class="language-rust"><span class="boring">#[cfg(all(feature = "async", feature = "tracing"))]
 </span><span class="boring">{
 </span>use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy};
@@ -3093,8 +2966,7 @@ let effect = retry_with_hooks(
         );
     },
 );
-<span class="boring">}
-</span><span class="boring">}</span></code></pre>
+<span class="boring">}</span></code></pre>
 <p>The <code>RetryEvent</code> contains:</p>
 <ul>
 <li><code>attempt</code> - Which attempt just failed, using 1-based numbering</li>
@@ -3150,16 +3022,13 @@ let effect = retry(
 <li><code>Err(RetryExhausted&lt;E&gt;)</code> when retries are exhausted</li>
 </ul>
 <p>The wrapper currently stores the inner value in <code>final_error</code> and exposes <code>into_value()</code> for extraction.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Duration;
+<pre><code class="language-rust">use std::time::Duration;
 
 pub struct RetryExhausted&lt;E&gt; {
     pub final_error: E,
     pub attempts: u32,
     pub total_duration: Duration,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="timeouterrore"><a class="header" href="#timeouterrore"><code>TimeoutError&lt;E&gt;</code></a></h3>
 <p><code>with_timeout</code> wraps timeout and inner errors:</p>
 <pre><code class="language-text">pub enum TimeoutError&lt;E&gt; {
@@ -3272,9 +3141,7 @@ let effect = retry_with_hooks(
 </code></pre>
 <h3 id="policy-testing"><a class="header" href="#policy-testing">Policy Testing</a></h3>
 <p><code>RetryPolicy</code> is just data, so you can test retry timing without running any effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::RetryPolicy;
+<pre><code class="language-rust">use stillwater::RetryPolicy;
 use std::time::Duration;
 
 let policy = RetryPolicy::exponential(Duration::from_millis(100))
@@ -3284,8 +3151,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 assert_eq!(policy.delay_for_attempt(0), Some(Duration::from_millis(100)));
 assert_eq!(policy.delay_for_attempt(1), Some(Duration::from_millis(200)));
 assert_eq!(policy.delay_for_attempt(2), Some(Duration::from_millis(250)));
-assert_eq!(policy.delay_for_attempt(3), None);
-<span class="boring">}</span></code></pre>
+assert_eq!(policy.delay_for_attempt(3), None);</code></pre>
 <h3 id="circuit-breaker-integration"><a class="header" href="#circuit-breaker-integration">Circuit-Breaker Integration</a></h3>
 <p>Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use <code>from_fn</code> or <code>check</code> before retrying:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
@@ -3336,14 +3202,11 @@ let effect = retry_if(
 <p>When you have an enum where each variant forms a Semigroup, but different variants cannot be combined, use homogeneous validation to ensure type consistency before combining.</p>
 <h2 id="the-problem-1"><a class="header" href="#the-problem-1">The Problem</a></h2>
 <p>Many Rust programs use discriminated unions (enums) where each variant represents a different type of data, but each variant can be combined with other values of the same variant:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum Aggregate {
+<pre><code class="language-rust">enum Aggregate {
     Sum(f64),      // Sum + Sum = Sum (valid)
     Count(usize),  // Count + Count = Count (valid)
     // But: Sum + Count = ??? (type error!)
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>In a typical scenario, you might write:</p>
 <pre><code class="language-text">impl Semigroup for Aggregate {
     fn combine(self, other: Self) -&gt; Self {
@@ -3363,11 +3226,8 @@ let results = vec![worker1.result(), worker2.result(), worker3.result()];
 // If types don't match, the program crashes!
 </code></pre>
 <p><strong>JSON/Config Merging</strong>: Combining configuration from multiple sources</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// serde_json::Value has variants for Object, Array, Number, etc.
-// Merging an Object with an Array doesn't make sense
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust">// serde_json::Value has variants for Object, Array, Number, etc.
+// Merging an Object with an Array doesn't make sense</code></pre>
 <p><strong>Database Query Results</strong>: Combining results from sharded queries</p>
 <pre><code class="language-text">enum QueryResult {
     Rows(Vec&lt;Row&gt;),
@@ -3482,12 +3342,9 @@ where
 <h3 id="helper-types"><a class="header" href="#helper-types">Helper Types</a></h3>
 <h4 id="discriminantname-trait"><a class="header" href="#discriminantname-trait"><code>DiscriminantName</code> Trait</a></h4>
 <p>Provides human-readable names for discriminants:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait DiscriminantName {
+<pre><code class="language-rust">pub trait DiscriminantName {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Example implementation:</p>
 <pre><code class="language-text">impl DiscriminantName for Aggregate {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str {
@@ -3501,14 +3358,11 @@ where
 </code></pre>
 <h4 id="typemismatcherror"><a class="header" href="#typemismatcherror"><code>TypeMismatchError</code></a></h4>
 <p>A standardized error type for type mismatches:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct TypeMismatchError {
+<pre><code class="language-rust">pub struct TypeMismatchError {
     pub index: usize,
     pub expected: String,
     pub got: String,
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Use with <code>DiscriminantName</code>:</p>
 <pre><code class="language-text">let result = validate_homogeneous(
     items,
@@ -3518,9 +3372,7 @@ where
 </code></pre>
 <h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
 <h3 id="example-1-aggregation-pipeline"><a class="header" href="#example-1-aggregation-pipeline">Example 1: Aggregation Pipeline</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::validation::homogeneous::combine_homogeneous;
+<pre><code class="language-rust">use stillwater::validation::homogeneous::combine_homogeneous;
 use stillwater::{Semigroup, Validation};
 use std::mem::discriminant;
 
@@ -3568,8 +3420,7 @@ match result {
     Validation::Failure(errors) =&gt; {
         eprintln!("Validation errors: {:?}", errors);
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="example-2-json-config-merging"><a class="header" href="#example-2-json-config-merging">Example 2: JSON Config Merging</a></h3>
 <pre><code class="language-text">use serde_json::Value;
 use stillwater::validation::homogeneous::{validate_homogeneous, DiscriminantName};
@@ -3621,9 +3472,7 @@ match result {
 </code></pre>
 <h3 id="example-3-integration-with-effect"><a class="header" href="#example-3-integration-with-effect">Example 3: Integration with Effect</a></h3>
 <p>Load values in the shell, then lift the pure validation into the effect’s error channel.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use stillwater::validation::homogeneous::validate_homogeneous;
 
 #[derive(Clone)]
@@ -3638,8 +3487,7 @@ tokio_test::block_on(async {
         )));
     let result = effect.run(&amp;Env { results: vec![2, 4, 3] }).await;
     assert_eq!(result, Err(vec!["parity mismatch at 2".to_string()]));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="best-practices-2"><a class="header" href="#best-practices-2">Best Practices</a></h2>
 <h3 id="1-validate-at-boundaries"><a class="header" href="#1-validate-at-boundaries">1. Validate at Boundaries</a></h3>
 <p>Always validate at system boundaries, not in the middle of business logic:</p>
@@ -3827,9 +3675,7 @@ fn save_user(name: &amp;NonEmptyString, age: &amp;PositiveI32) {
 </code></pre>
 <h2 id="core-api-1"><a class="header" href="#core-api-1">Core API</a></h2>
 <h3 id="creating-refined-values"><a class="header" href="#creating-refined-values">Creating Refined Values</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, Positive};
 
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -3847,12 +3693,9 @@ println!("Name: {}", name.get());      // Reference
 println!("Length: {}", name.len());    // Deref allows direct access
 
 // Consume the wrapper
-let inner: String = name.into_inner();
-<span class="boring">}</span></code></pre>
+let inner: String = name.into_inner();</code></pre>
 <h3 id="transforming-refined-values"><a class="header" href="#transforming-refined-values">Transforming Refined Values</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
@@ -3863,24 +3706,18 @@ let doubled = n.try_map(|x| x * 2);
 assert!(doubled.is_ok());
 
 let negated = PositiveI32::new(5).unwrap().try_map(|x| -x);
-assert!(negated.is_err()); // -5 is not positive
-<span class="boring">}</span></code></pre>
+assert!(negated.is_err()); // -5 is not positive</code></pre>
 <h3 id="unsafe-construction-use-with-care"><a class="header" href="#unsafe-construction-use-with-care">Unsafe Construction (Use with Care)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
 // Only use when you KNOW the value is valid
 // No predicate check is performed!
-let n = PositiveI32::new_unchecked(42);
-<span class="boring">}</span></code></pre>
+let n = PositiveI32::new_unchecked(42);</code></pre>
 <h2 id="built-in-predicates"><a class="header" href="#built-in-predicates">Built-in Predicates</a></h2>
 <h3 id="numeric-predicates"><a class="header" href="#numeric-predicates">Numeric Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive, NonNegative, Negative, NonZero, InRange};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive, NonNegative, Negative, NonZero, InRange};
 
 // Positive: value &gt; 0
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -3906,12 +3743,9 @@ assert!(NonZeroI32::new(0).is_err());
 // InRange: MIN &lt;= value &lt;= MAX
 type Percentage = Refined&lt;i32, InRange&lt;0, 100&gt;&gt;;
 assert!(Percentage::new(50).is_ok());
-assert!(Percentage::new(101).is_err());
-<span class="boring">}</span></code></pre>
+assert!(Percentage::new(101).is_err());</code></pre>
 <h3 id="string-predicates"><a class="header" href="#string-predicates">String Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Trimmed, MaxLength, MinLength};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, Trimmed, MaxLength, MinLength};
 
 // NonEmpty: string is not empty
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
@@ -3931,12 +3765,9 @@ assert!(ShortString::new("this is too long".to_string()).is_err());
 // MinLength&lt;N&gt;: length &gt;= N
 type Password = Refined&lt;String, MinLength&lt;8&gt;&gt;;
 assert!(Password::new("secure_password".to_string()).is_ok());
-assert!(Password::new("short".to_string()).is_err());
-<span class="boring">}</span></code></pre>
+assert!(Password::new("short".to_string()).is_err());</code></pre>
 <h3 id="collection-predicates"><a class="header" href="#collection-predicates">Collection Predicates</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, MaxSize, MinSize};
+<pre><code class="language-rust">use stillwater::refined::{Refined, NonEmpty, MaxSize, MinSize};
 
 // NonEmpty for Vec
 type NonEmptyList = Refined&lt;Vec&lt;i32&gt;, NonEmpty&gt;;
@@ -3951,13 +3782,10 @@ assert!(SmallVec::new(vec![1, 2, 3, 4, 5, 6]).is_err());
 // MinSize&lt;N&gt;: size &gt;= N
 type AtLeastTwo = Refined&lt;Vec&lt;i32&gt;, MinSize&lt;2&gt;&gt;;
 assert!(AtLeastTwo::new(vec![1, 2]).is_ok());
-assert!(AtLeastTwo::new(vec![1]).is_err());
-<span class="boring">}</span></code></pre>
+assert!(AtLeastTwo::new(vec![1]).is_err());</code></pre>
 <h2 id="predicate-combinators"><a class="header" href="#predicate-combinators">Predicate Combinators</a></h2>
 <h3 id="and-both-must-hold"><a class="header" href="#and-both-must-hold">And: Both Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, And, NonEmpty, Trimmed, MaxLength};
+<pre><code class="language-rust">use stillwater::refined::{Refined, And, NonEmpty, Trimmed, MaxLength};
 
 // String must be non-empty AND trimmed
 type CleanString = Refined&lt;String, And&lt;NonEmpty, Trimmed&gt;&gt;;
@@ -3966,35 +3794,26 @@ assert!(CleanString::new("".to_string()).is_err());
 assert!(CleanString::new("  hello  ".to_string()).is_err());
 
 // Chain multiple with nested And
-type ValidUsername = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;20&gt;&gt;&gt;;
-<span class="boring">}</span></code></pre>
+type ValidUsername = Refined&lt;String, And&lt;And&lt;NonEmpty, Trimmed&gt;, MaxLength&lt;20&gt;&gt;&gt;;</code></pre>
 <h3 id="or-at-least-one-must-hold"><a class="header" href="#or-at-least-one-must-hold">Or: At Least One Must Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Or, Positive, Negative};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Or, Positive, Negative};
 
 // Value must be positive OR negative (i.e., non-zero)
 type NonZeroAlt = Refined&lt;i32, Or&lt;Positive, Negative&gt;&gt;;
 assert!(NonZeroAlt::new(5).is_ok());
 assert!(NonZeroAlt::new(-5).is_ok());
-assert!(NonZeroAlt::new(0).is_err());
-<span class="boring">}</span></code></pre>
+assert!(NonZeroAlt::new(0).is_err());</code></pre>
 <h3 id="not-must-not-hold"><a class="header" href="#not-must-not-hold">Not: Must NOT Hold</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Not, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Not, Positive};
 
 // Value must NOT be positive (i.e., &lt;= 0)
 type NotPositive = Refined&lt;i32, Not&lt;Positive&gt;&gt;;
 assert!(NotPositive::new(0).is_ok());
 assert!(NotPositive::new(-5).is_ok());
-assert!(NotPositive::new(5).is_err());
-<span class="boring">}</span></code></pre>
+assert!(NotPositive::new(5).is_err());</code></pre>
 <h2 id="custom-predicates"><a class="header" href="#custom-predicates">Custom Predicates</a></h2>
 <p>Define your own predicates by implementing the <code>Predicate</code> trait:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Predicate};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Predicate};
 
 // Custom predicate for even numbers
 pub struct Even;
@@ -4017,13 +3836,10 @@ impl Predicate&lt;i32&gt; for Even {
 
 type EvenI32 = Refined&lt;i32, Even&gt;;
 assert!(EvenI32::new(42).is_ok());
-assert!(EvenI32::new(41).is_err());
-<span class="boring">}</span></code></pre>
+assert!(EvenI32::new(41).is_err());</code></pre>
 <h2 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h2>
 <p>Stillwater provides convenient aliases for common patterns:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{
+<pre><code class="language-rust">use stillwater::refined::{
     NonEmptyString, TrimmedString, NonEmptyTrimmedString,
     PositiveI32, NonNegativeI64, NonZeroU32,
     Port, Percentage,
@@ -4044,13 +3860,10 @@ let progress = Percentage::new(75).unwrap();  // 0-100
 
 // Bounded types with const generics
 type Username = BoundedString&lt;20&gt;;
-type SmallList = BoundedVec&lt;i32, 10&gt;;
-<span class="boring">}</span></code></pre>
+type SmallList = BoundedVec&lt;i32, 10&gt;;</code></pre>
 <h2 id="validation-integration"><a class="header" href="#validation-integration">Validation Integration</a></h2>
 <h3 id="single-validation"><a class="header" href="#single-validation">Single Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, Positive};
+<pre><code class="language-rust">use stillwater::refined::{Refined, Positive};
 use stillwater::Validation;
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -4060,12 +3873,9 @@ let result = PositiveI32::validate(42);
 assert!(result.is_success());
 
 let result = PositiveI32::validate(-5);
-assert!(result.is_failure());
-<span class="boring">}</span></code></pre>
+assert!(result.is_failure());</code></pre>
 <h3 id="error-accumulation"><a class="header" href="#error-accumulation">Error Accumulation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, PositiveI32};
+<pre><code class="language-rust">use stillwater::refined::{NonEmptyString, PositiveI32};
 use stillwater::Validation;
 
 fn validate_user(
@@ -4084,12 +3894,9 @@ match result {
         assert_eq!(errors.len(), 2); // Both errors collected
     }
     _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h3 id="field-context"><a class="header" href="#field-context">Field Context</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{NonEmptyString, FieldError, ValidationFieldExt};
+<pre><code class="language-rust">use stillwater::refined::{NonEmptyString, FieldError, ValidationFieldExt};
 use stillwater::Validation;
 
 // Add field context to errors
@@ -4102,8 +3909,7 @@ match result {
         println!("{}", err); // "username: string cannot be empty"
     }
     _ =&gt; panic!(),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="effect-integration"><a class="header" href="#effect-integration">Effect Integration</a></h2>
 <p>Use refined types in effect chains:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
@@ -4177,16 +3983,13 @@ fn process_user(user: User) {
 </code></pre>
 <h2 id="zero-cost-abstraction"><a class="header" href="#zero-cost-abstraction">Zero-Cost Abstraction</a></h2>
 <p><code>Refined&lt;T, P&gt;</code> has the same memory layout as <code>T</code>. The predicate <code>P</code> exists only at compile time via <code>PhantomData</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::mem::size_of;
+<pre><code class="language-rust">use std::mem::size_of;
 use stillwater::refined::{Refined, Positive};
 
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
 
 // Same size as the wrapped type
-assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());
-<span class="boring">}</span></code></pre>
+assert_eq!(size_of::&lt;PositiveI32&gt;(), size_of::&lt;i32&gt;());</code></pre>
 <h2 id="best-practices-3"><a class="header" href="#best-practices-3">Best Practices</a></h2>
 <ol>
 <li><strong>Validate at the boundary</strong>: Parse input into refined types as early as possible</li>
@@ -4209,9 +4012,7 @@ error propagation, and persisted state using explicit service implementations.</
 place equivalent bodies in ordinary Rust or Tokio tests. Do not hide doctest examples
 inside test-only modules: a passing doctest can otherwise contain unchecked code.</p>
 <h2 id="pure-decisions-and-accumulated-errors"><a class="header" href="#pure-decisions-and-accumulated-errors">Pure decisions and accumulated errors</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, assert_success, assert_failure, assert_validation_errors};
+<pre><code class="language-rust">use stillwater::{Validation, assert_success, assert_failure, assert_validation_errors};
 
 fn adult(age: u8) -&gt; Validation&lt;u8, Vec&lt;&amp;'static str&gt;&gt; {
     if age &gt;= 18 { Validation::success(age) } else { Validation::failure(vec!["underage"]) }
@@ -4222,16 +4023,13 @@ assert_failure!(adult(17));
 assert_validation_errors!(adult(17), vec!["underage"]);
 
 let checks = Validation::&lt;u8, Vec&lt;&amp;str&gt;&gt;::all((adult(16), adult(17)));
-assert_eq!(checks.into_result(), Err(vec!["underage", "underage"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(checks.into_result(), Err(vec!["underage", "underage"]));</code></pre>
 <p>Prefer asserting exact outputs and errors over checking only success/failure. Include
 boundary values and verify that independent failures accumulate.</p>
 <h2 id="explicit-test-environments"><a class="header" href="#explicit-test-environments">Explicit test environments</a></h2>
 <p>Small environments often need no builder. <code>MockEnv</code> is available when tuple composition
 helps construct a fixture; each <code>with</code> adds one nested pair.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::testing::MockEnv;
+<pre><code class="language-rust">use stillwater::testing::MockEnv;
 
 let (((), minimum_age), users) = MockEnv::new()
     .with(|| 18_u8)
@@ -4239,12 +4037,9 @@ let (((), minimum_age), users) = MockEnv::new()
     .build();
 
 assert_eq!(minimum_age, 18);
-assert!(users.is_empty());
-<span class="boring">}</span></code></pre>
+assert!(users.is_empty());</code></pre>
 <h2 id="shell-ordering-and-failure-boundaries"><a class="header" href="#shell-ordering-and-failure-boundaries">Shell ordering and failure boundaries</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::{Arc, Mutex};
+<pre><code class="language-rust">use std::sync::{Arc, Mutex};
 use stillwater::prelude::*;
 
 #[derive(Clone, Default)]
@@ -4262,8 +4057,7 @@ tokio_test::block_on(async {
     }));
     assert_eq!(workflow.run(&amp;env).await, Err("database unavailable"));
     assert_eq!(*env.events.lock().unwrap(), vec!["save"]);
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>The <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 also tests stale availability facts at commit time, rejected inputs, hashing failure,
 save failure, and email failure after persistence. Check persisted state as well as return
@@ -4272,17 +4066,14 @@ values: an error does not imply that earlier operations were rolled back.</p>
 <p>Add <code>proptest</code> as a development dependency. Stillwater’s optional <code>proptest</code> feature
 also supplies <code>Arbitrary</code> implementations for supported library types. A runner can
 execute a property directly, which works in a doctest as well as in a normal test.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use proptest::{prelude::*, test_runner::TestRunner};
+<pre><code class="language-rust">use proptest::{prelude::*, test_runner::TestRunner};
 use stillwater::Validation;
 
 TestRunner::default().run(&amp;any::&lt;i32&gt;(), |value| {
     let result = Validation::&lt;_, Vec&lt;String&gt;&gt;::success(value).map(|x| x);
     prop_assert_eq!(result, Validation::Success(value));
     Ok(())
-}).unwrap();
-<span class="boring">}</span></code></pre>
+}).unwrap();</code></pre>
 <p>Choose domain properties too: for example, rejected registration decisions never emit
 plans, and independent validation errors retain deterministic order. Bound arithmetic
 inputs or use checked operations so overflow does not accidentally become the property.</p>
@@ -4667,10 +4458,7 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&l
 </code></pre>
 <h2 id="effect-patterns-1"><a class="header" href="#effect-patterns-1">Effect Patterns</a></h2>
 <p>All Effect patterns use the free function style with the prelude import:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-rust">use stillwater::effect::prelude::*;</code></pre>
 <h3 id="pattern-1-read-transform-write"><a class="header" href="#pattern-1-read-transform-write">Pattern 1: Read, Transform, Write</a></h3>
 <p>Classic pattern for processing data:</p>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
@@ -4794,9 +4582,7 @@ fn chained_example() -&gt; impl Effect&lt;Output = i32, Error = String, Env = ()
 <h2 id="testing-patterns"><a class="header" href="#testing-patterns">Testing Patterns</a></h2>
 <h3 id="pattern-1-testing-pure-functions"><a class="header" href="#pattern-1-testing-pure-functions">Pattern 1: Testing Pure Functions</a></h3>
 <p>Pure functions need no mocking:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
     if email.contains('@') {
@@ -4806,8 +4592,7 @@ fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str
     }
 }
 assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
-assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));</code></pre>
 <h3 id="pattern-2-testing-effects-with-mock-environment"><a class="header" href="#pattern-2-testing-effects-with-mock-environment">Pattern 2: Testing Effects with Mock Environment</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 
@@ -4835,9 +4620,7 @@ async fn test_user_workflow() {
 }
 </code></pre>
 <h3 id="pattern-3-testing-error-cases"><a class="header" href="#pattern-3-testing-error-cases">Pattern 3: Testing Error Cases</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone, Default)]
@@ -4846,13 +4629,10 @@ struct Env { users: HashMap&lt;u64, String&gt; }
 tokio_test::block_on(async {
     let effect = from_fn(|env: &amp;Env| env.users.get(&amp;999).cloned().ok_or("not found"));
     assert_eq!(effect.run(&amp;Env::default()).await, Err("not found"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="error-handling-patterns"><a class="header" href="#error-handling-patterns">Error Handling Patterns</a></h2>
 <h3 id="pattern-1-domain-specific-errors"><a class="header" href="#pattern-1-domain-specific-errors">Pattern 1: Domain-Specific Errors</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug)]
+<pre><code class="language-rust">#[derive(Debug)]
 enum UserError {
     NotFound(u64),
     InvalidEmail(String),
@@ -4869,8 +4649,7 @@ impl std::fmt::Display for UserError {
     }
 }
 
-impl std::error::Error for UserError {}
-<span class="boring">}</span></code></pre>
+impl std::error::Error for UserError {}</code></pre>
 <h3 id="pattern-2-error-conversion"><a class="header" href="#pattern-2-error-conversion">Pattern 2: Error Conversion</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 
@@ -5066,9 +4845,7 @@ let result = pool.connection()
 </code></pre>
 <h2 id="performance-patterns"><a class="header" href="#performance-patterns">Performance Patterns</a></h2>
 <h3 id="pattern-1-avoid-excessive-boxing"><a class="header" href="#pattern-1-avoid-excessive-boxing">Pattern 1: Avoid Excessive Boxing</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-rust">use stillwater::effect::prelude::*;
 
 // Instead of creating many small effects:
 let effect = pure::&lt;_, String, ()&gt;(1)
@@ -5078,8 +4855,7 @@ let effect = pure::&lt;_, String, ()&gt;(1)
 
 // Combine transformations:
 let effect = pure::&lt;_, String, ()&gt;(1)
-    .map(|x| (x + 1) * 2 - 3);
-<span class="boring">}</span></code></pre>
+    .map(|x| (x + 1) * 2 - 3);</code></pre>
 <h3 id="pattern-2-batch-operations"><a class="header" href="#pattern-2-batch-operations">Pattern 2: Batch Operations</a></h3>
 <pre><code class="language-text">use stillwater::effect::prelude::*;
 
@@ -5336,9 +5112,7 @@ an explicit step rather than relying on the old factory timing.</p>
 environment for execution and return boxed effects. Concurrent completion order does
 not change output ordering or which error is returned: the first error by input position
 wins after all children finish. Dropping the parent future cancels unfinished children.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let batch = traverse_effect_parallel([1, 2, 3], |value| {
@@ -5352,15 +5126,12 @@ tokio_test::block_on(async {
         pure(3).boxed(),
     ]);
     assert_eq!(ordered.run(&amp;()).await, Err("stop"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h3 id="replace-legacy-aliases-and-constructors"><a class="header" href="#replace-legacy-aliases-and-constructors">Replace legacy aliases and constructors</a></h3>
 <p><code>LegacyEffect</code> and <code>LegacyConstructors</code> have been removed, not just deprecated.
 Use free constructors, return <code>impl Effect</code> for concrete composition, and use
 <code>BoxedEffect</code> when a single erased type is needed. <code>RunStandalone</code> remains supported.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn concrete() -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = ()&gt; {
     pure(42)
@@ -5373,8 +5144,7 @@ fn erased() -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
 tokio_test::block_on(async {
     assert_eq!(concrete().run_standalone().await, Ok(42));
     assert_eq!(erased().run(&amp;()).await, Ok(42));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h3 id="replace-bracket_simple"><a class="header" href="#replace-bracket_simple">Replace bracket_simple</a></h3>
 <p>The removed function accepted <code>(acquire, use_fn, release_fn)</code>. The replacement
 <code>bracket</code> accepts <code>(acquire, release_fn, use_fn)</code>.</p>
@@ -5383,9 +5153,7 @@ future with output <code>Result&lt;(), E&gt;</code>. It is an async callback, no
 The error type also needs <code>Debug</code>. If use needs owned data, explicitly clone the
 necessary data before constructing its effect; the resource itself no longer needs
 <code>Clone</code> just to enter the use callback.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
+<pre><code class="language-rust">use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use stillwater::prelude::*;
 
 tokio_test::block_on(async {
@@ -5401,13 +5169,10 @@ tokio_test::block_on(async {
     );
     assert_eq!(effect.run(&amp;()).await, Ok(10));
     assert!(released.load(Ordering::SeqCst));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>bracket</code> logs cleanup errors and returns the use result. Choose <code>bracket_full</code> when
 cleanup failure must be returned to the caller:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let effect = bracket_full(
@@ -5419,8 +5184,7 @@ tokio_test::block_on(async {
         effect.run(&amp;()).await,
         Err(BracketError::CleanupError("cleanup failed")),
     );
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>These async brackets do not mask cancellation or guarantee cleanup after panic.
 Use normal ownership/RAII where possible and design asynchronous cleanup protocols explicitly.</p>
 <h3 id="features-and-allocation-expectations"><a class="header" href="#features-and-allocation-expectations">Features and allocation expectations</a></h3>
@@ -5846,9 +5610,7 @@ Rust’s ownership rules. The helper functions already extract only what they ne
 <p>Ordinary Rust functions and Stillwater effects can both use hand-written service
 implementations; neither requires a mocking framework. Stillwater’s contribution is
 a consistent environment boundary for the composed operations.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -5858,8 +5620,7 @@ tokio_test::block_on(async {
     let env = Env { users: HashMap::from([(123, "Test".to_string())]) };
     let effect = from_fn(|env: &amp;Env| env.users.get(&amp;123).cloned().ok_or("not found"));
     assert_eq!(effect.run(&amp;env).await, Ok("Test".to_string()));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use recording service implementations to verify calls and persistent state. The
 <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 demonstrates the larger workflow and its failure boundaries.</p>

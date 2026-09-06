@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -206,33 +206,25 @@
 <h2 id="basic-examples"><a class="header" href="#basic-examples">Basic Examples</a></h2>
 <h3 id="vec-monoid"><a class="header" href="#vec-monoid">Vec Monoid</a></h3>
 <p>Vectors form a monoid with the empty vector as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let v = vec![1, 2, 3];
 let empty: Vec&lt;i32&gt; = Monoid::empty();
 
 assert_eq!(v.clone().combine(empty.clone()), v);  // right identity
-assert_eq!(empty.combine(v.clone()), v);          // left identity
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(v.clone()), v);          // left identity</code></pre>
 <h3 id="string-monoid"><a class="header" href="#string-monoid">String Monoid</a></h3>
 <p>Strings form a monoid with the empty string as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let s = "hello".to_string();
 let empty: String = Monoid::empty();
 
 assert_eq!(s.clone().combine(empty.clone()), s);
-assert_eq!(empty.combine(s.clone()), s);
-<span class="boring">}</span></code></pre>
+assert_eq!(empty.combine(s.clone()), s);</code></pre>
 <h3 id="option-monoid"><a class="header" href="#option-monoid">Option Monoid</a></h3>
 <p>Options lift a Semigroup into a Monoid with <code>None</code> as identity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 
 let some_vec = Some(vec![1, 2, 3]);
 let none: Option&lt;Vec&lt;i32&gt;&gt; = None;
@@ -243,8 +235,7 @@ assert_eq!(some_vec.clone().combine(none.clone()), some_vec);
 // Some values combine their contents
 let v1 = Some(vec![1, 2]);
 let v2 = Some(vec![3, 4]);
-assert_eq!(v1.combine(v2), Some(vec![1, 2, 3, 4]));
-<span class="boring">}</span></code></pre>
+assert_eq!(v1.combine(v2), Some(vec![1, 2, 3, 4]));</code></pre>
 <h2 id="numeric-monoids"><a class="header" href="#numeric-monoids">Numeric Monoids</a></h2>
 <p>Since Rust primitives can’t implement external traits and numbers have multiple valid monoid instances (addition vs multiplication), Stillwater provides wrapper types.</p>
 <h3 id="sum-monoid"><a class="header" href="#sum-monoid">Sum Monoid</a></h3>
@@ -279,21 +270,16 @@ assert_eq!(total, Product(24));
 </code></pre>
 <h3 id="max-and-min"><a class="header" href="#max-and-min">Max and Min</a></h3>
 <p>Maximum and minimum operations (note: these are Semigroups but not Monoids without bounded types):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::{Max, Min};
+<pre><code class="language-rust">use stillwater::monoid::{Max, Min};
 use stillwater::Semigroup;
 
 let max = Max(5).combine(Max(10));
 assert_eq!(max, Max(10));
 
 let min = Min(5).combine(Min(10));
-assert_eq!(min, Min(5));
-<span class="boring">}</span></code></pre>
+assert_eq!(min, Min(5));</code></pre>
 <p>For unbounded types, use <code>Option&lt;Max&lt;T&gt;&gt;</code> or <code>Option&lt;Min&lt;T&gt;&gt;</code> to get a Monoid:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 use stillwater::monoid::Max;
 
 let m1: Option&lt;Max&lt;i32&gt;&gt; = Some(Max(5));
@@ -301,14 +287,11 @@ let m2: Option&lt;Max&lt;i32&gt;&gt; = Some(Max(10));
 let empty: Option&lt;Max&lt;i32&gt;&gt; = Monoid::empty();
 
 assert_eq!(m1.combine(m2), Some(Max(10)));
-assert_eq!(m1.combine(empty), m1);
-<span class="boring">}</span></code></pre>
+assert_eq!(m1.combine(empty), m1);</code></pre>
 <h2 id="utility-functions"><a class="header" href="#utility-functions">Utility Functions</a></h2>
 <h3 id="fold_all"><a class="header" href="#fold_all">fold_all</a></h3>
 <p>The <code>fold_all</code> function leverages the identity element to fold a collection without requiring an initial value:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::fold_all;
+<pre><code class="language-rust">use stillwater::monoid::fold_all;
 
 // Combine vectors
 let vecs = vec![vec![1, 2], vec![3, 4], vec![5]];
@@ -322,23 +305,17 @@ let strings = vec![
     "World".to_string(),
 ];
 let result = fold_all(strings);
-assert_eq!(result, "Hello World");
-<span class="boring">}</span></code></pre>
+assert_eq!(result, "Hello World");</code></pre>
 <h3 id="reduce"><a class="header" href="#reduce">reduce</a></h3>
 <p>Alias for <code>fold_all</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::reduce;
+<pre><code class="language-rust">use stillwater::monoid::reduce;
 
 let vecs = vec![vec![1], vec![2], vec![3]];
 let result: Vec&lt;i32&gt; = reduce(vecs);
-assert_eq!(result, vec![1, 2, 3]);
-<span class="boring">}</span></code></pre>
+assert_eq!(result, vec![1, 2, 3]);</code></pre>
 <h2 id="tuple-monoids"><a class="header" href="#tuple-monoids">Tuple Monoids</a></h2>
 <p>Tuples of monoids are themselves monoids, combining component-wise:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Monoid, Semigroup};
+<pre><code class="language-rust">use stillwater::{Monoid, Semigroup};
 use stillwater::monoid::fold_all;
 
 let t1 = (vec![1], "a".to_string());
@@ -358,8 +335,7 @@ let tuples = vec![
     (vec![3], "c".to_string()),
 ];
 let result = fold_all(tuples);
-assert_eq!(result, (vec![1, 2, 3], "abc".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, (vec![1, 2, 3], "abc".to_string()));</code></pre>
 <h2 id="integration-with-validation"><a class="header" href="#integration-with-validation">Integration with Validation</a></h2>
 <p>Monoids work seamlessly with Validation for combining results:</p>
 <pre><code class="language-text">use stillwater::{Validation, Monoid};
@@ -432,21 +408,16 @@ assert_eq!(result.0, vec!["error1", "error2"]);
 </code></pre>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="accumulating-results"><a class="header" href="#accumulating-results">Accumulating Results</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::monoid::{Sum, fold_all};
+<pre><code class="language-rust">use stillwater::monoid::{Sum, fold_all};
 
 fn calculate_total(items: Vec&lt;i32&gt;) -&gt; Sum&lt;i32&gt; {
     fold_all(items.into_iter().map(Sum))
 }
 
 let total = calculate_total(vec![1, 2, 3, 4, 5]);
-assert_eq!(total, Sum(15));
-<span class="boring">}</span></code></pre>
+assert_eq!(total, Sum(15));</code></pre>
 <h3 id="combining-configurations"><a class="header" href="#combining-configurations">Combining Configurations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Semigroup, Monoid, monoid::fold_all};
+<pre><code class="language-rust">use stillwater::{Semigroup, Monoid, monoid::fold_all};
 
 #[derive(Debug, Clone, PartialEq)]
 struct Config {
@@ -472,8 +443,7 @@ let configs = vec![
 ];
 
 let merged = fold_all(configs);
-assert_eq!(merged.values, vec!["a", "b", "c"]);
-<span class="boring">}</span></code></pre>
+assert_eq!(merged.values, vec!["a", "b", "c"]);</code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Verify laws</strong>: Ensure your implementation satisfies identity and associativity</li>

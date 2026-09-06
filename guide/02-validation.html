@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -276,9 +276,7 @@ let result = validate_email(email)
 <p>Stillwater provides declarative validation combinators that eliminate verbose <code>and_then</code> boilerplate:</p>
 <h4 id="using-ensure-with-predicates"><a class="header" href="#using-ensure-with-predicates">Using <code>ensure()</code> with Predicates</a></h4>
 <p>The <code>ensure()</code> method validates a success value using composable predicates from the <code>predicate</code> module:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, predicate::*};
+<pre><code class="language-rust">use stillwater::{Validation, predicate::*};
 
 // Single validation
 let result = Validation::success(String::from("hello"))
@@ -300,13 +298,10 @@ let result = Validation::success(String::from("hello123"))
     .ensure(len_min(3), "too short")      // passes
     .ensure(len_max(10), "too long")      // passes
     .ensure(is_alphabetic(), "not alpha"); // fails
-// Result: Failure("not alpha")
-<span class="boring">}</span></code></pre>
+// Result: Failure("not alpha")</code></pre>
 <h4 id="using-ensure_fn-with-closures"><a class="header" href="#using-ensure_fn-with-closures">Using <code>ensure_fn()</code> with Closures</a></h4>
 <p>For inline predicates, use <code>ensure_fn()</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(5)
     .ensure_fn(|x| *x &gt; 0, "must be positive");
@@ -314,36 +309,27 @@ assert_eq!(result, Validation::Success(5));
 
 let result = Validation::success(-5)
     .ensure_fn(|x| *x &gt; 0, "must be positive");
-assert_eq!(result, Validation::Failure("must be positive"));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("must be positive"));</code></pre>
 <h4 id="using-ensure_with-for-lazy-errors"><a class="header" href="#using-ensure_with-for-lazy-errors">Using <code>ensure_with()</code> for Lazy Errors</a></h4>
 <p>When you need the value to construct the error message:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, predicate::*};
+<pre><code class="language-rust">use stillwater::{Validation, predicate::*};
 
 let result = Validation::success(String::from("hi"))
     .ensure_with(len_min(3), |s| format!("'{}' is too short", s));
-assert_eq!(result, Validation::Failure("'hi' is too short".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("'hi' is too short".to_string()));</code></pre>
 <h4 id="using-ensure_fn_with-with-closures-and-lazy-errors"><a class="header" href="#using-ensure_fn_with-with-closures-and-lazy-errors">Using <code>ensure_fn_with()</code> with Closures and Lazy Errors</a></h4>
 <p>Combine closure predicates with error factories:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(-5)
     .ensure_fn_with(
         |x| *x &gt; 0,
         |x| format!("{} is not positive", x)
     );
-assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("-5 is not positive".to_string()));</code></pre>
 <h4 id="using-unless-for-inverse-validation"><a class="header" href="#using-unless-for-inverse-validation">Using <code>unless()</code> for Inverse Validation</a></h4>
 <p>The <code>unless()</code> method fails when the predicate is TRUE (inverse of <code>ensure_fn</code>):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 // Fail if negative
 let result = Validation::success(5)
@@ -352,18 +338,14 @@ assert_eq!(result, Validation::Success(5));
 
 let result = Validation::success(-5)
     .unless(|x| *x &lt; 0, "must not be negative");
-assert_eq!(result, Validation::Failure("must not be negative"));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Failure("must not be negative"));</code></pre>
 <h4 id="using-filter_or-alias"><a class="header" href="#using-filter_or-alias">Using <code>filter_or()</code> Alias</a></h4>
 <p><code>filter_or()</code> is an alias for <code>ensure_fn()</code> following functional programming conventions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 let result = Validation::success(5)
     .filter_or(|x| *x &gt; 0, "must be positive");
-assert_eq!(result, Validation::Success(5));
-<span class="boring">}</span></code></pre>
+assert_eq!(result, Validation::Success(5));</code></pre>
 <h4 id="why-use-validation-combinators"><a class="header" href="#why-use-validation-combinators">Why Use Validation Combinators?</a></h4>
 <p><strong>Before</strong> (verbose):</p>
 <pre><code class="language-text">validate_email(email)
@@ -402,12 +384,9 @@ assert_eq!(r, Err(vec!["error"]));
 </code></pre>
 <h2 id="error-accumulation-with-semigroup"><a class="header" href="#error-accumulation-with-semigroup">Error Accumulation with Semigroup</a></h2>
 <p>For <code>Validation::all()</code> to work, your error type must implement <code>Semigroup</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub trait Semigroup {
+<pre><code class="language-rust">pub trait Semigroup {
     fn combine(self, other: Self) -&gt; Self;
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>Common implementations:</p>
 <ul>
 <li><code>Vec&lt;T&gt;</code>: Concatenate vectors</li>
@@ -621,9 +600,7 @@ fn validate_all_items(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidIt
 }
 </code></pre>
 <p>The <code>traverse</code> function applies a validation to each element and accumulates all errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+<pre><code class="language-rust">use stillwater::{Validation, traverse::traverse};
 
 fn validate_positive(x: i32) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
     if x &gt; 0 {
@@ -644,8 +621,7 @@ match result {
         assert_eq!(errors.len(), 2); // Both negative numbers
     }
     _ =&gt; panic!("Expected failure"),
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <p>For more advanced patterns, see the <a href="11-traverse-patterns.html">Traverse Patterns guide</a>.</p>
 <p><strong>Alternative using <code>all_vec</code> (less convenient)</strong>:</p>
 <pre><code class="language-text">use stillwater::Validation;
@@ -679,9 +655,7 @@ fn validate_config(input: ConfigInput) -&gt; Validation&lt;Config, Vec&lt;Error&
 </code></pre>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <p>Validation is pure - testing is trivial:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-rust">use stillwater::Validation;
 
 fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
     if email.contains('@') {
@@ -697,13 +671,10 @@ let result = Validation::&lt;&amp;str, Vec&lt;&amp;str&gt;&gt;::all((
     validate_email("bad"),
     validate_email("also bad"),
 ));
-assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));
-<span class="boring">}</span></code></pre>
+assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));</code></pre>
 <h2 id="advanced-custom-error-types"><a class="header" href="#advanced-custom-error-types">Advanced: Custom Error Types</a></h2>
 <p>You can use any error type that implements Semigroup:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, Semigroup};
+<pre><code class="language-rust">use stillwater::{Validation, Semigroup};
 
 #[derive(Debug, Clone)]
 struct ValidationContext {
@@ -737,8 +708,7 @@ fn validate_with_context(
     } else {
         Validation::success(value.to_string())
     }
-}
-<span class="boring">}</span></code></pre>
+}</code></pre>
 <h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
 <p>Validation has minimal overhead:</p>
 <ul>

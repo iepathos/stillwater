@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8f033762.js";
+            window.path_to_searchindex_js = "../searchindex-02bcdf27.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-21dc18f9.js"></script>
+        <script src="../toc-edb80777.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -187,9 +187,7 @@ constructing a fresh effect.</p>
 <h2 id="start-with-a-pure-decision"><a class="header" href="#start-with-a-pure-decision">Start with a pure decision</a></h2>
 <p>Load the external facts a decision needs, pass input and facts to a pure function, then
 interpret the resulting plain plan. The decision needs no runtime or service mocks.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{NonEmptyVec, Validation};
+<pre><code class="language-rust">use stillwater::{NonEmptyVec, Validation};
 
 #[derive(Debug, PartialEq)]
 struct Plan { username: String }
@@ -216,8 +214,7 @@ assert_eq!(decide("calm".into(), false).into_result(), Ok(Plan { username: "calm
 assert_eq!(
     decide("".into(), true).into_result().unwrap_err().into_vec(),
     vec![Rejection::EmptyUsername, Rejection::UsernameTaken],
-);
-<span class="boring">}</span></code></pre>
+);</code></pre>
 <p>The complete <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
 connects this architecture to narrow repository, password-hasher, and email-sender traits.
 Its shell loads facts, calls the decision, then hashes, saves, and sends email in order.</p>
@@ -229,9 +226,7 @@ infrastructure failures have distinct outcomes.</p>
 retry protocol; use an application-owned outbox or an explicit compensation protocol
 when delivery or rollback is a requirement. The example’s hasher is a test double.</p>
 <h2 id="constructors-and-execution"><a class="header" href="#constructors-and-execution">Constructors and execution</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 tokio_test::block_on(async {
     let chain = pure::&lt;_, String, ()&gt;(20)
@@ -244,13 +239,10 @@ tokio_test::block_on(async {
 
     let existing = from_result::&lt;_, &amp;str, ()&gt;(Ok(7));
     assert_eq!(existing.run(&amp;()).await, Ok(7));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use <code>from_fn</code> for synchronous fallible operations. Keep slow blocking work off an async
 executor’s worker thread using the runtime’s blocking-work facilities.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Env { limit: usize }
@@ -259,16 +251,13 @@ tokio_test::block_on(async {
     let effect = from_fn(|env: &amp;Env| Ok::&lt;_, &amp;str&gt;(env.limit))
         .ensure(|limit| *limit &gt; 0, "limit must be positive");
     assert_eq!(effect.run(&amp;Env { limit: 10 }).await, Ok(10));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p><code>ensure</code> short-circuits on the first failed predicate. Use <code>Validation</code> in the pure
 decision when independent checks must accumulate errors.</p>
 <h2 id="owned-and-borrowed-async-work"><a class="header" href="#owned-and-borrowed-async-work">Owned and borrowed async work</a></h2>
 <p><code>from_async</code> accepts a future whose type does not borrow the supplied environment.
 Clone a cheap shared handle before building that future.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::Arc;
+<pre><code class="language-rust">use std::sync::Arc;
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -280,13 +269,10 @@ tokio_test::block_on(async {
         async move { Ok::&lt;_, &amp;str&gt;(name.len()) }
     });
     assert_eq!(effect.run(&amp;Env { name: Arc::new("water".into()) }).await, Ok(5));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Use <code>from_async_ref</code> when the operation must borrow the environment across an await.
 It accepts a boxed future, adding one future allocation in the usual <code>Box::pin</code> usage.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 #[derive(Clone)]
 struct Env { name: String }
@@ -299,15 +285,12 @@ tokio_test::block_on(async {
         })
     });
     assert_eq!(effect.run(&amp;Env { name: "water".into() }).await, Ok(5));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <h2 id="concrete-types-and-explicit-type-erasure"><a class="header" href="#concrete-types-and-explicit-type-erasure">Concrete types and explicit type erasure</a></h2>
 <p>Most combinators store their inputs and closures directly. Return <code>impl Effect</code> when
 callers do not need to name that concrete type. Use <code>BoxedEffect</code> at boundaries that
 require a single erased type, such as heterogeneous collections or different branches.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-rust">use stillwater::prelude::*;
 
 fn choose(cached: bool) -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
     if cached {
@@ -320,8 +303,7 @@ fn choose(cached: bool) -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
 tokio_test::block_on(async {
     assert_eq!(choose(true).run(&amp;()).await, Ok(42));
     assert_eq!(choose(false).run(&amp;()).await, Err("cache miss"));
-});
-<span class="boring">}</span></code></pre>
+});</code></pre>
 <p>Concrete types do not promise allocation-free execution or a fixed performance ratio.
 <code>from_async_ref</code> boxes its future; helpers returning <code>BoxedEffect</code> (including <code>IO</code>,
 effect traversal, and retry) erase types internally. User operations, captured data,
