@@ -1,6 +1,6 @@
 [package]
 name = "stillwater"
-version = "1.1.1"
+version = "2.0.0"
 edition = "2021"
 rust-version = "1.89"
 authors = ["Glen Baker <iepathos@gmail.com>"]
@@ -17,7 +17,7 @@ readme = "README.md"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(try_trait_nightly)'] }
 
 [dependencies]
-# Optional async support
+# Optional Tokio-backed retry and timeout support. Effect itself is always async.
 tokio = { version = "1", features = ["full"], optional = true }
 futures = "0.3"
 proptest = { version = "1.11", optional = true }

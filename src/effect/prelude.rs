@@ -42,7 +42,7 @@
 //! - You want to avoid glob imports in your codebase
 //! - You need to prevent name conflicts
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::{Effect, pure, asks};
 //! ```
 
@@ -64,8 +64,6 @@ pub use crate::effect::combinators::{
 pub use crate::effect::reader::{Ask, Asks, Local};
 
 // Bracket types and constructors
-#[allow(deprecated)]
-pub use crate::effect::bracket::bracket_simple;
 pub use crate::effect::bracket::{
     acquiring, bracket, bracket2, bracket3, bracket_full, bracket_sync, Acquiring, Bracket,
     Bracket2, Bracket3, BracketError, BracketFull, BracketSync, Resource, ResourceWith,

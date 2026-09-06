@@ -14,7 +14,7 @@
 //!
 //! # Example
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //!
 //! // Single resource
@@ -243,7 +243,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let effect = bracket(
@@ -353,7 +353,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let result = bracket_full(
@@ -626,7 +626,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let result = bracket2(
@@ -862,7 +862,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let db = Resource::new(
@@ -1098,7 +1098,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// use stillwater::effect::prelude::*;
 ///
 /// let result = acquiring(
@@ -1140,7 +1140,7 @@ where
 ///
 /// # Example
 ///
-/// ```rust,ignore
+/// ```text
 /// acquiring(open_database(), |db| async move { db.close().await })
 ///     .and(open_file(), |f| async move { f.close().await })
 ///     .with(|(db, file)| do_work(db, file))
@@ -1213,7 +1213,7 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// acquiring(resource1, release1)
     ///     .and(resource2, release2)
     ///     .with_flat2(|a, b| use_resources(a, b))
@@ -1246,7 +1246,7 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// acquiring(resource1, release1)
     ///     .and(resource2, release2)
     ///     .and(resource3, release3)
@@ -1281,7 +1281,7 @@ where
     ///
     /// # Example
     ///
-    /// ```rust,ignore
+    /// ```text
     /// acquiring(resource1, release1)
     ///     .and(resource2, release2)
     ///     .and(resource3, release3)
@@ -1305,70 +1305,6 @@ where
         UseEffect: Effect<Output = U, Error = E, Env = Env>,
     {
         self.resource.with(move |(((a, b), c), d)| f(a, b, c, d))
-    }
-}
-
-// ============================================================================
-// Legacy bracket_simple (kept for backwards compatibility)
-// ============================================================================
-
-/// Simplified bracket that uses a closure for release.
-///
-/// This variant is for cases where release doesn't need to be async or return a Result.
-#[deprecated(
-    since = "0.12.0",
-    note = "Use `bracket` with async release function instead"
-)]
-pub fn bracket_simple<Acquire, Use, ReleaseFn, UseEffect, R, T, E, Env>(
-    acquire: Acquire,
-    use_fn: Use,
-    release_fn: ReleaseFn,
-) -> impl Effect<Output = T, Error = E, Env = Env>
-where
-    Acquire: Effect<Output = R, Error = E, Env = Env>,
-    Use: FnOnce(R) -> UseEffect + Send,
-    UseEffect: Effect<Output = T, Error = E, Env = Env>,
-    ReleaseFn: FnOnce(R) + Send,
-    R: Clone + Send,
-    T: Send,
-    E: Send,
-    Env: Clone + Send + Sync,
-{
-    BracketSimple {
-        acquire,
-        use_fn,
-        release_fn,
-    }
-}
-
-/// Simple bracket that uses a closure for release instead of an effect.
-struct BracketSimple<Acquire, Use, ReleaseFn> {
-    acquire: Acquire,
-    use_fn: Use,
-    release_fn: ReleaseFn,
-}
-
-impl<Acquire, Use, ReleaseFn, UseEffect, R, T, E, Env> Effect
-    for BracketSimple<Acquire, Use, ReleaseFn>
-where
-    Acquire: Effect<Output = R, Error = E, Env = Env>,
-    Use: FnOnce(R) -> UseEffect + Send,
-    UseEffect: Effect<Output = T, Error = E, Env = Env>,
-    ReleaseFn: FnOnce(R) + Send,
-    R: Clone + Send,
-    T: Send,
-    E: Send,
-    Env: Clone + Send + Sync,
-{
-    type Output = T;
-    type Error = E;
-    type Env = Env;
-
-    async fn run(self, env: &Self::Env) -> Result<T, E> {
-        let resource = self.acquire.run(env).await?;
-        let result = (self.use_fn)(resource.clone()).run(env).await;
-        (self.release_fn)(resource);
-        result
     }
 }
 

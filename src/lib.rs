@@ -14,13 +14,13 @@
 //!
 //! ## Effect System
 //!
-//! The effect system has been redesigned to be **zero-cost by default** with **opt-in boxing**
+//! The effect system uses **concrete combinator types by default** with **opt-in boxing**
 //! when type erasure is needed, following the established `futures` crate pattern.
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //!
-//! // Zero heap allocations - compiler can inline everything
+//! // Concrete chain with no combinator boxing
 //! let effect = pure::<_, String, ()>(42)
 //!     .map(|x| x + 1)
 //!     .and_then(|x| pure(x * 2));
@@ -116,16 +116,13 @@ pub use effect::combinators::{
 pub use effect::reader::{Ask, Asks, Local};
 
 // Re-export bracket
-#[allow(deprecated)]
-pub use effect::bracket::bracket_simple;
 pub use effect::bracket::{
     acquiring, bracket, bracket2, bracket3, bracket_full, bracket_sync, Acquiring, Bracket,
     Bracket2, Bracket3, BracketError, BracketFull, BracketSync, Resource, ResourceWith,
 };
 
-// Re-export compat items
-#[allow(deprecated)]
-pub use effect::compat::{LegacyConstructors, LegacyEffect, RunStandalone};
+// Re-export unit-environment convenience
+pub use effect::compat::RunStandalone;
 
 // Re-export tracing (when feature enabled)
 #[cfg(feature = "tracing")]

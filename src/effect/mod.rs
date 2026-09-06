@@ -1,6 +1,6 @@
-//! Zero-cost Effect trait with opt-in boxing.
+//! Concrete Effect combinators with opt-in boxing.
 //!
-//! This module provides a redesigned Effect system that is **zero-cost by default**
+//! This module provides an Effect system with **concrete combinators by default**
 //! with **opt-in boxing** when type erasure is needed, following the established
 //! `futures` crate pattern.
 //!
@@ -43,24 +43,24 @@
 //!
 //! | Old API | New API |
 //! |---------|---------|
-//! | `Effect<T, E, Env>` struct (boxed per combinator) | `impl Effect<Output=T, Error=E, Env=Env>` (zero-cost) |
+//! | `Effect<T, E, Env>` struct (boxed per combinator) | `impl Effect<Output=T, Error=E, Env=Env>` (concrete) |
 //! | `Effect::pure(x)` | `pure::<_, E, Env>(x)` |
 //! | `Effect::fail(e)` | `fail::<T, _, Env>(e)` |
 //! | Automatic type erasure | Explicit `.boxed()` when needed |
 //!
-//! # Zero-Cost by Default
+//! # Boxing-Free by Default
 //!
-//! ```rust,ignore
+//! ```text
 //! use stillwater::effect::prelude::*;
 //!
-//! // Zero heap allocations - compiler can inline everything
+//! // No combinator boxing - compiler can inline the concrete chain
 //! let effect = pure::<_, String, ()>(42)
 //!     .map(|x| x + 1)           // Returns Map<Pure<...>, ...>
 //!     .and_then(|x| pure(x * 2)) // Returns AndThen<Map<...>, ...>
 //!     .map(|x| x.to_string());   // Returns Map<AndThen<...>, ...>
 //!
 //! // Type: Map<AndThen<Map<Pure<i32, String, ()>, ...>, ...>, ...>
-//! // NO heap allocation!
+//! // No combinator type-erasure allocation.
 //! ```
 //!
 //! # When to Use Boxing
@@ -69,7 +69,7 @@
 //!
 //! ## 1. Storing in Collections
 //!
-//! ```rust,ignore
+//! ```text
 //! // Can't put different types in a Vec!
 //! let effects: Vec<BoxedEffect<i32, E, Env>> = vec![
 //!     pure(1).boxed(),
@@ -79,7 +79,7 @@
 //!
 //! ## 2. Recursive Effects
 //!
-//! ```rust,ignore
+//! ```text
 //! fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
 //!     if n <= 0 {
 //!         pure(0).boxed()
@@ -93,7 +93,7 @@
 //!
 //! ## 3. Match Arms with Different Effect Types
 //!
-//! ```rust,ignore
+//! ```text
 //! fn get_user(source: DataSource) -> BoxedEffect<User, E, Env> {
 //!     match source {
 //!         DataSource::Cache => pure(user).boxed(),
@@ -109,7 +109,7 @@
 //! lifetime. This is typically cheap when environments contain `Arc`-wrapped
 //! resources:
 //!
-//! ```rust,ignore
+//! ```text
 //! #[derive(Clone)]
 //! struct AppEnv {
 //!     db: Arc<DatabasePool>,      // Clone is cheap (Arc refcount)
@@ -157,8 +157,6 @@ pub use combinators::{
 pub use reader::{Ask, Asks, Local};
 
 // Re-export bracket
-#[allow(deprecated)]
-pub use bracket::bracket_simple;
 pub use bracket::{
     acquiring, bracket, bracket2, bracket3, bracket_full, bracket_sync, Acquiring, Bracket,
     Bracket2, Bracket3, BracketError, BracketFull, BracketSync, Resource, ResourceWith,
@@ -186,9 +184,8 @@ pub use retry::{retry, retry_if, retry_with_hooks, with_timeout};
 #[cfg(feature = "tracing")]
 pub use tracing::{EffectTracingExt, Instrument};
 
-// Re-export compatibility items
-#[allow(deprecated)]
-pub use compat::{LegacyConstructors, LegacyEffect, RunStandalone};
+// Re-export unit-environment convenience
+pub use compat::RunStandalone;
 
 #[cfg(test)]
 mod tests;
