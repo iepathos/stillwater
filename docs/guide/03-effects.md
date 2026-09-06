@@ -8,21 +8,21 @@ Effect helps you structure applications with:
 
 This separation makes code more testable, maintainable, and composable.
 
-## Zero-Cost by Default
+## Boxing-Free by Default
 
-Stillwater's Effect system follows the `futures` crate pattern: **zero-cost by default, explicit boxing when needed**.
+Stillwater's Effect system follows the `futures` crate pattern: **concrete combinator types by default, explicit boxing when type erasure is needed**.
 
-```rust
+```text
 use stillwater::prelude::*;
 
-// Zero heap allocations - compiler can inline everything
+// No combinator boxing; the compiler can inline the concrete chain
 let effect = pure::<_, String, ()>(42)
     .map(|x| x + 1)           // Returns Map<Pure<...>, ...>
     .and_then(|x| pure(x * 2)) // Returns AndThen<Map<...>, ...>
     .map(|x| x.to_string());   // Returns Map<AndThen<...>, ...>
 
 // Type: Map<AndThen<Map<Pure<i32, String, ()>, ...>, ...>, ...>
-// NO heap allocation!
+// No combinator boxing.
 ```
 
 Each combinator returns a concrete type. The compiler knows the exact type at compile time and can fully optimize the effect chain.
@@ -31,7 +31,7 @@ Each combinator returns a concrete type. The compiler knows the exact type at co
 
 How do you test this code?
 
-```rust
+```text
 async fn create_user(email: String, age: u8) -> Result<User, Error> {
     // Validation mixed with I/O
     if !email.contains('@') {
@@ -58,54 +58,44 @@ Problems:
 
 ## The Solution: Effect
 
-Effect separates pure logic from I/O:
+Effect separates pure decisions from I/O. A useful default is:
 
-```rust
-use stillwater::prelude::*;
+1. Load the facts a decision needs.
+2. Pass input and facts to one pure function that returns `Validation<Plan, Errors>`.
+3. Interpret the plain plan as effects.
+4. Run the resulting shell at the application boundary.
 
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
+```text
+fn register_user(input: RegistrationInput) -> impl Effect<
+    Output = User,
+    Error = AppError,
+    Env = AppEnv,
+> {
+    load_registration_facts(input)
+        .and_then(|(input, facts)| {
+            from_validation(decide_registration(input, facts).map_err(AppError::Rejected))
+        })
+        .and_then(interpret_registration)
 }
-
-fn create_user(email: String, age: u8) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
-    // Pure validation first
-    from_validation(validate_user(&email, age).map_err(AppError::Validation))
-        // Then I/O
-        .and_then(move |_| {
-            from_fn(move |env: &AppEnv| env.db.find_by_email(&email))
-        })
-        // Pure logic
-        .and_then(move |existing| {
-            if existing.is_some() {
-                fail(AppError::EmailExists)
-            } else {
-                pure(User { email, age })
-            }
-        })
-        // More I/O
-        .and_then(|user| {
-            from_fn(move |env: &AppEnv| env.db.save(&user))
-                .map(move |_| user)
-        })
-}
-
-// Run at application boundary
-let env = AppEnv { db };
-let user = create_user(email, age).run(&env).await?;
 ```
 
 Benefits:
 - Pure functions need no mocks
-- I/O is explicit via `from_fn`, `from_async`
+- Domain rejection is distinct from infrastructure failure
+- Branching stays in the pure decision instead of being buried in `and_then`
+- I/O is explicit via `from_fn`, `from_async`, or `from_async_ref`
 - Easy to test with mock environments
-- Zero heap allocations in the effect chain
+- No combinator boxing in the effect chain
+
+The complete [`user_registration` example](../../examples/user_registration.rs) uses cheap
+`Arc<dyn Service>` handles. It executes save before welcome email and deliberately provides
+no rollback if email fails; use a saga when compensation is a business requirement.
 
 ## Core API
 
 ### Creating Effects
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Pure value (no I/O)
@@ -144,7 +134,7 @@ let effect = from_option::<_, _, ()>(Some(42), || "value missing");
 
 ### Transforming Effects
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Map success value
@@ -169,7 +159,7 @@ Stillwater provides declarative validation combinators that eliminate verbose `a
 
 The `ensure()` method validates an effect's success value and fails if the predicate returns false:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Debug, PartialEq)]
@@ -200,7 +190,7 @@ assert_eq!(result, Ok(5));
 
 When you need the value to construct the error:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Debug, PartialEq)]
@@ -223,7 +213,7 @@ assert_eq!(result, Err(RangeError { value: -5, min: 0 }));
 
 For reusable validation logic, use predicates from the `predicate` module:
 
-```rust
+```text
 use stillwater::prelude::*;
 use stillwater::predicate::*;
 
@@ -252,7 +242,7 @@ assert_eq!(result, Err(Error::InvalidAge));
 
 The `unless()` method fails when the predicate is TRUE (inverse of `ensure`):
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Debug, PartialEq)]
@@ -283,7 +273,7 @@ assert_eq!(result, Err(Error::UserBanned));
 
 `filter_or()` is an alias for `ensure()` following functional programming conventions:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 let effect = pure::<_, &str, ()>(5)
@@ -297,7 +287,7 @@ assert_eq!(result, Ok(5));
 
 Combine multiple validation checks for comprehensive validation:
 
-```rust
+```text
 use stillwater::prelude::*;
 use stillwater::predicate::*;
 
@@ -328,7 +318,7 @@ assert_eq!(result, Err(Error::TooShort));
 
 #### Real-World Example
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -373,7 +363,7 @@ let user = fetch_valid_user(123).run(&env).await?;
 #### Why Use Effect Validation Combinators?
 
 **Before** (12 lines):
-```rust
+```text
 from_fn(|env: &AppEnv| fetch_data(env))
     .and_then(|data| {
         if data.value > 0 {
@@ -392,7 +382,7 @@ from_fn(|env: &AppEnv| fetch_data(env))
 ```
 
 **After** (3 lines):
-```rust
+```text
 from_fn(|env: &AppEnv| fetch_data(env))
     .ensure(|data| data.value > 0, Error::InvalidValue)
     .ensure(|data| data.count < 100, Error::TooMany)
@@ -400,7 +390,7 @@ from_fn(|env: &AppEnv| fetch_data(env))
 
 ### Running Effects
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // With environment
@@ -418,7 +408,7 @@ Boxing is needed in exactly three situations:
 
 ### 1. Storing in Collections
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Different effect types can't be stored in the same Vec
@@ -438,7 +428,7 @@ for effect in effects {
 
 ### 2. Recursive Effects
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Recursive function needs concrete return type
@@ -457,7 +447,7 @@ let sum = countdown(5).run(&()).await?; // 15
 
 ### 3. Match Arms with Different Effect Types
 
-```rust
+```text
 use stillwater::prelude::*;
 
 enum DataSource {
@@ -496,7 +486,7 @@ The Reader pattern provides functional dependency injection. Stillwater includes
 
 Returns the entire environment:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -521,7 +511,7 @@ assert_eq!(result.api_key, "secret");
 
 Extract a specific value:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -546,7 +536,7 @@ assert_eq!(result, "postgres");
 
 Run an effect with a temporarily modified environment:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -577,11 +567,11 @@ assert_eq!(result, "fetched with timeout 60");
 
 ## Parallel Effects
 
-### Heterogeneous Parallel (Zero-Cost)
+### Heterogeneous Parallel (No Type Erasure)
 
 For 2-4 effects of different types, use `par2`, `par3`, `par4`:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 let (num, text) = par2(
@@ -597,7 +587,7 @@ let text = text?;
 
 For collections of effects, use `par_all`, `race`, `par_all_limit`:
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // par_all - run all, collect all results
@@ -622,7 +612,7 @@ let results = par_all_limit(effects, 10, &()).await?; // max 10 concurrent
 
 ## Real-World Example: User Registration
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Environment with dependencies
@@ -717,7 +707,7 @@ async fn main() -> Result<(), AppError> {
 
 The key benefit: pure functions need no mocks!
 
-```rust
+```text
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -768,10 +758,10 @@ mod tests {
 
 ## Performance Considerations
 
-The Effect trait is zero-cost by default:
-- No heap allocations for effect chains
+The Effect trait uses concrete combinator types by default:
+- No allocation by the concrete combinator layer itself
 - Compiler can fully inline combinators
-- Same performance as hand-written async code
+- Performance can approach hand-written async code; benchmark hot paths
 
 Boxing happens only when you call `.boxed()`:
 - Collections of effects
@@ -784,14 +774,14 @@ For I/O-bound work (API calls, database queries), boxing overhead is negligible 
 
 ### Pattern 1: Validate Then Execute
 
-```rust
+```text
 from_validation(validate_input(input))
     .and_then(|valid| execute_with_db(valid))
 ```
 
 ### Pattern 2: Read, Decide, Write
 
-```rust
+```text
 from_fn(|env: &Env| env.db.fetch(id))
     .and_then(|data| {
         let result = pure_business_logic(data);
@@ -801,7 +791,7 @@ from_fn(|env: &Env| env.db.fetch(id))
 
 ### Pattern 3: Error Context
 
-```rust
+```text
 create_user(email, age)
     .context("Creating user account")
     .and_then(|user| {
@@ -812,7 +802,7 @@ create_user(email, age)
 
 ### Pattern 4: Conditional Effect
 
-```rust
+```text
 fn conditional_fetch(use_cache: bool) -> BoxedEffect<String, String, AppEnv> {
     if use_cache {
         from_fn(|env: &AppEnv| Ok(env.cache.get("data"))).boxed()
@@ -838,7 +828,7 @@ fn conditional_fetch(use_cache: bool) -> BoxedEffect<String, String, AppEnv> {
 
 ## Summary
 
-- **Effect trait**: Zero-cost effect composition following `futures` pattern
+- **Effect trait**: Concrete, boxing-free composition by default following the `futures` pattern
 - **Pure core**: Business logic is easy to test (no mocks)
 - **Imperative shell**: I/O at boundaries via `from_fn`, `from_async`
 - **Environment**: Provides dependency injection
