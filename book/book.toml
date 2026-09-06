@@ -30,6 +30,8 @@ enable = true
 level = 1
 
 [output.html.playground]
+# The public Playground does not provide Stillwater. Examples run with Cargo.
+runnable = false
 editable = false
 copyable = true
 line-numbers = true

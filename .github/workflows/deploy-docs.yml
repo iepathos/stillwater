@@ -6,12 +6,24 @@ on:
     paths:
       - 'book/**'
       - 'docs/**'
+      - 'scripts/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'README.md'
+      - 'src/**'
+      - 'tests/documentation_contract.rs'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
     branches: [main, master]
     paths:
       - 'book/**'
       - 'docs/**'
+      - 'scripts/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'README.md'
+      - 'src/**'
+      - 'tests/documentation_contract.rs'
       - '.github/workflows/deploy-docs.yml'
   workflow_dispatch:
 
@@ -29,6 +41,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Install Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
       - name: Setup mdBook
         uses: peaceiris/actions-mdbook@v2
         with:
@@ -36,6 +51,25 @@ jobs:
 
       - name: Build book
         run: mdbook build book
+
+      - name: Setup documentation check runtime
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Test rendered documentation checker
+        run: python3 -B -m unittest discover -s scripts/tests -v
+
+      - name: Check rendered local-execution policy
+        run: python3 -B scripts/check_book_playground.py book/book --local-only
+
+      - name: Run documented standalone quickstart
+        run: python3 -B scripts/check_book_quickstart.py
+
+      - name: Check executable documentation before deployment
+        run: |
+          cargo test --locked --test documentation_contract
+          cargo test --locked --doc --all-features
 
       - name: Check links
         uses: lycheeverse/lychee-action@v2

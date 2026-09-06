@@ -560,7 +560,9 @@ stillwater = { version = "2.0", features = ["async", "tracing", "jitter"] }
 
 ## Examples
 
-Run any example with `cargo run --example <name>`:
+Run complete examples from a checkout with `cargo run --example <name> --all-features`.
+For book snippets and chapter tests, see [Running the Examples](docs/running-examples.md).
+The book uses local Cargo execution; the public Rust Playground does not provide Stillwater.
 
 | Example | Demonstrates |
 |---------|--------------|

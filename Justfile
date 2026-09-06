@@ -174,6 +174,12 @@ book:
 book-check-links: book
     lychee --offline --root-dir book/book book/book
 
+# Verify local execution policy and the documented standalone Cargo project
+book-check-playground: book
+    python3 -B -m unittest discover -s scripts/tests -v
+    python3 -B scripts/check_book_playground.py book/book --local-only
+    python3 -B scripts/check_book_quickstart.py
+
 # Serve the mdBook documentation site locally
 book-serve:
     mdbook serve book --open

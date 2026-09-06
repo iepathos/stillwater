@@ -2,6 +2,7 @@
 
 [Stillwater Documentation](README.md)
 
+- [Running the Examples](running-examples.md)
 - [User Guide](guide/README.md)
 
 # Core Concepts

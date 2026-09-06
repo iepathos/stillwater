@@ -4,6 +4,7 @@ Stillwater is a Rust library for pragmatic functional programming focused on val
 
 ## Start Here
 
+- [Running the Examples](running-examples.md) - Local Cargo setup and chapter tests; no browser Playground required
 - [User Guide](guide/) - Progressive tutorials for core concepts and patterns
 - [Patterns](PATTERNS.md) - Recipes for common validation and effect workflows
 - [FAQ](FAQ.md) - Answers to common questions

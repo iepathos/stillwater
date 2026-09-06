@@ -130,16 +130,19 @@ Jump to the chapters that interest you. Each chapter is self-contained with link
 
 ### Running Examples
 
-All examples in this guide are runnable. You can find them in the [examples/](https://github.com/iepathos/stillwater/tree/master/examples) directory:
+See [Running the Examples](../running-examples.md) for local setup, copy/paste
+instructions, and chapter doctests. Browser execution is disabled because the
+public Rust Playground does not include Stillwater. Rust snippets are checked
+with Cargo; plain-text sketches are not complete programs.
+
+Run complete programs from the [examples/](https://github.com/iepathos/stillwater/tree/master/examples) directory in a repository checkout:
 
 ```bash
-cargo run --example validation
-cargo run --example effects
-cargo run --example monoid
-cargo run --example form_validation
-cargo run --example recover_patterns
-cargo run --example retry_patterns
-cargo run --example resource_tracking
+cargo run --example form_validation --all-features
+cargo run --example user_registration --all-features
+cargo run --example recover_patterns --all-features
+cargo run --example retry_patterns --all-features
+cargo run --example resource_tracking --all-features
 ```
 
 ## Quick Reference

@@ -6,6 +6,9 @@ mod root_readme {}
 #[doc = include_str!("../docs/README.md")]
 mod docs_readme {}
 
+#[doc = include_str!("../docs/running-examples.md")]
+mod running_examples {}
+
 #[doc = include_str!("../docs/guide/README.md")]
 mod guide_readme {}
 

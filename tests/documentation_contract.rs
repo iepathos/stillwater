@@ -182,3 +182,16 @@ fn audit_checks_rustdoc_and_distinguishes_prose_from_code() {
     assert!(result.violations.is_empty());
     assert_eq!((result.rust_blocks, result.text_blocks), (1, 1));
 }
+
+#[test]
+fn book_uses_local_execution_and_links_the_instructions() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let config = fs::read_to_string(root.join("book/book.toml")).unwrap();
+    let playground = config.split_once("[output.html.playground]").unwrap().1;
+    assert!(playground
+        .lines()
+        .take_while(|line| !line.trim_start().starts_with('['))
+        .any(|line| line.trim() == "runnable = false"));
+    let summary = fs::read_to_string(root.join("docs/SUMMARY.md")).unwrap();
+    assert!(summary.contains("](running-examples.md)"));
+}

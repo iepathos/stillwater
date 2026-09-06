@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added explicit sequential and parallel effect traversal and sequencing APIs.
 - Added Cargo-backed compile coverage for Rust-labelled README and mdBook examples.
 - Added documentation checks rejecting test-only bodies and text downgrades in core guides.
+- Added rendered-book regression checks and a tested standalone Cargo quickstart.
 
 ### Changed
 
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reworked the user-registration example around a pure decision core and an imperative shell.
 - Enforced uniqueness at the registration commit boundary and added CI coverage for its tests.
 - Documented traversal factory timing and compiled the 2.0 migration examples.
+- Disabled unsupported browser Playground controls and documented local example execution.
 - Clarified that the `async` feature enables Tokio-backed retry and timeout operations; the
   core `Effect` abstraction is always asynchronous.
 

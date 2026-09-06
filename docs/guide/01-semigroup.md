@@ -1,5 +1,7 @@
 # Semigroup: The Foundation for Combining Values
 
+Run these examples with Cargo using the [local setup and chapter-test instructions](../running-examples.md).
+
 ## What is a Semigroup?
 
 A Semigroup is a simple but powerful concept: a type with an associative binary operation that combines two values into one.
