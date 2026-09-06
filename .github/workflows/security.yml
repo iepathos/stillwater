@@ -33,14 +33,10 @@ jobs:
       run: cargo install cargo-audit --locked
     
     - name: Run security audit
-      run: cargo audit --json > audit-results.json || true
-    
-    - name: Display audit results
+      shell: bash
       run: |
-        if [ -f audit-results.json ]; then
-          echo "Security audit results:"
-          cat audit-results.json | jq -r '.vulnerabilities[] | "\(.advisory.id): \(.advisory.title) (\(.advisory.severity))"' || echo "No vulnerabilities found"
-        fi
+        set -o pipefail
+        cargo audit --json | tee audit-results.json | jq --exit-status .
     
     - name: Upload audit results
       uses: actions/upload-artifact@v7
