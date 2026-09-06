@@ -1,6 +1,8 @@
 # Performance Guide
 
-Stillwater claims zero-cost abstractions for validation, effects, and error context. This guide documents how we measure those claims and how to interpret results.
+Stillwater aims for low-overhead validation, effects, and error context. Effect composition
+uses concrete types without combinator boxing by default. This guide documents how those
+properties are measured rather than treating “zero cost” as a blanket promise.
 
 ## Running benchmarks locally
 
@@ -56,11 +58,12 @@ The [Benchmarks workflow](https://github.com/iepathos/stillwater/blob/master/.gi
 
 Regressions are detected by comparing new results to the stored baseline on the default branch.
 
-## Zero-cost verification
+## Inline layout verification
 
-Compile-time checks live in `src/effect/combinators/zero_cost_tests.rs` (combinator struct sizes). Runtime benchmarks validate that those abstractions do not add unexpected overhead in hot paths.
+Layout checks live in `src/effect/combinators/layout_tests.rs` (combinator struct sizes).
+Runtime benchmarks validate that composition does not add unexpected overhead in hot paths.
 
-Practices for zero-cost usage:
+Practices for low-overhead usage:
 
 1. Prefer concrete effect types; call `.boxed()` only at collection boundaries (`par_all`, heterogeneous vectors).
 2. Use `Validation::all_vec` / tuple `validate_all` for accumulation instead of fail-fast `?` when you need every error.

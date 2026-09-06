@@ -1,4 +1,4 @@
-//! Zero-cost validation tests for recovery combinators.
+//! Inline layout tests for recovery combinators.
 
 #[cfg(test)]
 mod tests {
@@ -11,31 +11,30 @@ mod tests {
     use std::mem::size_of;
 
     #[test]
-    fn test_recover_size_is_zero_cost() {
+    fn recover_has_inline_layout() {
         type InnerEffect = Pure<i32, String, ()>;
         type Predicate = fn(&String) -> bool;
         type Handler = fn(String) -> Pure<i32, String, ()>;
         type RecoverEffect = Recover<InnerEffect, Predicate, Handler, Pure<i32, String, ()>>;
 
-        // Recover should NOT allocate on heap - size is stack-only (may have alignment padding)
-        // The size should be reasonable (not Box-sized which would indicate heap allocation)
-        assert!(size_of::<RecoverEffect>() < 100); // Reasonable stack size
+        // The combinator stores its fields inline (with possible alignment padding).
+        assert!(size_of::<RecoverEffect>() < 100); // Bounded inline size
         assert!(size_of::<RecoverEffect>() >= size_of::<InnerEffect>()); // At least as big as inner
     }
 
     #[test]
-    fn test_recover_with_size_is_zero_cost() {
+    fn recover_with_has_inline_layout() {
         type InnerEffect = Pure<i32, String, ()>;
         type RecoverWithEffect =
             RecoverWith<InnerEffect, fn(&String) -> bool, fn(String) -> Result<i32, String>>;
 
-        // RecoverWith should NOT allocate on heap - size is stack-only
-        assert!(size_of::<RecoverWithEffect>() < 100); // Reasonable stack size
+        // The combinator stores its fields inline.
+        assert!(size_of::<RecoverWithEffect>() < 100); // Bounded inline size
         assert!(size_of::<RecoverWithEffect>() >= size_of::<InnerEffect>());
     }
 
     #[test]
-    fn test_recover_some_size_is_zero_cost() {
+    fn recover_some_has_inline_layout() {
         type InnerEffect = Pure<i32, String, ()>;
         type RecoverSomeEffect = RecoverSome<
             InnerEffect,
@@ -43,13 +42,13 @@ mod tests {
             Pure<i32, String, ()>,
         >;
 
-        // RecoverSome should NOT allocate on heap - size is stack-only
-        assert!(size_of::<RecoverSomeEffect>() < 100); // Reasonable stack size
+        // The combinator stores its fields inline.
+        assert!(size_of::<RecoverSomeEffect>() < 100); // Bounded inline size
         assert!(size_of::<RecoverSomeEffect>() >= size_of::<InnerEffect>());
     }
 
     #[test]
-    fn test_fallback_size_is_zero_cost() {
+    fn fallback_has_inline_layout() {
         type InnerEffect = Pure<i32, String, ()>;
         type FallbackEffect = Fallback<InnerEffect>;
 
@@ -60,7 +59,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fallback_to_size_is_zero_cost() {
+    fn fallback_to_has_inline_layout() {
         type PrimaryEffect = Pure<i32, String, ()>;
         type AlternativeEffect = Pure<i32, String, ()>;
         type FallbackToEffect = FallbackTo<PrimaryEffect, AlternativeEffect>;
