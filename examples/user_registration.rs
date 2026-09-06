@@ -5,6 +5,9 @@
 //! email are deliberately sequential: a save failure prevents the email. An
 //! email failure does not roll back a completed save; workflows that require
 //! compensation should use a saga or another explicit transaction protocol.
+//! Loaded facts are snapshots: the repository must enforce uniqueness atomically
+//! when committing a plan. A conflict is distinct from an infrastructure failure.
+//! The in-memory hasher is a test double, not a password-storage implementation.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -67,7 +70,23 @@ enum InfrastructureError {
 #[derive(Clone, Debug, PartialEq, Eq)]
 enum AppError {
     Rejected(NonEmptyVec<RegistrationError>),
+    Conflict(RegistrationError),
     Infrastructure(InfrastructureError),
+}
+
+#[derive(Debug)]
+enum SaveError {
+    Conflict(RegistrationError),
+    Infrastructure(InfrastructureError),
+}
+
+impl From<SaveError> for AppError {
+    fn from(error: SaveError) -> Self {
+        match error {
+            SaveError::Conflict(error) => Self::Conflict(error),
+            SaveError::Infrastructure(error) => Self::Infrastructure(error),
+        }
+    }
 }
 
 fn validation_from_errors(
@@ -173,7 +192,8 @@ trait UserRepository: Send + Sync {
         email: &'a str,
     ) -> BoxFuture<'a, Result<RegistrationFacts, InfrastructureError>>;
 
-    fn save<'a>(&'a self, user: User) -> BoxFuture<'a, Result<User, InfrastructureError>>;
+    // A real database adapter must use unique constraints, not another preflight query.
+    fn save<'a>(&'a self, user: User) -> BoxFuture<'a, Result<User, SaveError>>;
 }
 
 trait PasswordHasher: Send + Sync {
@@ -228,18 +248,17 @@ fn interpret_registration(
     })
     .and_then(|user| {
         from_async_ref(move |env: &AppEnv| {
-            Box::pin(async move { env.users.save(user).await.map_err(AppError::Infrastructure) })
+            Box::pin(async move { env.users.save(user).await.map_err(AppError::from) })
         })
     })
     .and_then(|user| {
-        let result = user.clone();
         from_async_ref(move |env: &AppEnv| {
             Box::pin(async move {
                 env.email
                     .send_welcome(&user)
                     .await
-                    .map(|()| result)
-                    .map_err(AppError::Infrastructure)
+                    .map_err(AppError::Infrastructure)?;
+                Ok(user)
             })
         })
     })
@@ -304,16 +323,23 @@ impl UserRepository for InMemoryServices {
         })
     }
 
-    fn save<'a>(&'a self, mut user: User) -> BoxFuture<'a, Result<User, InfrastructureError>> {
+    fn save<'a>(&'a self, mut user: User) -> BoxFuture<'a, Result<User, SaveError>> {
         Box::pin(async move {
             self.record("save");
             if *self.save_error.lock().unwrap() {
-                return Err(InfrastructureError::SaveUser);
+                return Err(SaveError::Infrastructure(InfrastructureError::SaveUser));
             }
             let mut next_id = self.next_id.lock().unwrap();
+            let mut users = self.users.lock().unwrap();
+            if users.values().any(|saved| saved.username == user.username) {
+                return Err(SaveError::Conflict(RegistrationError::UsernameTaken));
+            }
+            if users.values().any(|saved| saved.email == user.email) {
+                return Err(SaveError::Conflict(RegistrationError::EmailTaken));
+            }
             *next_id += 1;
             user.id = *next_id;
-            self.users.lock().unwrap().insert(user.id, user.clone());
+            users.insert(user.id, user.clone());
             Ok(user)
         })
     }
@@ -466,5 +492,87 @@ mod tests {
             Err(AppError::Infrastructure(InfrastructureError::LoadFacts))
         );
         assert_eq!(services.events(), vec!["load_facts"]);
+    }
+
+    #[tokio::test]
+    async fn hash_failure_prevents_save_and_email() {
+        let services = Arc::new(InMemoryServices::default());
+        *services.hash_error.lock().unwrap() = true;
+
+        let result = register_user(valid_input()).run(&services.app_env()).await;
+
+        assert_eq!(
+            result,
+            Err(AppError::Infrastructure(InfrastructureError::HashPassword))
+        );
+        assert_eq!(services.events(), vec!["load_facts", "hash"]);
+        assert!(services.users.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn email_failure_preserves_the_committed_user() {
+        let services = Arc::new(InMemoryServices::default());
+        *services.email_error.lock().unwrap() = true;
+
+        let result = register_user(valid_input()).run(&services.app_env()).await;
+
+        assert_eq!(
+            result,
+            Err(AppError::Infrastructure(InfrastructureError::SendEmail))
+        );
+        assert_eq!(
+            services.events(),
+            vec!["load_facts", "hash", "save", "email"]
+        );
+        let users = services.users.lock().unwrap();
+        assert_eq!(users.len(), 1);
+        assert_eq!(
+            users.values().next().unwrap().username,
+            valid_input().username
+        );
+    }
+
+    #[tokio::test]
+    async fn commit_rejects_stale_username_and_email_availability() {
+        for conflict in [
+            RegistrationError::UsernameTaken,
+            RegistrationError::EmailTaken,
+        ] {
+            let services = Arc::new(InMemoryServices::default());
+            let env = services.app_env();
+            let mut second_input = valid_input();
+            if conflict == RegistrationError::UsernameTaken {
+                second_input.email = "another@example.com".into();
+            } else {
+                second_input.username = "another_user".into();
+            }
+            // Both decisions observe availability before either plan commits.
+            let (input, facts) = load_registration_facts(valid_input())
+                .run(&env)
+                .await
+                .unwrap();
+            let first = decide_registration(input, facts).into_result().unwrap();
+            let (input, facts) = load_registration_facts(second_input)
+                .run(&env)
+                .await
+                .unwrap();
+            let second = decide_registration(input, facts).into_result().unwrap();
+
+            let first_user = interpret_registration(first).run(&env).await.unwrap();
+            let result = interpret_registration(second).run(&env).await;
+
+            assert_eq!(result, Err(AppError::Conflict(conflict)));
+            let users = services.users.lock().unwrap();
+            assert_eq!(users.len(), 1);
+            assert_eq!(users.get(&first_user.id), Some(&first_user));
+            assert_eq!(
+                services
+                    .events()
+                    .iter()
+                    .filter(|event| **event == "email")
+                    .count(),
+                1
+            );
+        }
     }
 }

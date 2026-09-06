@@ -51,6 +51,9 @@ jobs:
 
     - name: Run documentation contract
       run: cargo test --doc --all-features
+
+    - name: Test canonical registration example
+      run: cargo test --example user_registration --all-features
     
     - name: Run clippy
       run: cargo clippy --all-targets --all-features -- -D warnings
