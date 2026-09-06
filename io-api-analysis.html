@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,35 +184,29 @@
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Accepted and implemented.</p>
 <p>The current IO helper API is:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(...)
+<pre><code class="language-text">IO::read(...)
 IO::write(...)
 IO::read_async(...)
 IO::write_async(...)
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>The previous design discussion considered more database-oriented and generic names. This document preserves that rationale while describing the current implementation accurately.</p>
 <h2 id="current-design"><a class="header" href="#current-design">Current Design</a></h2>
 <p>The IO module provides a small namespace for creating boxed effects from service operations:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::IO;
+<pre><code class="language-text">use stillwater::IO;
 
 let find_user = IO::read(|db: &amp;Database| db.find_user(id));
 let save_user = IO::write(|repo: &amp;UserRepository| repo.save_user(user));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Both <code>read</code> and <code>write</code> receive <code>&amp;T</code>, not <code>&amp;mut T</code>. This follows Stillwater’s effect model: <code>Effect::run</code> receives <code>&amp;Env</code>, and services that mutate state should expose safe interior mutation through handles such as connection pools, <code>Arc&lt;Mutex&lt;T&gt;&gt;</code>, channels, or client types that perform mutation behind an immutable reference.</p>
 <p>Async operations use explicit async variants:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let find_user = IO::read_async(|db: &amp;Database| async move {
+<pre><code class="language-text">let find_user = IO::read_async(|db: &amp;Database| async move {
     db.find_user(id).await
 });
 
 let save_user = IO::write_async(|repo: &amp;UserRepository| async move {
     repo.save_user(user).await
 });
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="intent-of-the-names"><a class="header" href="#intent-of-the-names">Intent Of The Names</a></h2>
 <p>The names are semantic, not borrow-mode distinctions:</p>
 <ul>
@@ -221,16 +215,12 @@ let save_user = IO::write_async(|repo: &amp;UserRepository| async move {
 <li><code>read_async</code> and <code>write_async</code> mirror the same split for futures.</li>
 </ul>
 <p>This lets code communicate intent even though both closures receive immutable references:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|cache: &amp;Cache| cache.get(key))
+<pre><code class="language-text">IO::read(|cache: &amp;Cache| cache.get(key))
 IO::write(|cache: &amp;Cache| cache.set(key, value))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="environment-extraction"><a class="header" href="#environment-extraction">Environment Extraction</a></h2>
 <p>IO helpers use <code>AsRef&lt;T&gt;</code> to extract a service from a larger application environment:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Clone)]
+<pre><code class="language-text">#[derive(Clone)]
 struct AppEnv {
     db: Database,
     cache: Cache,
@@ -247,19 +237,15 @@ impl AsRef&lt;Cache&gt; for AppEnv {
         &amp;self.cache
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>The closure parameter tells the compiler which service type to extract:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let user_effect = IO::read(|db: &amp;Database| db.find_user(id));
+<pre><code class="language-text">let user_effect = IO::read(|db: &amp;Database| db.find_user(id));
 let cache_effect = IO::write(|cache: &amp;Cache| cache.set(key, value));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This keeps the effect code decoupled from the concrete layout of <code>AppEnv</code>.</p>
 <h2 id="mutation-pattern"><a class="header" href="#mutation-pattern">Mutation Pattern</a></h2>
 <p>Because the environment is immutable, mutable services should use interior mutability or handle types that are already designed for shared access.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-text">use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
@@ -284,15 +270,13 @@ let read_effect = IO::read(|cache: &amp;Cache| {
 let write_effect = IO::write(|cache: &amp;Cache| {
     cache.set("theme".to_string(), "dark".to_string());
 });
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This pattern aligns with async Rust service handles such as database pools and HTTP clients, which are commonly cloneable and internally synchronized.</p>
 <h2 id="naming-alternatives-considered"><a class="header" href="#naming-alternatives-considered">Naming Alternatives Considered</a></h2>
 <h3 id="read--write"><a class="header" href="#read--write"><code>read</code> / <code>write</code></a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|db: &amp;Database| db.find_user(id))
+<pre><code class="language-text">IO::read(|db: &amp;Database| db.find_user(id))
 IO::write(|repo: &amp;UserRepository| repo.save_user(user))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Pros:</p>
 <ul>
 <li>Clear across files, databases, network clients, caches, and loggers.</li>
@@ -307,11 +291,9 @@ IO::write(|repo: &amp;UserRepository| repo.save_user(user))
 </ul>
 <p>Verdict: best default.</p>
 <h3 id="access--modify"><a class="header" href="#access--modify"><code>access</code> / <code>modify</code></a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::access(|db: &amp;Database| db.find_user(id))
+<pre><code class="language-text">IO::access(|db: &amp;Database| db.find_user(id))
 IO::modify(|repo: &amp;UserRepository| repo.save_user(user))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Pros:</p>
 <ul>
 <li>General enough for any resource.</li>
@@ -324,11 +306,9 @@ IO::modify(|repo: &amp;UserRepository| repo.save_user(user))
 </ul>
 <p>Verdict: reasonable but less readable.</p>
 <h3 id="get--set"><a class="header" href="#get--set"><code>get</code> / <code>set</code></a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::get(|cache: &amp;Cache| cache.get(key))
+<pre><code class="language-text">IO::get(|cache: &amp;Cache| cache.get(key))
 IO::set(|cache: &amp;Cache| cache.set(key, value))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Pros:</p>
 <ul>
 <li>Short and familiar.</li>
@@ -340,11 +320,9 @@ IO::set(|cache: &amp;Cache| cache.set(key, value))
 </ul>
 <p>Verdict: too limited.</p>
 <h3 id="run--run_mut"><a class="header" href="#run--run_mut"><code>run</code> / <code>run_mut</code></a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::run(|db: &amp;Database| db.find_user(id))
+<pre><code class="language-text">IO::run(|db: &amp;Database| db.find_user(id))
 IO::run_mut(|repo: &amp;UserRepository| repo.save_user(user))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Pros:</p>
 <ul>
 <li>Generic.</li>
@@ -376,49 +354,37 @@ IO::run_mut(|repo: &amp;UserRepository| repo.save_user(user))
 </div>
 <h2 id="real-world-examples"><a class="header" href="#real-world-examples">Real-World Examples</a></h2>
 <h3 id="database"><a class="header" href="#database">Database</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|db: &amp;Database| db.find_user(id))
+<pre><code class="language-text">IO::read(|db: &amp;Database| db.find_user(id))
 IO::write(|db: &amp;Database| db.insert_user(user))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="cache"><a class="header" href="#cache">Cache</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|cache: &amp;Cache| cache.get(key))
+<pre><code class="language-text">IO::read(|cache: &amp;Cache| cache.get(key))
 IO::write(|cache: &amp;Cache| cache.set(key, value))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="logger"><a class="header" href="#logger">Logger</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|logger: &amp;Logger| logger.level())
+<pre><code class="language-text">IO::read(|logger: &amp;Logger| logger.level())
 IO::write(|logger: &amp;Logger| logger.info("user registered"))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="file-system-abstraction"><a class="header" href="#file-system-abstraction">File System Abstraction</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(|fs: &amp;FileSystem| fs.read_to_string(path))
+<pre><code class="language-text">IO::read(|fs: &amp;FileSystem| fs.read_to_string(path))
 IO::write(|fs: &amp;FileSystem| fs.write_string(path, contents))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="async-http-client"><a class="header" href="#async-http-client">Async HTTP Client</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read_async(|client: &amp;HttpClient| async move {
+<pre><code class="language-text">IO::read_async(|client: &amp;HttpClient| async move {
     client.get_json(url).await
 })
 
 IO::write_async(|client: &amp;HttpClient| async move {
     client.post_json(url, body).await
 })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
 <p>Use <code>read</code> and <code>write</code> as the conceptual split:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(...)
+<pre><code class="language-text">IO::read(...)
 IO::write(...)
 IO::read_async(...)
 IO::write_async(...)
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>The helpers intentionally use <code>AsRef&lt;T&gt;</code> and immutable service references. This keeps environments shareable and compatible with the broader <code>Effect</code> model. Services that need mutation should provide internally safe mutation, not require <code>&amp;mut Env</code>.</p>
 <h2 id="consequences"><a class="header" href="#consequences">Consequences</a></h2>
 <p>Positive:</p>
@@ -458,11 +424,11 @@ IO::write_async(...)
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="async-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="COMPARISON.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="improving-our-process.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="validation-api-comparison.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -472,11 +438,11 @@ IO::write_async(...)
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="async-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="COMPARISON.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="improving-our-process.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="validation-api-comparison.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

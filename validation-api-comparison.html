@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,27 +181,29 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="validationall---tuples-vs-alternatives"><a class="header" href="#validationall---tuples-vs-alternatives">Validation::all() - Tuples vs Alternatives</a></h1>
+<blockquote>
+<p>Historical design record. This predates the current concrete-combinator API and
+contains unimplemented or superseded proposals. It is not a 2.0 usage guide.
+Use the <a href="guide/03-effects.html">effects guide</a> and <a href="guide/17-api-tiers.html">API tiers</a>
+for current behavior.</p>
+</blockquote>
 <h2 id="current-design-tuples"><a class="header" href="#current-design-tuples">Current Design (Tuples)</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>Validation::all((
+<pre><code class="language-text">Validation::all((
     validate_email(&amp;input.email),
     validate_password(&amp;input.password),
     validate_age(input.age),
 ))
 .map(|(email, password, age)| User { email, password, age })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="trade-off-analysis"><a class="header" href="#trade-off-analysis">Trade-off Analysis</a></h2>
 <h3 id="option-1-tuples-current-design"><a class="header" href="#option-1-tuples-current-design">Option 1: Tuples (Current Design)</a></h3>
 <p><strong>How it works:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T1, T2, E: Semigroup&gt; Validation&lt;(T1, T2), E&gt; {
+<pre><code class="language-text">impl&lt;T1, T2, E: Semigroup&gt; Validation&lt;(T1, T2), E&gt; {
     fn all(validations: (Validation&lt;T1, E&gt;, Validation&lt;T2, E&gt;)) -&gt; Validation&lt;(T1, T2), E&gt;
 }
 
 // Implement for (T1, T2), (T1, T2, T3), (T1, T2, T3, T4), etc.
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Native Rust, no dependencies</li>
@@ -224,9 +226,7 @@
 <li>For rare cases, can nest: <code>Validation::all((group1, group2))</code></li>
 </ul>
 <p><strong>Example of edge case:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// 15 fields? Probably indicates poor UX
+<pre><code class="language-text">// 15 fields? Probably indicates poor UX
 let personal = Validation::all((name, email, phone, address));
 let payment = Validation::all((card, cvv, expiry, billing));
 let shipping = Validation::all((addr, method, preference));
@@ -235,13 +235,11 @@ Validation::all((personal, payment, shipping))
     .map(|((p1, p2, p3, p4), (pay1, pay2, pay3, pay4), (s1, s2, s3))| {
         // Awkward, but you shouldn't be here anyway
     })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h3 id="option-2-vecslice-homogeneous"><a class="header" href="#option-2-vecslice-homogeneous">Option 2: Vec/Slice (Homogeneous)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn all_same&lt;T, E&gt;(validations: Vec&lt;Validation&lt;T, E&gt;&gt;) -&gt; Validation&lt;Vec&lt;T&gt;, E&gt;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-text">fn all_same&lt;T, E&gt;(validations: Vec&lt;Validation&lt;T, E&gt;&gt;) -&gt; Validation&lt;Vec&lt;T&gt;, E&gt;
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ No size limit</li>
@@ -255,22 +253,18 @@ Validation::all((personal, payment, shipping))
 <li>❌ Can’t build heterogeneous structs easily</li>
 </ul>
 <p><strong>When it’s useful:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validating a list of records (all same type)
+<pre><code class="language-text">// Validating a list of records (all same type)
 let validated_records = Validation::all_vec(
     records.into_iter().map(validate_record).collect()
 );
 
 // Good for: bulk data validation
 // Bad for: form field validation
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Verdict:</strong> Useful as <strong>separate method</strong>, not replacement for tuple version.</p>
 <hr>
 <h3 id="option-3-hlist-like-frunk"><a class="header" href="#option-3-hlist-like-frunk">Option 3: HList (Like Frunk)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Heterogeneous list (compile-time linked list)
+<pre><code class="language-text">// Heterogeneous list (compile-time linked list)
 Validation::all(HCons(
     validate_email(input),
     HCons(
@@ -281,7 +275,7 @@ Validation::all(HCons(
         )
     )
 ))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ No size limit</li>
@@ -297,7 +291,7 @@ Validation::all(HCons(
 <li>❌ Defeats our “simplicity” goal</li>
 </ul>
 <p><strong>Example error:</strong></p>
-<pre><code>error[E0271]: type mismatch resolving `&lt;HCons&lt;Validation&lt;Email, Vec&lt;Error&gt;&gt;,
+<pre><code class="language-text">error[E0271]: type mismatch resolving `&lt;HCons&lt;Validation&lt;Email, Vec&lt;Error&gt;&gt;,
   HCons&lt;Validation&lt;Password, Vec&lt;Error&gt;&gt;, HCons&lt;Validation&lt;Age, Vec&lt;Error&gt;&gt;,
   HNil&gt;&gt;&gt; as ValidateAll&gt;::Output == Validation&lt;HCons&lt;Email, HCons&lt;Password,
   HCons&lt;Age, HNil&gt;&gt;&gt;, Vec&lt;Error&gt;&gt;`
@@ -305,16 +299,14 @@ Validation::all(HCons(
 <p><strong>Verdict:</strong> Too complex. Against our philosophy of “Rust-first, not Haskell-in-Rust.”</p>
 <hr>
 <h3 id="option-4-macro"><a class="header" href="#option-4-macro">Option 4: Macro</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>validate_all![
+<pre><code class="language-text">validate_all![
     email: validate_email(&amp;input.email),
     password: validate_password(&amp;input.password),
     age: validate_age(input.age),
 ]
 // Returns: Validation&lt;NamedFields, E&gt;
 //   where you can access .email, .password, .age
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Clean syntax</li>
@@ -333,15 +325,13 @@ Validation::all(HCons(
 <p><strong>Verdict:</strong> Nice ergonomics, but against our “no magic” principle.</p>
 <hr>
 <h3 id="option-5-builder-pattern"><a class="header" href="#option-5-builder-pattern">Option 5: Builder Pattern</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>Validation::builder()
+<pre><code class="language-text">Validation::builder()
     .add(validate_email(&amp;input.email))
     .add(validate_password(&amp;input.password))
     .add(validate_age(input.age))
     .build()
     .map(|(email, password, age)| User { email, password, age })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ No size limit</li>
@@ -387,9 +377,7 @@ Validation::all(HCons(
 <hr>
 <h2 id="hybrid-approach"><a class="header" href="#hybrid-approach">Hybrid Approach</a></h2>
 <p><strong>Recommendation:</strong> Support BOTH</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// 1. Tuple version (for most cases)
+<pre><code class="language-text">// 1. Tuple version (for most cases)
 impl Validation&lt;T, E&gt; {
     fn all&lt;Tuple&gt;(validations: Tuple) -&gt; Validation&lt;TupleOutput, E&gt;
     where
@@ -415,11 +403,9 @@ impl Validation&lt;T, E&gt; {
         // ...
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Usage examples:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Case 1: Form validation (different types)
+<pre><code class="language-text">// Case 1: Form validation (different types)
 Validation::all((
     validate_email(input),
     validate_password(input),
@@ -436,7 +422,7 @@ Validation::all_vec(
 Validation::all_iter(
     csv_lines.iter().map(|line| validate_line(line))
 )  // Returns: Validation&lt;Vec&lt;ValidLine&gt;, E&gt;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="comparison-matrix"><a class="header" href="#comparison-matrix">Comparison Matrix</a></h2>
 <div class="table-wrapper">
@@ -455,9 +441,7 @@ Validation::all_iter(
 </div>
 <hr>
 <h2 id="recommended-implementation"><a class="header" href="#recommended-implementation">Recommended Implementation</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Core trait for tuple validation
+<pre><code class="language-text">// Core trait for tuple validation
 pub trait ValidateAll&lt;E: Semigroup&gt; {
     type Output;
     fn validate_all(self) -&gt; Validation&lt;Self::Output, E&gt;;
@@ -498,7 +482,7 @@ impl&lt;T, E: Semigroup&gt; Validation&lt;T, E&gt; {
         Self::all_vec(iter.into_iter().collect())
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
 <p><strong>YES, tuples are fine!</strong></p>
@@ -552,9 +536,7 @@ impl&lt;T, E: Semigroup&gt; Validation&lt;T, E&gt; {
 </li>
 </ol>
 <p><strong>If you truly have 50 validations:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Good: Logical grouping
+<pre><code class="language-text">// Good: Logical grouping
 let personal = Validation::all((name, email, phone, dob));
 let address = Validation::all((street, city, state, zip));
 let payment = Validation::all((card, cvv, expiry));
@@ -565,7 +547,7 @@ Validation::all((personal, address, payment))
     })
 
 // This is better UX AND better code!
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="final-recommendation"><a class="header" href="#final-recommendation">Final Recommendation</a></h2>
 <p><strong>Use tuples for <code>Validation::all()</code></strong></p>
@@ -593,7 +575,7 @@ Validation::all((personal, address, payment))
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="COMPARISON.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="io-api-analysis.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -607,7 +589,7 @@ Validation::all((personal, address, payment))
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="COMPARISON.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="io-api-analysis.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

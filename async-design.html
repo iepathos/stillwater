@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,13 +181,17 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="async-design-for-stillwater"><a class="header" href="#async-design-for-stillwater">Async Design for Stillwater</a></h1>
+<blockquote>
+<p>Historical design record. This predates the current concrete-combinator API and
+contains unimplemented or superseded proposals. It is not a 2.0 usage guide.
+Use the <a href="guide/03-effects.html">effects guide</a> and <a href="guide/17-api-tiers.html">API tiers</a>
+for current behavior.</p>
+</blockquote>
 <h2 id="critical-decision-async-from-the-start"><a class="header" href="#critical-decision-async-from-the-start">Critical Decision: Async from the Start</a></h2>
 <p>Since async is important for MVP, we need to design Effect with async as a first-class concern, not an afterthought.</p>
 <h2 id="design-options"><a class="header" href="#design-options">Design Options</a></h2>
 <h3 id="option-1-separate-sync-and-async-types"><a class="header" href="#option-1-separate-sync-and-async-types">Option 1: Separate Sync and Async Types</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Sync version
+<pre><code class="language-text">// Sync version
 struct Effect&lt;T, E, Env&gt; {
     run_fn: Box&lt;dyn FnOnce(&amp;Env) -&gt; Result&lt;T, E&gt;&gt;,
 }
@@ -196,7 +200,7 @@ struct Effect&lt;T, E, Env&gt; {
 struct AsyncEffect&lt;T, E, Env&gt; {
     run_fn: Box&lt;dyn FnOnce(&amp;Env) -&gt; Pin&lt;Box&lt;dyn Future&lt;Output = Result&lt;T, E&gt;&gt; + Send&gt;&gt;&gt;,
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Simple, clear separation</li>
@@ -212,9 +216,7 @@ struct AsyncEffect&lt;T, E, Env&gt; {
 <p><strong>Verdict:</strong> Too much duplication, against DRY.</p>
 <hr>
 <h3 id="option-2-unified-type-with-async-methods"><a class="header" href="#option-2-unified-type-with-async-methods">Option 2: Unified Type with Async Methods</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct Effect&lt;T, E, Env&gt; {
+<pre><code class="language-text">struct Effect&lt;T, E, Env&gt; {
     // Store function, not Future
     run_fn: Box&lt;dyn FnOnce(&amp;Env) -&gt; BoxFuture&lt;'static, Result&lt;T, E&gt;&gt; + Send&gt;,
 }
@@ -249,7 +251,7 @@ impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt; {
         (self.run_fn)(env).await
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Single API, works for both sync and async</li>
@@ -265,9 +267,7 @@ impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt; {
 <p><strong>Verdict:</strong> Good, but forces async everywhere.</p>
 <hr>
 <h3 id="option-3-generic-over-syncasync-type-state-pattern"><a class="header" href="#option-3-generic-over-syncasync-type-state-pattern">Option 3: Generic Over Sync/Async (Type-State Pattern)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Marker types
+<pre><code class="language-text">// Marker types
 struct Sync;
 struct Async;
 
@@ -283,7 +283,7 @@ impl&lt;T, E, Env&gt; Effect&lt;T, E, Env, Sync&gt; {
 impl&lt;T, E, Env&gt; Effect&lt;T, E, Env, Async&gt; {
     pub async fn run(self, env: &amp;Env) -&gt; Result&lt;T, E&gt; { ... }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Type system enforces sync vs async</li>
@@ -300,9 +300,7 @@ impl&lt;T, E, Env&gt; Effect&lt;T, E, Env, Async&gt; {
 <p><strong>Verdict:</strong> Too complex for the benefit.</p>
 <hr>
 <h3 id="option-4-runtime-agnostic-with-trait-based-execution-recommended"><a class="header" href="#option-4-runtime-agnostic-with-trait-based-execution-recommended">Option 4: Runtime-Agnostic with Trait-Based Execution (Recommended)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::future::Future;
+<pre><code class="language-text">use std::future::Future;
 use std::pin::Pin;
 
 type BoxFuture&lt;'a, T&gt; = Pin&lt;Box&lt;dyn Future&lt;Output = T&gt; + Send + 'a&gt;&gt;;
@@ -388,7 +386,7 @@ where
         (self.run_fn)(env).await
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Pros:</strong></p>
 <ul>
 <li>✅ Single, unified API</li>
@@ -414,9 +412,7 @@ where
 <li>Single API is much cleaner</li>
 </ol>
 <h3 id="core-effect-implementation"><a class="header" href="#core-effect-implementation">Core Effect Implementation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::future::Future;
+<pre><code class="language-text">use std::future::Future;
 use std::pin::Pin;
 
 pub type BoxFuture&lt;'a, T&gt; = Pin&lt;Box&lt;dyn Future&lt;Output = T&gt; + Send + 'a&gt;&gt;;
@@ -548,14 +544,12 @@ where
         (self.run_fn)(env).await
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="helper-methods-idiomatic--functional"><a class="header" href="#helper-methods-idiomatic--functional">Helper Methods (Idiomatic + Functional)</a></h2>
 <p>Based on your guidance to include helpers when appropriate:</p>
 <h3 id="1-tap-side-effect-return-value"><a class="header" href="#1-tap-side-effect-return-value">1. Tap (Side Effect, Return Value)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + Clone + 'static,
     E: Send + 'static,
@@ -576,11 +570,9 @@ where
 user_effect
     .tap(|user| IO::write(|logger| logger.info(format!("Created user: {}", user.id))))
     // user is returned unchanged
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="2-check-conditional-failure"><a class="header" href="#2-check-conditional-failure">2. Check (Conditional Failure)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + 'static,
     E: Send + 'static,
@@ -606,11 +598,9 @@ user_effect.check(
     |user| user.age &gt;= 18,
     || AppError::AgeTooYoung
 )
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="3-with-combine-effects-keep-both-results"><a class="header" href="#3-with-combine-effects-keep-both-results">3. With (Combine Effects, Keep Both Results)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + 'static,
     E: Send + 'static,
@@ -633,11 +623,9 @@ user_effect.with(|user| {
     IO::read(|db| db.find_orders(user.id))
 })
 // Returns: Effect&lt;(User, Vec&lt;Order&gt;), E, Env&gt;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="4-auto-converting-and_then"><a class="header" href="#4-auto-converting-and_then">4. Auto-Converting and_then</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + 'static,
     E: Send + 'static,
@@ -660,11 +648,9 @@ where
 user_effect
     .and_then_auto(|user| validate_user(user))  // Different error type, auto-converts!
     .and_then_auto(|user| save_user(user))      // Another different error, auto-converts!
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="5-reference-friendly-and_then"><a class="header" href="#5-reference-friendly-and_then">5. Reference-Friendly and_then</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + Clone + 'static,
     E: Send + 'static,
@@ -686,11 +672,9 @@ where
 user_effect
     .and_then_ref(|user| save_audit_log(user))  // Borrows user
     // user is returned (cloned once, not multiple times)
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="6-parallel-execution-future-enhancement"><a class="header" href="#6-parallel-execution-future-enhancement">6. Parallel Execution (Future Enhancement)</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
+<pre><code class="language-text">impl&lt;T, E, Env&gt; Effect&lt;T, E, Env&gt;
 where
     T: Send + 'static,
     E: Send + 'static,
@@ -722,12 +706,10 @@ where
 // Usage:
 let user_effects = user_ids.into_iter().map(|id| fetch_user(id));
 Effect::all(user_effects)  // Fetches all users concurrently!
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="io-module-for-async"><a class="header" href="#io-module-for-async">IO Module for Async</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct IO;
+<pre><code class="language-text">pub struct IO;
 
 impl IO {
     /// Read from environment (immutable borrow)
@@ -761,23 +743,19 @@ impl IO {
         Effect::from_async(move |env: &amp;T| async move { Ok(f(env).await) })
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="usage-examples"><a class="header" href="#usage-examples">Usage Examples</a></h2>
 <h3 id="pure-sync-code"><a class="header" href="#pure-sync-code">Pure Sync Code</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effect = Effect::pure(42)
+<pre><code class="language-text">let effect = Effect::pure(42)
     .map(|x| x * 2)
     .map(|x| x + 10);
 
 let result = effect.run(&amp;()).await;  // Must use .await, but wrapping is cheap
 assert_eq!(result, Ok(94));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="async-io"><a class="header" href="#async-io">Async I/O</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn fetch_user_async(id: UserId) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
+<pre><code class="language-text">async fn fetch_user_async(id: UserId) -&gt; Effect&lt;User, AppError, AppEnv&gt; {
     Effect::from_async(|env: &amp;AppEnv| async move {
         env.db.query("SELECT * FROM users WHERE id = $1")
             .bind(id)
@@ -786,11 +764,9 @@ assert_eq!(result, Ok(94));
             .map_err(AppError::from)
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="mixed-sync-and-async"><a class="header" href="#mixed-sync-and-async">Mixed Sync and Async</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn process_user(id: UserId) -&gt; Effect&lt;Invoice, AppError, AppEnv&gt; {
+<pre><code class="language-text">fn process_user(id: UserId) -&gt; Effect&lt;Invoice, AppError, AppEnv&gt; {
     fetch_user_async(id)                          // Async I/O
         .and_then(|user| {
             let discount = calculate_discount(&amp;user);  // Sync pure
@@ -802,7 +778,7 @@ assert_eq!(result, Ok(94));
 }
 
 // All compose seamlessly!
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
 <p><strong>Boxing Overhead:</strong></p>
@@ -824,14 +800,12 @@ assert_eq!(result, Ok(94));
 <hr>
 <h2 id="migration-path"><a class="header" href="#migration-path">Migration Path</a></h2>
 <p>Users can opt-in to sync-only if needed:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// If you really need blocking for some reason:
+<pre><code class="language-text">// If you really need blocking for some reason:
 tokio::task::block_in_place(|| {
     let rt = tokio::runtime::Handle::current();
     rt.block_on(effect.run(&amp;env))
 })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>But modern Rust apps should embrace async.</p>
 <hr>
 <h2 id="decision-summary"><a class="header" href="#decision-summary">Decision Summary</a></h2>
@@ -869,7 +843,7 @@ tokio::task::block_in_place(|| {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="io-api-analysis.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="improving-our-process.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -883,7 +857,7 @@ tokio::task::block_in_place(|| {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="io-api-analysis.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="improving-our-process.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

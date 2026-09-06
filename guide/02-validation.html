@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,22 +183,18 @@
                         <h1 id="validation-with-error-accumulation"><a class="header" href="#validation-with-error-accumulation">Validation with Error Accumulation</a></h1>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Standard <code>Result</code> types short-circuit on the first error:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_form(data: FormData) -&gt; Result&lt;ValidForm, Error&gt; {
+<pre><code class="language-text">fn validate_form(data: FormData) -&gt; Result&lt;ValidForm, Error&gt; {
     let email = validate_email(data.email)?;     // ❌ Stops here if invalid
     let password = validate_password(data.pwd)?; // Never reached
     let age = validate_age(data.age)?;           // Never reached
 
     Ok(ValidForm { email, password, age })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>If the email is invalid, the user doesn’t learn about password or age errors. They have to submit the form multiple times, fixing one error at a time. Frustrating!</p>
 <h2 id="the-solution-validation"><a class="header" href="#the-solution-validation">The Solution: Validation</a></h2>
 <p>Stillwater’s <code>Validation</code> type accumulates ALL errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-text">use stillwater::prelude::*;
 
 fn validate_form(data: FormData) -&gt; Validation&lt;ValidForm, Vec&lt;Error&gt;&gt; {
     Validation::all((
@@ -208,13 +204,11 @@ fn validate_form(data: FormData) -&gt; Validation&lt;ValidForm, Vec&lt;Error&gt;
     ))
     .map(|(email, password, age)| ValidForm { email, password, age })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Now all three validations run, and the user sees all errors at once!</p>
 <h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
 <h3 id="creating-validations"><a class="header" href="#creating-validations">Creating Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // Success
 let v = Validation::success(42);
@@ -225,21 +219,17 @@ let v = Validation::failure(vec!["error"]);
 // From Result
 let v = Validation::from_result(Ok(42));
 let v = Validation::from_result(Err("error"));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-matching"><a class="header" href="#pattern-matching">Pattern Matching</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 match validation {
     Validation::Success(value) =&gt; println!("Valid: {}", value),
     Validation::Failure(errors) =&gt; println!("Errors: {:?}", errors),
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="checking-status"><a class="header" href="#checking-status">Checking Status</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 let v = Validation::success(42);
 assert!(v.is_success());
@@ -248,11 +238,9 @@ assert!(!v.is_failure());
 let v = Validation::failure(vec!["error"]);
 assert!(!v.is_success());
 assert!(v.is_failure());
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="combining-validations"><a class="header" href="#combining-validations">Combining Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // Combine with tuples (up to 12 items)
 let result = Validation::all((
@@ -267,11 +255,9 @@ let result = Validation::all_vec(vec![
     validate_item(item2),
     validate_item(item3),
 ]);
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="transforming-validations"><a class="header" href="#transforming-validations">Transforming Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // Transform success value
 let v = Validation::success(21);
@@ -285,7 +271,7 @@ let formatted = v.map_err(|e| format!("Error: {:?}", e));
 // Chain dependent validation
 let result = validate_email(email)
     .and_then(|email| check_email_available(email));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="validation-combinators"><a class="header" href="#validation-combinators">Validation Combinators</a></h3>
 <p>Stillwater provides declarative validation combinators that eliminate verbose <code>and_then</code> boilerplate:</p>
 <h4 id="using-ensure-with-predicates"><a class="header" href="#using-ensure-with-predicates">Using <code>ensure()</code> with Predicates</a></h4>
@@ -380,9 +366,7 @@ assert_eq!(result, Validation::Success(5));
 <span class="boring">}</span></code></pre>
 <h4 id="why-use-validation-combinators"><a class="header" href="#why-use-validation-combinators">Why Use Validation Combinators?</a></h4>
 <p><strong>Before</strong> (verbose):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>validate_email(email)
+<pre><code class="language-text">validate_email(email)
     .and_then(|email| {
         if email.len() &lt;= 100 {
             Validation::success(email)
@@ -397,20 +381,16 @@ assert_eq!(result, Validation::Success(5));
             Validation::failure(vec!["reserved prefix"])
         }
     })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (declarative):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::predicate::*;
+<pre><code class="language-text">use stillwater::predicate::*;
 
 validate_email(email)
     .ensure(len_max(100), vec!["email too long"])
     .ensure_fn(|e| !e.starts_with("admin"), vec!["reserved prefix"])
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="converting-to-result"><a class="header" href="#converting-to-result">Converting to Result</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 let v = Validation::success(42);
 let r: Result&lt;i32, Vec&lt;String&gt;&gt; = v.into_result();
@@ -419,7 +399,7 @@ assert_eq!(r, Ok(42));
 let v = Validation::failure(vec!["error"]);
 let r: Result&lt;i32, Vec&lt;String&gt;&gt; = v.into_result();
 assert_eq!(r, Err(vec!["error"]));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="error-accumulation-with-semigroup"><a class="header" href="#error-accumulation-with-semigroup">Error Accumulation with Semigroup</a></h2>
 <p>For <code>Validation::all()</code> to work, your error type must implement <code>Semigroup</code>:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -435,9 +415,7 @@ assert_eq!(r, Err(vec!["error"]));
 <li><code>(A, B) where A: Semigroup, B: Semigroup</code>: Combine components</li>
 </ul>
 <p>Example:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-text">use stillwater::Semigroup;
 
 impl Semigroup for Vec&lt;ValidationError&gt; {
     fn combine(mut self, mut other: Self) -&gt; Self {
@@ -445,12 +423,10 @@ impl Semigroup for Vec&lt;ValidationError&gt; {
         self
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>See <a href="01-semigroup.html">Semigroup guide</a> for details.</p>
 <h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, Semigroup};
+<pre><code class="language-text">use stillwater::{Validation, Semigroup};
 
 #[derive(Debug, PartialEq)]
 enum ValidationError {
@@ -533,12 +509,10 @@ match validate_registration("invalid", "short", 15) {
 //   - InvalidEmail("invalid")
 //   - PasswordTooShort { min: 8, actual: 5 }
 //   - AgeTooYoung { min: 18, actual: 15 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="batch-user-registration-with-traverse"><a class="header" href="#batch-user-registration-with-traverse">Batch User Registration with Traverse</a></h3>
 <p>Extending the above example to validate multiple user registrations:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+<pre><code class="language-text">use stillwater::{Validation, traverse::traverse};
 
 #[derive(Debug)]
 struct RegistrationData {
@@ -590,7 +564,7 @@ match validate_batch_registrations(batch) {
         //   - AgeTooYoung { min: 18, actual: 15 }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This demonstrates how <code>traverse</code> makes it easy to validate collections while accumulating all errors across all items.</p>
 <h2 id="when-to-use-validation"><a class="header" href="#when-to-use-validation">When to Use Validation</a></h2>
 <p><strong>Use Validation when</strong>:</p>
@@ -607,9 +581,7 @@ match validate_batch_registrations(batch) {
 </ul>
 <h2 id="patterns"><a class="header" href="#patterns">Patterns</a></h2>
 <h3 id="independent-field-validation"><a class="header" href="#independent-field-validation">Independent Field Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // All fields validated independently
 Validation::all((
@@ -617,22 +589,18 @@ Validation::all((
     validate_phone(data.phone),
     validate_address(data.address),
 ))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="dependent-validation"><a class="header" href="#dependent-validation">Dependent Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // First validate, then check dependencies
 validate_email(email)
     .and_then(|email| {
         check_email_not_taken(email)
     })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="mixed-validation"><a class="header" href="#mixed-validation">Mixed Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 // Combine independent and dependent
 Validation::all((
@@ -643,17 +611,15 @@ Validation::all((
     // Now check if combination is valid
     check_credentials_not_weak(email, password)
 })
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="validating-collections"><a class="header" href="#validating-collections">Validating Collections</a></h3>
 <p>When validating collections, use <code>traverse</code> for cleaner, more efficient code:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
+<pre><code class="language-text">use stillwater::{Validation, traverse::traverse};
 
 fn validate_all_items(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidItem&gt;, Vec&lt;Error&gt;&gt; {
     traverse(items, validate_item)
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>The <code>traverse</code> function applies a validation to each element and accumulates all errors:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -682,9 +648,7 @@ match result {
 <span class="boring">}</span></code></pre>
 <p>For more advanced patterns, see the <a href="11-traverse-patterns.html">Traverse Patterns guide</a>.</p>
 <p><strong>Alternative using <code>all_vec</code> (less convenient)</strong>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 fn validate_all_items(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidItem&gt;, Vec&lt;Error&gt;&gt; {
     let validations: Vec&lt;_&gt; = items
@@ -694,11 +658,9 @@ fn validate_all_items(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidIt
 
     Validation::all_vec(validations)
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="building-complex-types"><a class="header" href="#building-complex-types">Building Complex Types</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 struct Config {
     host: String,
@@ -714,52 +676,28 @@ fn validate_config(input: ConfigInput) -&gt; Validation&lt;Config, Vec&lt;Error&
     ))
     .map(|(host, port, timeout)| Config { host, port, timeout })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <p>Validation is pure - testing is trivial:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
+</span>use stillwater::Validation;
 
-    #[test]
-    fn test_valid_email() {
-        let result = validate_email("user@example.com");
-        assert!(result.is_success());
-    }
-
-    #[test]
-    fn test_invalid_email() {
-        let result = validate_email("invalid");
-        assert!(result.is_failure());
-    }
-
-    #[test]
-    fn test_accumulation() {
-        let result = validate_registration("bad", "short", 15);
-
-        match result {
-            Validation::Failure(errors) =&gt; {
-                assert_eq!(errors.len(), 3);
-            }
-            _ =&gt; panic!("Expected failure"),
-        }
-    }
-
-    #[test]
-    fn test_partial_failure() {
-        // Valid email, invalid password and age
-        let result = validate_registration("user@example.com", "short", 15);
-
-        match result {
-            Validation::Failure(errors) =&gt; {
-                assert_eq!(errors.len(), 2);
-            }
-            _ =&gt; panic!("Expected failure"),
-        }
+fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
+    if email.contains('@') {
+        Validation::success(email)
+    } else {
+        Validation::failure(vec!["missing @"])
     }
 }
+
+assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
+let result = Validation::&lt;&amp;str, Vec&lt;&amp;str&gt;&gt;::all((
+    validate_email("bad"),
+    validate_email("also bad"),
+));
+assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));
 <span class="boring">}</span></code></pre>
 <h2 id="advanced-custom-error-types"><a class="header" href="#advanced-custom-error-types">Advanced: Custom Error Types</a></h2>
 <p>You can use any error type that implements Semigroup:</p>
@@ -811,9 +749,7 @@ fn validate_with_context(
 <p>The main cost is creating error objects, which you’d do anyway.</p>
 <h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
 <h3 id="dont-use--for-accumulation"><a class="header" href="#dont-use--for-accumulation">Don’t use <code>?</code> for accumulation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Wrong: short-circuits on first error
+<pre><code class="language-text">// ❌ Wrong: short-circuits on first error
 fn validate(data: Data) -&gt; Validation&lt;Valid, Vec&lt;Error&gt;&gt; {
     let email = validate_email(data.email)?;  // Stops here!
     let age = validate_age(data.age)?;
@@ -827,11 +763,9 @@ fn validate(data: Data) -&gt; Validation&lt;Valid, Vec&lt;Error&gt;&gt; {
         validate_age(data.age),
     ))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="remember-to-map-after-all"><a class="header" href="#remember-to-map-after-all">Remember to map after all()</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Wrong: returns tuple instead of User
+<pre><code class="language-text">// ❌ Wrong: returns tuple instead of User
 fn validate(email: &amp;str, age: u8) -&gt; Validation&lt;(String, u8), Vec&lt;Error&gt;&gt; {
     Validation::all((
         validate_email(email),
@@ -847,7 +781,7 @@ fn validate(email: &amp;str, age: u8) -&gt; Validation&lt;User, Vec&lt;Error&gt;
     ))
     .map(|(email, age)| User { email, age })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
 <li><strong>Validation</strong> accumulates all errors instead of short-circuiting</li>

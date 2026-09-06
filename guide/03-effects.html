@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,800 +180,163 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="effect-composition-pure-core-imperative-shell"><a class="header" href="#effect-composition-pure-core-imperative-shell">Effect Composition: Pure Core, Imperative Shell</a></h1>
-<h2 id="the-philosophy"><a class="header" href="#the-philosophy">The Philosophy</a></h2>
-<p>Effect helps you structure applications with:</p>
-<ul>
-<li><strong>Pure core</strong>: Business logic with no side effects (easy to test)</li>
-<li><strong>Imperative shell</strong>: I/O operations at the boundaries (controlled)</li>
-</ul>
-<p>This separation makes code more testable, maintainable, and composable.</p>
-<h2 id="zero-cost-by-default"><a class="header" href="#zero-cost-by-default">Zero-Cost by Default</a></h2>
-<p>Stillwater’s Effect system follows the <code>futures</code> crate pattern: <strong>zero-cost by default, explicit boxing when needed</strong>.</p>
+                        <h1 id="effects-pure-core-imperative-shell"><a class="header" href="#effects-pure-core-imperative-shell">Effects: Pure Core, Imperative Shell</a></h1>
+<p>Use ordinary Rust functions for domain decisions and <code>Effect</code> for composing fallible
+operations at application boundaries. An effect is consumed when it runs; retrying means
+constructing a fresh effect.</p>
+<h2 id="start-with-a-pure-decision"><a class="header" href="#start-with-a-pure-decision">Start with a pure decision</a></h2>
+<p>Load the external facts a decision needs, pass input and facts to a pure function, then
+interpret the resulting plain plan. The decision needs no runtime or service mocks.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// Zero heap allocations - compiler can inline everything
-let effect = pure::&lt;_, String, ()&gt;(42)
-    .map(|x| x + 1)           // Returns Map&lt;Pure&lt;...&gt;, ...&gt;
-    .and_then(|x| pure(x * 2)) // Returns AndThen&lt;Map&lt;...&gt;, ...&gt;
-    .map(|x| x.to_string());   // Returns Map&lt;AndThen&lt;...&gt;, ...&gt;
-
-// Type: Map&lt;AndThen&lt;Map&lt;Pure&lt;i32, String, ()&gt;, ...&gt;, ...&gt;, ...&gt;
-// NO heap allocation!
-<span class="boring">}</span></code></pre>
-<p>Each combinator returns a concrete type. The compiler knows the exact type at compile time and can fully optimize the effect chain.</p>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>How do you test this code?</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn create_user(email: String, age: u8) -&gt; Result&lt;User, Error&gt; {
-    // Validation mixed with I/O
-    if !email.contains('@') {
-        return Err(Error::InvalidEmail);
-    }
-
-    // Database call (requires real/mock DB)
-    let existing = database.find_by_email(&amp;email).await?;
-    if existing.is_some() {
-        return Err(Error::EmailExists);
-    }
-
-    // More I/O
-    let user = User { email, age };
-    database.save(&amp;user).await?;
-    Ok(user)
-}
-<span class="boring">}</span></code></pre>
-<p>Problems:</p>
-<ul>
-<li>Can’t test without database</li>
-<li>Business logic mixed with I/O</li>
-<li>Hard to reason about what’s pure vs effectful</li>
-</ul>
-<h2 id="the-solution-effect"><a class="header" href="#the-solution-effect">The Solution: Effect</a></h2>
-<p>Effect separates pure logic from I/O:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
-}
-
-fn create_user(email: String, age: u8) -&gt; impl Effect&lt;Output = User, Error = AppError, Env = AppEnv&gt; {
-    // Pure validation first
-    from_validation(validate_user(&amp;email, age).map_err(AppError::Validation))
-        // Then I/O
-        .and_then(move |_| {
-            from_fn(move |env: &amp;AppEnv| env.db.find_by_email(&amp;email))
-        })
-        // Pure logic
-        .and_then(move |existing| {
-            if existing.is_some() {
-                fail(AppError::EmailExists)
-            } else {
-                pure(User { email, age })
-            }
-        })
-        // More I/O
-        .and_then(|user| {
-            from_fn(move |env: &amp;AppEnv| env.db.save(&amp;user))
-                .map(move |_| user)
-        })
-}
-
-// Run at application boundary
-let env = AppEnv { db };
-let user = create_user(email, age).run(&amp;env).await?;
-<span class="boring">}</span></code></pre>
-<p>Benefits:</p>
-<ul>
-<li>Pure functions need no mocks</li>
-<li>I/O is explicit via <code>from_fn</code>, <code>from_async</code></li>
-<li>Easy to test with mock environments</li>
-<li>Zero heap allocations in the effect chain</li>
-</ul>
-<h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
-<h3 id="creating-effects"><a class="header" href="#creating-effects">Creating Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// Pure value (no I/O)
-let effect = pure::&lt;_, String, ()&gt;(42);
-
-// Failed effect
-let effect = fail::&lt;i32, _, ()&gt;("error".to_string());
-
-// From Result
-let effect = from_result::&lt;_, String, ()&gt;(Ok(42));
-
-// From Validation
-let validation = Validation::success(42);
-let effect = from_validation(validation);
-
-// From sync function
-let effect = from_fn(|env: &amp;Env| {
-    Ok::&lt;_, String&gt;(env.config.value)
-});
-
-// From async function
-let effect = from_async(|env: &amp;Env| async {
-    env.db.fetch_user(123).await
-});
-
-// From Option
-let effect = from_option::&lt;_, _, ()&gt;(Some(42), || "value missing");
-<span class="boring">}</span></code></pre>
-<h3 id="transforming-effects"><a class="header" href="#transforming-effects">Transforming Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// Map success value
-let effect = pure::&lt;_, String, ()&gt;(21).map(|x| x * 2);
-let result = effect.run(&amp;()).await; // Ok(42)
-
-// Map error value
-let effect = fail::&lt;i32, _, ()&gt;("oops").map_err(|e| format!("Error: {}", e));
-
-// Chain dependent effects
-let effect = pure::&lt;_, String, ()&gt;(5)
-    .and_then(|x| pure(x * 2))
-    .and_then(|x| pure(x + 10));
-let result = effect.run(&amp;()).await; // Ok(20)
-<span class="boring">}</span></code></pre>
-<h3 id="validation-combinators"><a class="header" href="#validation-combinators">Validation Combinators</a></h3>
-<p>Stillwater provides declarative validation combinators that eliminate verbose <code>and_then</code> boilerplate when validating effect outputs:</p>
-<h4 id="using-ensure-with-closures"><a class="header" href="#using-ensure-with-closures">Using <code>ensure()</code> with Closures</a></h4>
-<p>The <code>ensure()</code> method validates an effect’s success value and fails if the predicate returns false:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+</span>use stillwater::{NonEmptyVec, Validation};
 
 #[derive(Debug, PartialEq)]
-enum Error {
-    Negative,
-    TooLarge,
-}
-
-// Before: verbose and_then pattern
-let effect = pure::&lt;_, Error, ()&gt;(5)
-    .and_then(|x| {
-        if x &gt; 0 {
-            pure(x)
-        } else {
-            fail(Error::Negative)
-        }
-    });
-
-// After: declarative ensure
-let effect = pure::&lt;_, Error, ()&gt;(5)
-    .ensure(|x| *x &gt; 0, Error::Negative);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Ok(5));
-<span class="boring">}</span></code></pre>
-<h4 id="using-ensure_with-for-lazy-errors"><a class="header" href="#using-ensure_with-for-lazy-errors">Using <code>ensure_with()</code> for Lazy Errors</a></h4>
-<p>When you need the value to construct the error:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+struct Plan { username: String }
 
 #[derive(Debug, PartialEq)]
-struct RangeError {
-    value: i32,
-    min: i32,
-}
+enum Rejection { EmptyUsername, UsernameTaken }
 
-let effect = pure::&lt;_, RangeError, ()&gt;(-5)
-    .ensure_with(
-        |x| *x &gt;= 0,
-        |x| RangeError { value: *x, min: 0 }
-    );
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Err(RangeError { value: -5, min: 0 }));
-<span class="boring">}</span></code></pre>
-<h4 id="using-ensure_pred-with-composable-predicates"><a class="header" href="#using-ensure_pred-with-composable-predicates">Using <code>ensure_pred()</code> with Composable Predicates</a></h4>
-<p>For reusable validation logic, use predicates from the <code>predicate</code> module:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-use stillwater::predicate::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    InvalidAge,
-}
-
-let valid_age = between(18, 120);
-
-let effect = pure::&lt;_, Error, ()&gt;(25)
-    .ensure_pred(valid_age, Error::InvalidAge);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Ok(25));
-
-// Fails for invalid ages
-let effect = pure::&lt;_, Error, ()&gt;(15)
-    .ensure_pred(valid_age, Error::InvalidAge);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Err(Error::InvalidAge));
-<span class="boring">}</span></code></pre>
-<h4 id="using-unless-for-inverse-validation"><a class="header" href="#using-unless-for-inverse-validation">Using <code>unless()</code> for Inverse Validation</a></h4>
-<p>The <code>unless()</code> method fails when the predicate is TRUE (inverse of <code>ensure</code>):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    UserBanned,
-}
-
-struct User {
-    id: u32,
-    is_banned: bool,
-}
-
-let effect = from_fn(|_: &amp;()| User { id: 1, is_banned: false })
-    .unless(|u| u.is_banned, Error::UserBanned);
-
-let result = effect.run(&amp;()).await;
-assert!(result.is_ok());
-
-// Fails when user is banned
-let effect = from_fn(|_: &amp;()| User { id: 2, is_banned: true })
-    .unless(|u| u.is_banned, Error::UserBanned);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Err(Error::UserBanned));
-<span class="boring">}</span></code></pre>
-<h4 id="using-filter_or-alias"><a class="header" href="#using-filter_or-alias">Using <code>filter_or()</code> Alias</a></h4>
-<p><code>filter_or()</code> is an alias for <code>ensure()</code> following functional programming conventions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-let effect = pure::&lt;_, &amp;str, ()&gt;(5)
-    .filter_or(|x| *x &gt; 0, "must be positive");
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Ok(5));
-<span class="boring">}</span></code></pre>
-<h4 id="chaining-multiple-validations"><a class="header" href="#chaining-multiple-validations">Chaining Multiple Validations</a></h4>
-<p>Combine multiple validation checks for comprehensive validation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-use stillwater::predicate::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    TooShort,
-    TooLong,
-    NotAlpha,
-}
-
-let effect = pure::&lt;_, Error, ()&gt;(String::from("hello"))
-    .ensure_pred(len_min(3), Error::TooShort)
-    .ensure_pred(len_max(10), Error::TooLong)
-    .ensure_pred(is_alphabetic(), Error::NotAlpha);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Ok(String::from("hello")));
-
-// Fails at first violation (fail-fast)
-let effect = pure::&lt;_, Error, ()&gt;(String::from("hi"))
-    .ensure_pred(len_min(3), Error::TooShort)  // fails here
-    .ensure_pred(len_max(10), Error::TooLong)
-    .ensure_pred(is_alphabetic(), Error::NotAlpha);
-
-let result = effect.run(&amp;()).await;
-assert_eq!(result, Err(Error::TooShort));
-<span class="boring">}</span></code></pre>
-<h4 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h4>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Database;
-
-impl Database {
-    async fn fetch_user(&amp;self, id: u32) -&gt; Result&lt;User, DbError&gt; {
-        // ... database logic
-    }
-}
-
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
-}
-
-#[derive(Debug)]
-enum AppError {
-    Db(DbError),
-    UserBanned,
-    Underage,
-}
-
-struct User {
-    id: u32,
-    age: u8,
-    is_banned: bool,
-}
-
-fn fetch_valid_user(id: u32) -&gt; impl Effect&lt;Output = User, Error = AppError, Env = AppEnv&gt; {
-    from_fn(move |env: &amp;AppEnv| env.db.fetch_user(id))
-        .map_err(AppError::Db)
-        .unless(|u| u.is_banned, AppError::UserBanned)
-        .ensure(|u| u.age &gt;= 18, AppError::Underage)
-}
-
-// Usage
-let env = AppEnv { db: Database };
-let user = fetch_valid_user(123).run(&amp;env).await?;
-<span class="boring">}</span></code></pre>
-<h4 id="why-use-effect-validation-combinators"><a class="header" href="#why-use-effect-validation-combinators">Why Use Effect Validation Combinators?</a></h4>
-<p><strong>Before</strong> (12 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>from_fn(|env: &amp;AppEnv| fetch_data(env))
-    .and_then(|data| {
-        if data.value &gt; 0 {
-            pure(data)
-        } else {
-            fail(Error::InvalidValue)
-        }
-    })
-    .and_then(|data| {
-        if data.count &lt; 100 {
-            pure(data)
-        } else {
-            fail(Error::TooMany)
-        }
-    })
-<span class="boring">}</span></code></pre>
-<p><strong>After</strong> (3 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>from_fn(|env: &amp;AppEnv| fetch_data(env))
-    .ensure(|data| data.value &gt; 0, Error::InvalidValue)
-    .ensure(|data| data.count &lt; 100, Error::TooMany)
-<span class="boring">}</span></code></pre>
-<h3 id="running-effects"><a class="header" href="#running-effects">Running Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// With environment
-let env = AppEnv { /* ... */ };
-let result = effect.run(&amp;env).await;
-
-// With unit environment (when Env = ())
-use stillwater::RunStandalone;
-let result = effect.run_standalone().await;
-<span class="boring">}</span></code></pre>
-<h2 id="when-to-use-boxed"><a class="header" href="#when-to-use-boxed">When to Use <code>.boxed()</code></a></h2>
-<p>Boxing is needed in exactly three situations:</p>
-<h3 id="1-storing-in-collections"><a class="header" href="#1-storing-in-collections">1. Storing in Collections</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// Different effect types can't be stored in the same Vec
-// Boxing gives them a uniform type
-let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
-    pure(1).boxed(),
-    pure(2).map(|x| x * 2).boxed(),
-    pure(3).and_then(|x| pure(x * 3)).boxed(),
-];
-
-// Process them
-for effect in effects {
-    let result = effect.run(&amp;()).await?;
-    println!("Result: {}", result);
-}
-<span class="boring">}</span></code></pre>
-<h3 id="2-recursive-effects"><a class="header" href="#2-recursive-effects">2. Recursive Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// Recursive function needs concrete return type
-fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
-    if n &lt;= 0 {
-        pure(0).boxed()
+fn decide(username: String, taken: bool) -&gt; Validation&lt;Plan, NonEmptyVec&lt;Rejection&gt;&gt; {
+    let name = if username.is_empty() {
+        Validation::fail(Rejection::EmptyUsername)
     } else {
-        pure(n)
-            .and_then(move |x| countdown(x - 1).map(move |sum| x + sum))
-            .boxed()
-    }
-}
-
-let sum = countdown(5).run(&amp;()).await?; // 15
-<span class="boring">}</span></code></pre>
-<h3 id="3-match-arms-with-different-effect-types"><a class="header" href="#3-match-arms-with-different-effect-types">3. Match Arms with Different Effect Types</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-enum DataSource {
-    Cache,
-    Database,
-    Remote,
-}
-
-fn fetch_data(source: DataSource) -&gt; BoxedEffect&lt;String, String, ()&gt; {
-    match source {
-        DataSource::Cache =&gt; {
-            // Just pure value
-            pure("cached data".to_string()).boxed()
-        }
-        DataSource::Database =&gt; {
-            // Effect with map
-            pure("db")
-                .map(|s| format!("{} data", s))
-                .boxed()
-        }
-        DataSource::Remote =&gt; {
-            // Effect with and_then
-            pure("remote")
-                .and_then(|s| pure(format!("{} data", s)))
-                .boxed()
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="reader-pattern"><a class="header" href="#reader-pattern">Reader Pattern</a></h2>
-<p>The Reader pattern provides functional dependency injection. Stillwater includes three helpers:</p>
-<h3 id="ask---access-the-environment"><a class="header" href="#ask---access-the-environment"><code>ask()</code> - Access the Environment</a></h3>
-<p>Returns the entire environment:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Config {
-    api_key: String,
-    timeout: u64,
-}
-
-// Get the whole environment
-let effect = ask::&lt;String, Config&gt;();
-
-let config = Config {
-    api_key: "secret".into(),
-    timeout: 30,
-};
-
-let result = effect.run(&amp;config).await.unwrap();
-assert_eq!(result.api_key, "secret");
-<span class="boring">}</span></code></pre>
-<h3 id="asks---query-environment"><a class="header" href="#asks---query-environment"><code>asks()</code> - Query Environment</a></h3>
-<p>Extract a specific value:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct AppEnv {
-    database: String,
-    cache: String,
-}
-
-// Query just the database field
-let effect = asks(|env: &amp;AppEnv| env.database.clone());
-
-let env = AppEnv {
-    database: "postgres".into(),
-    cache: "redis".into(),
-};
-
-let result = effect.run(&amp;env).await.unwrap();
-assert_eq!(result, "postgres");
-<span class="boring">}</span></code></pre>
-<h3 id="local---modify-environment"><a class="header" href="#local---modify-environment"><code>local()</code> - Modify Environment</a></h3>
-<p>Run an effect with a temporarily modified environment:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Config {
-    debug: bool,
-    timeout: u64,
-}
-
-fn fetch_data() -&gt; impl Effect&lt;Output = String, Error = String, Env = Config&gt; {
-    asks(|cfg: &amp;Config| format!("fetched with timeout {}", cfg.timeout))
-}
-
-let config = Config {
-    debug: false,
-    timeout: 30,
-};
-
-// Run with modified timeout
-let effect = local(
-    |cfg: &amp;Config| Config { timeout: 60, ..*cfg },
-    fetch_data()
-);
-
-let result = effect.run(&amp;config).await.unwrap();
-assert_eq!(result, "fetched with timeout 60");
-// Original config still has timeout=30
-<span class="boring">}</span></code></pre>
-<h2 id="parallel-effects"><a class="header" href="#parallel-effects">Parallel Effects</a></h2>
-<h3 id="heterogeneous-parallel-zero-cost"><a class="header" href="#heterogeneous-parallel-zero-cost">Heterogeneous Parallel (Zero-Cost)</a></h3>
-<p>For 2-4 effects of different types, use <code>par2</code>, <code>par3</code>, <code>par4</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-let (num, text) = par2(
-    pure::&lt;_, String, ()&gt;(42),
-    pure::&lt;_, String, ()&gt;("hello".to_string()),
-    &amp;(),
-).await;
-let num = num?;
-let text = text?;
-<span class="boring">}</span></code></pre>
-<h3 id="homogeneous-parallel-requires-boxing"><a class="header" href="#homogeneous-parallel-requires-boxing">Homogeneous Parallel (Requires Boxing)</a></h3>
-<p>For collections of effects, use <code>par_all</code>, <code>race</code>, <code>par_all_limit</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-// par_all - run all, collect all results
-let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
-    pure(1).boxed(),
-    pure(2).boxed(),
-    pure(3).boxed(),
-];
-let results = par_all(effects, &amp;()).await?; // [1, 2, 3]
-
-// race - return first completed result
-let effects: Vec&lt;BoxedEffect&lt;String, String, ()&gt;&gt; = vec![
-    pure("first completed".to_string()).boxed(),
-    pure("second completed".to_string()).boxed(),
-];
-let result = race(effects, &amp;()).await?; // one completed value, or RaceError::Empty
-
-// par_all_limit - run with concurrency limit
-let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = /* many effects */;
-let results = par_all_limit(effects, 10, &amp;()).await?; // max 10 concurrent
-<span class="boring">}</span></code></pre>
-<h2 id="real-world-example-user-registration"><a class="header" href="#real-world-example-user-registration">Real-World Example: User Registration</a></h2>
-<pre class="playground"><code class="language-rust edition2021">use stillwater::prelude::*;
-
-// Environment with dependencies
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
-    email_service: EmailService,
-}
-
-// Error type
-#[derive(Debug)]
-enum AppError {
-    ValidationError(Vec&lt;String&gt;),
-    EmailExists,
-    DatabaseError(String),
-    EmailError(String),
-}
-
-// Pure validation (no I/O, easy to test)
-fn validate_user(email: &amp;str, age: u8) -&gt; Validation&lt;(), Vec&lt;String&gt;&gt; {
-    Validation::all((
-        validate_email(email),
-        validate_age(age),
-    ))
-    .map(|_| ())
-}
-
-// Effect composition (I/O at boundaries)
-fn register_user(
-    email: String,
-    age: u8,
-) -&gt; impl Effect&lt;Output = User, Error = AppError, Env = AppEnv&gt; {
-    // 1. Validate input (pure)
-    from_validation(
-        validate_user(&amp;email, age)
-            .map_err(AppError::ValidationError)
-    )
-    // 2. Check if email exists (I/O)
-    .and_then(move |_| {
-        from_fn(move |env: &amp;AppEnv| {
-            env.db.find_by_email(&amp;email)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-    })
-    // 3. Check uniqueness (pure logic)
-    .and_then(move |existing| {
-        if existing.is_some() {
-            fail(AppError::EmailExists)
-        } else {
-            pure(())
-        }
-    })
-    // 4. Create user (pure)
-    .map(move |_| User { email: email.clone(), age })
-    // 5. Save to database (I/O)
-    .and_then(|user| {
-        from_fn(move |env: &amp;AppEnv| {
-            env.db.save_user(&amp;user)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map(move |_| user)
-    })
-    // 6. Send welcome email (I/O)
-    .and_then(|user| {
-        from_fn(move |env: &amp;AppEnv| {
-            env.email_service.send_welcome(&amp;user.email)
-                .map_err(|e| AppError::EmailError(e.to_string()))
-        })
-        .map(move |_| user)
-    })
-}
-
-// Usage at application boundary
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), AppError&gt; {
-    let env = AppEnv {
-        db: Database::connect("postgres://...").await?,
-        email_service: EmailService::new(),
+        Validation::success(())
     };
-
-    let user = register_user(
-        "user@example.com".to_string(),
-        25
-    ).run(&amp;env).await?;
-
-    println!("Registered: {:?}", user);
-    Ok(())
-}</code></pre>
-<h2 id="testing-effects"><a class="header" href="#testing-effects">Testing Effects</a></h2>
-<p>The key benefit: pure functions need no mocks!</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Test pure validation (no mocks needed!)
-    #[test]
-    fn test_validate_user() {
-        let result = validate_user("user@example.com", 25);
-        assert!(result.is_success());
-
-        let result = validate_user("invalid", 15);
-        assert!(result.is_failure());
-    }
-
-    // Test effectful code with mock environment
-    #[derive(Clone)]
-    struct MockEnv {
-        users: Vec&lt;User&gt;,
-    }
-
-    impl MockEnv {
-        fn find_by_email(&amp;self, email: &amp;str) -&gt; Result&lt;Option&lt;User&gt;, String&gt; {
-            Ok(self.users.iter().find(|u| u.email == email).cloned())
-        }
-    }
-
-    #[tokio::test]
-    async fn test_effect_with_mock_env() {
-        let env = MockEnv { users: vec![] };
-
-        let effect = from_fn(|env: &amp;MockEnv| env.find_by_email("test@example.com"))
-            .and_then(|existing| {
-                if existing.is_some() {
-                    fail("Email exists")
-                } else {
-                    pure(User {
-                        email: "test@example.com".to_string(),
-                        age: 25,
-                    })
-                }
-            });
-
-        let result = effect.run(&amp;env).await;
-        assert!(result.is_ok());
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<p>The Effect trait is zero-cost by default:</p>
-<ul>
-<li>No heap allocations for effect chains</li>
-<li>Compiler can fully inline combinators</li>
-<li>Same performance as hand-written async code</li>
-</ul>
-<p>Boxing happens only when you call <code>.boxed()</code>:</p>
-<ul>
-<li>Collections of effects</li>
-<li>Recursive effects</li>
-<li>Match arms with different types</li>
-</ul>
-<p>For I/O-bound work (API calls, database queries), boxing overhead is negligible compared to actual work.</p>
-<h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
-<h3 id="pattern-1-validate-then-execute"><a class="header" href="#pattern-1-validate-then-execute">Pattern 1: Validate Then Execute</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>from_validation(validate_input(input))
-    .and_then(|valid| execute_with_db(valid))
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-2-read-decide-write"><a class="header" href="#pattern-2-read-decide-write">Pattern 2: Read, Decide, Write</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>from_fn(|env: &amp;Env| env.db.fetch(id))
-    .and_then(|data| {
-        let result = pure_business_logic(data);
-        from_fn(move |env: &amp;Env| env.db.save(result))
-    })
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-3-error-context"><a class="header" href="#pattern-3-error-context">Pattern 3: Error Context</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>create_user(email, age)
-    .context("Creating user account")
-    .and_then(|user| {
-        send_welcome_email(&amp;user)
-            .context("Sending welcome email")
-    })
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-4-conditional-effect"><a class="header" href="#pattern-4-conditional-effect">Pattern 4: Conditional Effect</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn conditional_fetch(use_cache: bool) -&gt; BoxedEffect&lt;String, String, AppEnv&gt; {
-    if use_cache {
-        from_fn(|env: &amp;AppEnv| Ok(env.cache.get("data"))).boxed()
+    let available = if taken {
+        Validation::fail(Rejection::UsernameTaken)
     } else {
-        from_async(|env: &amp;AppEnv| async { env.db.fetch().await }).boxed()
+        Validation::success(())
+    };
+    Validation::&lt;(), NonEmptyVec&lt;Rejection&gt;&gt;::all((name, available))
+        .map(|_| Plan { username })
+}
+
+assert_eq!(decide("calm".into(), false).into_result(), Ok(Plan { username: "calm".into() }));
+assert_eq!(
+    decide("".into(), true).into_result().unwrap_err().into_vec(),
+    vec![Rejection::EmptyUsername, Rejection::UsernameTaken],
+);
+<span class="boring">}</span></code></pre>
+<p>The complete <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
+connects this architecture to narrow repository, password-hasher, and email-sender traits.
+Its shell loads facts, calls the decision, then hashes, saves, and sends email in order.</p>
+<p>Facts are snapshots. The repository must enforce uniqueness atomically when saving,
+using database constraints in a real adapter. A plan can therefore be rejected at commit
+time even if the earlier decision accepted it. Domain rejection, commit conflicts, and
+infrastructure failures have distinct outcomes.</p>
+<p>Email failure leaves the user saved. Retrying the entire registration is not an email
+retry protocol; use an application-owned outbox or an explicit compensation protocol
+when delivery or rollback is a requirement. The example’s hasher is a test double.</p>
+<h2 id="constructors-and-execution"><a class="header" href="#constructors-and-execution">Constructors and execution</a></h2>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
+
+tokio_test::block_on(async {
+    let chain = pure::&lt;_, String, ()&gt;(20)
+        .map(|value| value + 1)
+        .and_then(|value| pure(value * 2));
+    assert_eq!(chain.run(&amp;()).await, Ok(42));
+
+    let failure = fail::&lt;i32, _, ()&gt;("unavailable");
+    assert_eq!(failure.run(&amp;()).await, Err("unavailable"));
+
+    let existing = from_result::&lt;_, &amp;str, ()&gt;(Ok(7));
+    assert_eq!(existing.run(&amp;()).await, Ok(7));
+});
+<span class="boring">}</span></code></pre>
+<p>Use <code>from_fn</code> for synchronous fallible operations. Keep slow blocking work off an async
+executor’s worker thread using the runtime’s blocking-work facilities.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { limit: usize }
+
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &amp;Env| Ok::&lt;_, &amp;str&gt;(env.limit))
+        .ensure(|limit| *limit &gt; 0, "limit must be positive");
+    assert_eq!(effect.run(&amp;Env { limit: 10 }).await, Ok(10));
+});
+<span class="boring">}</span></code></pre>
+<p><code>ensure</code> short-circuits on the first failed predicate. Use <code>Validation</code> in the pure
+decision when independent checks must accumulate errors.</p>
+<h2 id="owned-and-borrowed-async-work"><a class="header" href="#owned-and-borrowed-async-work">Owned and borrowed async work</a></h2>
+<p><code>from_async</code> accepts a future whose type does not borrow the supplied environment.
+Clone a cheap shared handle before building that future.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { name: Arc&lt;String&gt; }
+
+tokio_test::block_on(async {
+    let effect = from_async(|env: &amp;Env| {
+        let name = Arc::clone(&amp;env.name);
+        async move { Ok::&lt;_, &amp;str&gt;(name.len()) }
+    });
+    assert_eq!(effect.run(&amp;Env { name: Arc::new("water".into()) }).await, Ok(5));
+});
+<span class="boring">}</span></code></pre>
+<p>Use <code>from_async_ref</code> when the operation must borrow the environment across an await.
+It accepts a boxed future, adding one future allocation in the usual <code>Box::pin</code> usage.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { name: String }
+
+tokio_test::block_on(async {
+    let effect = from_async_ref(|env: &amp;Env| {
+        Box::pin(async move {
+            tokio::task::yield_now().await;
+            Ok::&lt;_, &amp;str&gt;(env.name.len())
+        })
+    });
+    assert_eq!(effect.run(&amp;Env { name: "water".into() }).await, Ok(5));
+});
+<span class="boring">}</span></code></pre>
+<h2 id="concrete-types-and-explicit-type-erasure"><a class="header" href="#concrete-types-and-explicit-type-erasure">Concrete types and explicit type erasure</a></h2>
+<p>Most combinators store their inputs and closures directly. Return <code>impl Effect</code> when
+callers do not need to name that concrete type. Use <code>BoxedEffect</code> at boundaries that
+require a single erased type, such as heterogeneous collections or different branches.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
+
+fn choose(cached: bool) -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
+    if cached {
+        pure(21).map(|value| value * 2).boxed()
+    } else {
+        fail("cache miss").boxed()
     }
 }
+
+tokio_test::block_on(async {
+    assert_eq!(choose(true).run(&amp;()).await, Ok(42));
+    assert_eq!(choose(false).run(&amp;()).await, Err("cache miss"));
+});
 <span class="boring">}</span></code></pre>
-<h2 id="when-to-use-effect"><a class="header" href="#when-to-use-effect">When to Use Effect</a></h2>
-<p><strong>Use Effect when</strong>:</p>
-<ul>
-<li>Separating I/O from business logic</li>
-<li>Testing effectful code</li>
-<li>Composing async operations</li>
-<li>Dependency injection needed</li>
-</ul>
-<p><strong>Use plain async fn when</strong>:</p>
-<ul>
-<li>Simple CRUD operations</li>
-<li>No complex composition</li>
-<li>Testing not critical</li>
-<li>Maximum simplicity needed</li>
-</ul>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<ul>
-<li><strong>Effect trait</strong>: Zero-cost effect composition following <code>futures</code> pattern</li>
-<li><strong>Pure core</strong>: Business logic is easy to test (no mocks)</li>
-<li><strong>Imperative shell</strong>: I/O at boundaries via <code>from_fn</code>, <code>from_async</code></li>
-<li><strong>Environment</strong>: Provides dependency injection</li>
-<li><strong>Boxing</strong>: Use <code>.boxed()</code> only when type erasure is needed</li>
-<li><strong>Composition</strong>: Via <code>map</code>, <code>and_then</code>, <code>or_else</code>, etc.</li>
-<li><strong>Reader pattern</strong>: <code>ask()</code>, <code>asks()</code>, <code>local()</code> for environment access</li>
-</ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Learn about <a href="04-error-context.html">Error Context</a></li>
-<li>Explore the <a href="09-reader-pattern.html">Reader Pattern</a> in depth</li>
-<li>See the <a href="../MIGRATION.html">Migration Guide</a> if upgrading from 0.10.x</li>
-<li>Check out <a href="https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs">testing_patterns example</a></li>
-<li>Read the <a href="https://docs.rs/stillwater">API docs</a></li>
-</ul>
+<p>Concrete types do not promise allocation-free execution or a fixed performance ratio.
+<code>from_async_ref</code> boxes its future; helpers returning <code>BoxedEffect</code> (including <code>IO</code>,
+effect traversal, and retry) erase types internally. User operations, captured data,
+and environment clones may allocate too. Benchmark the actual workflow.</p>
+<h2 id="choose-execution-semantics-explicitly"><a class="header" href="#choose-execution-semantics-explicitly">Choose execution semantics explicitly</a></h2>
+<p>Use <code>and_then</code> when an operation needs an earlier output. Use sequential traversal for
+ordered batches that stop on failure. Parallel traversal concurrently polls the batch,
+waits for every result, and selects an error by input position.</p>
+<p>These operations do not provide transactions or cancellation masking. Dropping the
+parent future cancels unfinished work. Runtime bracket cleanup is an explicit protocol
+for normal success/error paths, not a guarantee that async cleanup runs after cancellation
+or panic; ordinary Rust ownership and <code>Drop</code> still matter.</p>
+<p>See <a href="11-traverse-patterns.html">traversal</a>, <a href="10-parallel-effects.html">parallel effects</a>,
+<a href="09-reader-pattern.html">reader helpers</a>, <a href="15-testing.html">testing</a>, and
+<a href="17-api-tiers.html">API tiers</a> for focused examples.</p>
 
                     </main>
 

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,14 +186,10 @@
 <h2 id="why-retry-patterns"><a class="header" href="#why-retry-patterns">Why Retry Patterns?</a></h2>
 <p>Network requests fail. Databases have hiccups. External APIs rate-limit you. Robust applications need to handle transient failures gracefully:</p>
 <p>Without retry:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let data = fetch_data().run(&amp;env).await?;
-<span class="boring">}</span></code></pre>
+<pre><code class="language-text">let data = fetch_data().run(&amp;env).await?;
+</code></pre>
 <p>With retry:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::retry::retry;
+<pre><code class="language-text">use stillwater::effect::retry::retry;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
@@ -205,7 +201,7 @@ let data = retry(
 .run(&amp;env)
 .await?
 .into_value();
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="retrypolicy"><a class="header" href="#retrypolicy">RetryPolicy</a></h2>
 <p><code>RetryPolicy</code> is a pure data structure describing retry behavior. It is composable and testable without executing any effects.</p>
 <h3 id="creating-policies"><a class="header" href="#creating-policies">Creating Policies</a></h3>
@@ -238,7 +234,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 <span class="boring">}</span></code></pre>
 <h3 id="jitter-support"><a class="header" href="#jitter-support">Jitter Support</a></h3>
 <p>Jitter adds randomness to delays, preventing the “thundering herd” problem when many clients retry simultaneously. Enable it with the <code>jitter</code> feature:</p>
-<pre><code class="language-toml">stillwater = { version = "1.0", features = ["jitter"] }
+<pre><code class="language-toml">stillwater = { version = "2.0", features = ["jitter"] }
 </code></pre>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -252,9 +248,7 @@ let policy = RetryPolicy::exponential(Duration::from_millis(100))
 <h2 id="retry-functions"><a class="header" href="#retry-functions">Retry Functions</a></h2>
 <h3 id="retry---basic-retry"><a class="header" href="#retry---basic-retry"><code>retry</code> - Basic Retry</a></h3>
 <p>Retries an effect until it succeeds or retries are exhausted. The factory creates a fresh effect for each attempt.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
@@ -266,12 +260,10 @@ let effect = retry(
 
 let success = effect.run(&amp;()).await.unwrap();
 assert_eq!(success.into_value(), 42);
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="retry_if---conditional-retry"><a class="header" href="#retry_if---conditional-retry"><code>retry_if</code> - Conditional Retry</a></h3>
 <p>Only retries when a predicate returns true for the error. Use this to distinguish transient errors from permanent failures.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
@@ -288,11 +280,13 @@ let effect = retry_if(
 );
 
 assert_eq!(effect.run(&amp;()).await, Err(ApiError::Permanent));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="retry_with_hooks---retry-with-observability"><a class="header" href="#retry_with_hooks---retry-with-observability"><code>retry_with_hooks</code> - Retry With Observability</a></h3>
 <p><code>retry_with_hooks</code> invokes a synchronous callback before each retry. Use the hook for logging, metrics, or lightweight alerting.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
+</span><span class="boring">#[cfg(all(feature = "async", feature = "tracing"))]
+</span><span class="boring">{
 </span>use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy};
 use std::time::Duration;
@@ -308,7 +302,8 @@ let effect = retry_with_hooks(
         );
     },
 );
-<span class="boring">}</span></code></pre>
+<span class="boring">}
+</span><span class="boring">}</span></code></pre>
 <p>The <code>RetryEvent</code> contains:</p>
 <ul>
 <li><code>attempt</code> - Which attempt just failed, using 1-based numbering</li>
@@ -319,9 +314,7 @@ let effect = retry_with_hooks(
 <h2 id="timeout-support"><a class="header" href="#timeout-support">Timeout Support</a></h2>
 <h3 id="with_timeout"><a class="header" href="#with_timeout"><code>with_timeout</code></a></h3>
 <p>Wrap an effect with a timeout:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::TimeoutError;
 use std::time::Duration;
 
@@ -339,12 +332,10 @@ match effect.run(&amp;()).await {
     }
     other =&gt; panic!("expected timeout, got {:?}", other),
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="combining-retry-with-timeout"><a class="header" href="#combining-retry-with-timeout">Combining Retry With Timeout</a></h3>
 <p>A common pattern is a per-attempt timeout inside a retry factory:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::{RetryPolicy, TimeoutError};
 use std::time::Duration;
 
@@ -359,7 +350,7 @@ let effect = retry(
     RetryPolicy::exponential(Duration::from_millis(100))
         .with_max_retries(3),
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="result-types"><a class="header" href="#result-types">Result Types</a></h2>
 <h3 id="retryexhaustede"><a class="header" href="#retryexhaustede"><code>RetryExhausted&lt;E&gt;</code></a></h3>
 <p><code>retry</code> and <code>retry_with_hooks</code> return retry metadata on both outcomes:</p>
@@ -380,18 +371,14 @@ pub struct RetryExhausted&lt;E&gt; {
 <span class="boring">}</span></code></pre>
 <h3 id="timeouterrore"><a class="header" href="#timeouterrore"><code>TimeoutError&lt;E&gt;</code></a></h3>
 <p><code>with_timeout</code> wraps timeout and inner errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub enum TimeoutError&lt;E&gt; {
+<pre><code class="language-text">pub enum TimeoutError&lt;E&gt; {
     Timeout { duration: Duration },
     Inner(E),
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="real-world-patterns"><a class="header" href="#real-world-patterns">Real-World Patterns</a></h2>
 <h3 id="http-client-with-retry"><a class="header" href="#http-client-with-retry">HTTP Client With Retry</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
@@ -413,11 +400,9 @@ let effect = retry_if(
         .with_max_delay(Duration::from_secs(30)),
     is_retryable,
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="database-connection-with-hooks"><a class="header" href="#database-connection-with-hooks">Database Connection With Hooks</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::RetryPolicy;
 use std::time::Duration;
 
@@ -432,12 +417,10 @@ let effect = retry_with_hooks(
         }
     },
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="robust-api-call"><a class="header" href="#robust-api-call">Robust API Call</a></h3>
 <p>Combine per-attempt timeout, conditional retry, max delay, jitter, and hooks when calling an unreliable external service:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::{RetryEvent, RetryPolicy, TimeoutError};
 use std::time::Duration;
 
@@ -482,11 +465,9 @@ let effect = retry_with_hooks(
         );
     },
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>For conditional retry without hooks, use <code>retry_if</code> around the same per-attempt effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effect = retry_if(
+<pre><code class="language-text">let effect = retry_if(
     || {
         with_timeout(call_api(), Duration::from_secs(10))
             .map_err(|err| match err {
@@ -497,7 +478,7 @@ let effect = retry_with_hooks(
     RetryPolicy::exponential(Duration::from_millis(500)).with_max_retries(5),
     is_retryable,
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="policy-testing"><a class="header" href="#policy-testing">Policy Testing</a></h3>
 <p><code>RetryPolicy</code> is just data, so you can test retry timing without running any effects:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -516,9 +497,7 @@ assert_eq!(policy.delay_for_attempt(3), None);
 <span class="boring">}</span></code></pre>
 <h3 id="circuit-breaker-integration"><a class="header" href="#circuit-breaker-integration">Circuit-Breaker Integration</a></h3>
 <p>Stillwater does not include a circuit breaker in the retry module. Keep circuit state in your environment and use <code>from_fn</code> or <code>check</code> before retrying:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn guarded_call() -&gt; impl Effect&lt;Output = ApiResponse, Error = ApiError, Env = AppEnv&gt; {
     from_fn(|env: &amp;AppEnv| {
@@ -536,7 +515,7 @@ let effect = retry_if(
     RetryPolicy::exponential(Duration::from_millis(250)).with_max_retries(3),
     |err| matches!(err, ApiError::Transient(_)),
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="behavior-notes"><a class="header" href="#behavior-notes">Behavior Notes</a></h2>
 <ul>
 <li><code>retry</code> and <code>retry_with_hooks</code> preserve retry metadata on success and failure.</li>

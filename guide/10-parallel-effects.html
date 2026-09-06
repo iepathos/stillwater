@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,16 +199,12 @@
 <li>Processing batches with a concurrency limit</li>
 </ul>
 <p>Sequential execution waits for each operation before starting the next:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let user = fetch_user(id).run(&amp;env).await?;
+<pre><code class="language-text">let user = fetch_user(id).run(&amp;env).await?;
 let settings = fetch_settings(id).run(&amp;env).await?;
 let preferences = fetch_preferences(id).run(&amp;env).await?;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Parallel execution starts independent work together:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 let (user, settings, preferences) = par3(
     fetch_user(id),
@@ -222,7 +218,7 @@ let profile = UserProfile {
     settings: settings?,
     preferences: preferences?,
 };
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="choosing-a-helper"><a class="header" href="#choosing-a-helper">Choosing A Helper</a></h2>
 <div class="table-wrapper">
 <table>
@@ -239,9 +235,7 @@ let profile = UserProfile {
 </table>
 </div>
 <p>Collection helpers require boxed effects because a <code>Vec</code> needs one concrete item type:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 let effects: Vec&lt;BoxedEffect&lt;User, DbError, AppEnv&gt;&gt; = user_ids
     .into_iter()
@@ -249,12 +243,10 @@ let effects: Vec&lt;BoxedEffect&lt;User, DbError, AppEnv&gt;&gt; = user_ids
     .collect();
 
 let users = par_all(effects, &amp;env).await?;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="heterogeneous-parallel-effects"><a class="header" href="#heterogeneous-parallel-effects">Heterogeneous Parallel Effects</a></h2>
 <p>Use <code>par2</code>, <code>par3</code>, or <code>par4</code> when effects have different output types, or when you want to avoid boxing.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 let (price, inventory, shipping) = par3(
     fetch_price(item_id),
@@ -268,23 +260,19 @@ let quote = Quote {
     inventory: inventory?,
     shipping: shipping?,
 };
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>These helpers return a tuple of results instead of short-circuiting. That makes each outcome explicit:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let (database, cache) = par2(check_database(), check_cache(), &amp;env).await;
+<pre><code class="language-text">let (database, cache) = par2(check_database(), check_cache(), &amp;env).await;
 
 match (database, cache) {
     (Ok(db), Ok(cache)) =&gt; Health::healthy(db, cache),
     (db_result, cache_result) =&gt; Health::degraded(db_result.err(), cache_result.err()),
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This is useful for diagnostics and health checks where you want to inspect every independent subsystem.</p>
 <h2 id="par_all---collect-all-results-or-all-errors"><a class="header" href="#par_all---collect-all-results-or-all-errors"><code>par_all</code> - Collect All Results Or All Errors</a></h2>
 <p>Use <code>par_all</code> when every operation should run to completion and callers benefit from a complete error report.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 async fn validate_import(records: Vec&lt;Record&gt;, env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;ValidRecord&gt;, Vec&lt;ValidationError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;ValidRecord, ValidationError, AppEnv&gt;&gt; = records
@@ -294,11 +282,9 @@ async fn validate_import(records: Vec&lt;Record&gt;, env: &amp;AppEnv) -&gt; Res
 
     par_all(effects, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>If any effect fails, <code>par_all</code> returns all failures:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+<pre><code class="language-text">let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
     pure(1).boxed(),
     fail("bad input".to_string()).boxed(),
     fail("missing field".to_string()).boxed(),
@@ -309,13 +295,11 @@ assert_eq!(
     result,
     Err(vec!["bad input".to_string(), "missing field".to_string()])
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This is the right choice for form validation, import validation, batch reporting, and admin tools where users need a full list of failures.</p>
 <h2 id="par_try_all---return-a-single-error"><a class="header" href="#par_try_all---return-a-single-error"><code>par_try_all</code> - Return A Single Error</a></h2>
 <p>Use <code>par_try_all</code> when one error is enough for the caller.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 async fn load_required_services(env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;ServiceStatus&gt;, ServiceError&gt; {
     let checks: Vec&lt;BoxedEffect&lt;ServiceStatus, ServiceError, AppEnv&gt;&gt; = vec![
@@ -326,11 +310,9 @@ async fn load_required_services(env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;Service
 
     par_try_all(checks, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><code>par_try_all</code> awaits the batch and then collects with normal <code>Result</code> semantics, returning the first error in result order. It is not a cancellation primitive.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+<pre><code class="language-text">let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
     pure(1).boxed(),
     fail("first error".to_string()).boxed(),
     fail("second error".to_string()).boxed(),
@@ -338,13 +320,11 @@ async fn load_required_services(env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;Service
 
 let result = par_try_all(effects, &amp;()).await;
 assert_eq!(result, Err("first error".to_string()));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Use <code>par_all</code> when you need every error. Use <code>par_try_all</code> when the caller only needs to know that the batch failed.</p>
 <h2 id="race---first-completed-result"><a class="header" href="#race---first-completed-result"><code>race</code> - First Completed Result</a></h2>
 <p>Use <code>race</code> when the first completed result should decide the outcome.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 async fn fetch_from_fastest_replica(
     key: String,
@@ -358,24 +338,20 @@ async fn fetch_from_fastest_replica(
 
     race(effects, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><code>race</code> returns the first completed result, whether success or error. It does not wait to find the first success.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
+<pre><code class="language-text">let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
     fail("fast failure".to_string()).boxed(),
     pure(42).boxed(),
 ];
 
 let result = race(effects, &amp;()).await;
 assert_eq!(result, Err(RaceError::Inner("fast failure".to_string())));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This behavior is useful for deadline effects, fastest-result wins workflows, or cases where a fast failure should abort the attempt. For fallback semantics where failures should be ignored until every source fails, compose effects with <code>or_else</code>, <code>fallback_to</code>, or explicit retry/fallback logic instead of <code>race</code>.</p>
 <h2 id="par_all_limit---bounded-concurrency"><a class="header" href="#par_all_limit---bounded-concurrency"><code>par_all_limit</code> - Bounded Concurrency</a></h2>
 <p>Use <code>par_all_limit</code> for large batches or limited resources such as connection pools, file descriptors, or API rate limits.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 async fn process_queue(
     queue: Vec&lt;WorkItem&gt;,
@@ -389,22 +365,18 @@ async fn process_queue(
 
     par_all_limit(effects, max_concurrent, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>The function still runs every effect and collects all errors, but it only keeps <code>limit</code> futures in flight at once.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = (1..=10)
+<pre><code class="language-text">let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = (1..=10)
     .map(|n| pure(n).boxed())
     .collect();
 
 let result = par_all_limit(effects, 3, &amp;()).await;
 assert_eq!(result.as_ref().map(|values| values.len()), Ok(10));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="environment-access"><a class="header" href="#environment-access">Environment Access</a></h2>
 <p>Parallel helpers receive a shared <code>&amp;Env</code>. Boxed collection helpers require <code>Env: Clone + Send + Sync + 'static</code>, so application environments usually store services in cheap-to-clone handles:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::Arc;
+<pre><code class="language-text">use std::sync::Arc;
 
 #[derive(Clone)]
 struct AppEnv {
@@ -412,11 +384,9 @@ struct AppEnv {
     db: Arc&lt;DatabasePool&gt;,
     http: Arc&lt;HttpClient&gt;,
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Each effect still controls how it uses the environment:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
     from_async(move |env: &amp;AppEnv| {
@@ -424,12 +394,10 @@ fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, E
         async move { db.fetch_user(id).await }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="composing-parallel-and-sequential-work"><a class="header" href="#composing-parallel-and-sequential-work">Composing Parallel And Sequential Work</a></h2>
 <p>Parallel work often appears inside a larger sequential workflow. Use normal Rust control flow around the async helper calls:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dashboard, AppError&gt; {
     let user = fetch_user(user_id).run(env).await?;
@@ -448,11 +416,9 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
         alerts: alerts?,
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>For a second parallel phase, build another effect collection after the first phase succeeds:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn load_and_save(ids: Vec&lt;UserId&gt;, env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;Receipt&gt;, Vec&lt;AppError&gt;&gt; {
+<pre><code class="language-text">async fn load_and_save(ids: Vec&lt;UserId&gt;, env: &amp;AppEnv) -&gt; Result&lt;Vec&lt;Receipt&gt;, Vec&lt;AppError&gt;&gt; {
     let load_effects: Vec&lt;BoxedEffect&lt;User, AppError, AppEnv&gt;&gt; = ids
         .into_iter()
         .map(|id| fetch_user(id).boxed())
@@ -467,13 +433,11 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
 
     par_all(save_effects, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="practical-patterns"><a class="header" href="#practical-patterns">Practical Patterns</a></h2>
 <h3 id="parallel-validation"><a class="header" href="#parallel-validation">Parallel Validation</a></h3>
 <p>Use <code>par_all</code> when expensive validation checks can run independently and the user should see all failures:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn validate_signup(data: SignupData, env: &amp;AppEnv) -&gt; Result&lt;ValidSignup, Vec&lt;SignupError&gt;&gt; {
+<pre><code class="language-text">async fn validate_signup(data: SignupData, env: &amp;AppEnv) -&gt; Result&lt;ValidSignup, Vec&lt;SignupError&gt;&gt; {
     let effects: Vec&lt;BoxedEffect&lt;FieldCheck, SignupError, AppEnv&gt;&gt; = vec![
         validate_email(data.email).boxed(),
         validate_username(data.username).boxed(),
@@ -483,12 +447,10 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
     let checks = par_all(effects, env).await?;
     Ok(ValidSignup::from_checks(checks))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="health-checks"><a class="header" href="#health-checks">Health Checks</a></h3>
 <p>Use fixed-arity helpers when each subsystem has a distinct result:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn health(env: &amp;AppEnv) -&gt; HealthReport {
+<pre><code class="language-text">async fn health(env: &amp;AppEnv) -&gt; HealthReport {
     let (database, cache, queue) = par3(
         check_database(),
         check_cache(),
@@ -502,12 +464,10 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
         queue,
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="rate-limited-api-imports"><a class="header" href="#rate-limited-api-imports">Rate-Limited API Imports</a></h3>
 <p>Use <code>par_all_limit</code> when the remote system enforces a concurrency cap:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn import_customers(customers: Vec&lt;Customer&gt;, env: &amp;AppEnv) -&gt; ImportSummary {
+<pre><code class="language-text">async fn import_customers(customers: Vec&lt;Customer&gt;, env: &amp;AppEnv) -&gt; ImportSummary {
     let effects: Vec&lt;BoxedEffect&lt;ImportReceipt, ImportError, AppEnv&gt;&gt; = customers
         .into_iter()
         .map(|customer| send_customer(customer).boxed())
@@ -518,12 +478,10 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
         Err(errors) =&gt; ImportSummary::failure(errors),
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="fastest-completed-source"><a class="header" href="#fastest-completed-source">Fastest Completed Source</a></h3>
 <p>Use <code>race</code> only when “first completed” is the desired behavior:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn query_fastest_index(
+<pre><code class="language-text">async fn query_fastest_index(
     term: SearchTerm,
     env: &amp;AppEnv,
 ) -&gt; Result&lt;SearchResults, RaceError&lt;SearchError&gt;&gt; {
@@ -534,21 +492,17 @@ async fn build_dashboard(user_id: UserId, env: &amp;AppEnv) -&gt; Result&lt;Dash
 
     race(effects, env).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>If a fast failure should not win, use a fallback chain:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn query_with_fallback(term: SearchTerm) -&gt; impl Effect&lt;Output = SearchResults, Error = SearchError, Env = AppEnv&gt; {
+<pre><code class="language-text">fn query_with_fallback(term: SearchTerm) -&gt; impl Effect&lt;Output = SearchResults, Error = SearchError, Env = AppEnv&gt; {
     query_primary_index(term.clone())
         .fallback_to(query_replica_index(term))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
 <h3 id="actual-concurrency"><a class="header" href="#actual-concurrency">Actual Concurrency</a></h3>
 <p>The parallel helpers use async concurrency. They do not spawn OS threads by themselves; each effect must be asynchronous or otherwise yield for concurrency to matter.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use std::time::{Duration, Instant};
 
 let start = Instant::now();
@@ -567,7 +521,7 @@ par_all(effects, &amp;()).await.unwrap();
 
 let elapsed = start.elapsed();
 assert!(elapsed &lt; Duration::from_millis(200));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="boxing-cost"><a class="header" href="#boxing-cost">Boxing Cost</a></h3>
 <p>Fixed-arity helpers avoid boxing and are the best fit for small, known sets of independent effects.</p>
 <p>Collection helpers require boxing because a vector needs one concrete type. Prefer collection helpers for dynamic or large batches where the allocation cost is dominated by I/O.</p>
@@ -581,30 +535,26 @@ assert!(elapsed &lt; Duration::from_millis(200));
 <p>Parallel effects use the same environment pattern as sequential effects:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[tokio::test]
-async fn loads_users_in_parallel() {
-    let env = TestEnv::with_users(vec![
-        User::new(1),
-        User::new(2),
-        User::new(3),
-    ]);
+</span>use stillwater::prelude::*;
 
-    let effects: Vec&lt;BoxedEffect&lt;User, TestError, TestEnv&gt;&gt; = vec![
-        fetch_user(1).boxed(),
-        fetch_user(2).boxed(),
-        fetch_user(3).boxed(),
+tokio_test::block_on(async {
+    let effects: Vec&lt;BoxedEffect&lt;u64, &amp;str, ()&gt;&gt; = vec![
+        pure(1).boxed(),
+        fail("missing").boxed(),
+        pure(3).boxed(),
     ];
+    let users = par_all(effects, &amp;()).await;
+    assert_eq!(users, Err(vec!["missing"]));
 
-    let users = par_all(effects, &amp;env).await.unwrap();
-    assert_eq!(users.len(), 3);
-}
+    let effects = vec![pure::&lt;_, &amp;str, ()&gt;(1).boxed(), pure(3).boxed()];
+    assert_eq!(par_all(effects, &amp;()).await, Ok(vec![1, 3]));
+});
 <span class="boring">}</span></code></pre>
-<p>For timing-sensitive tests, keep assertions loose enough to avoid flakes. Prefer testing result shape and concurrency limits over exact elapsed time.</p>
+<p>This checks result collection, not overlap. For concurrency tests, use a barrier or
+channel to control child progress and a timeout to detect deadlock. Avoid exact timing assertions.</p>
 <h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
 <h3 id="do-not-parallelize-dependent-operations"><a class="header" href="#do-not-parallelize-dependent-operations">Do Not Parallelize Dependent Operations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Wrong: sending the email needs the user returned by create_user.
+<pre><code class="language-text">// Wrong: sending the email needs the user returned by create_user.
 let effects: Vec&lt;BoxedEffect&lt;(), AppError, AppEnv&gt;&gt; = vec![
     create_user(data).map(|_| ()).boxed(),
     send_welcome_email(user_id).boxed(),
@@ -613,13 +563,11 @@ let effects: Vec&lt;BoxedEffect&lt;(), AppError, AppEnv&gt;&gt; = vec![
 // Right: compose dependent work sequentially.
 create_user(data)
     .and_then(|user| send_welcome_email(user.id))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="do-not-use-race-for-first-success"><a class="header" href="#do-not-use-race-for-first-success">Do Not Use <code>race</code> For “First Success”</a></h3>
 <p><code>race</code> returns the first completed result. A fast error wins over a slower success. If you need “try primary, then backup,” use <code>fallback_to</code> or <code>or_else</code>.</p>
 <h3 id="use-arc-not-rc-in-shared-environments"><a class="header" href="#use-arc-not-rc-in-shared-environments">Use <code>Arc</code>, Not <code>Rc</code>, In Shared Environments</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Wrong: Rc is not Send + Sync.
+<pre><code class="language-text">// Wrong: Rc is not Send + Sync.
 struct AppEnv {
     db: Rc&lt;DatabasePool&gt;,
 }
@@ -629,12 +577,11 @@ struct AppEnv {
 struct AppEnv {
     db: Arc&lt;DatabasePool&gt;,
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="box-at-collection-boundaries"><a class="header" href="#box-at-collection-boundaries">Box At Collection Boundaries</a></h3>
-<p>Keep individual effect builders zero-cost, and box only when placing them into a homogeneous collection:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
+<p>Keep child effects concrete where useful, and box them when a collection requires type erasure.
+Borrowed-future constructors and other helpers may allocate internally as well:</p>
+<pre><code class="language-text">fn fetch_user(id: UserId) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
     from_async(move |env: &amp;AppEnv| {
         let db = env.db.clone();
         async move { db.fetch_user(id).await }
@@ -645,7 +592,7 @@ let effects: Vec&lt;BoxedEffect&lt;User, DbError, AppEnv&gt;&gt; = ids
     .into_iter()
     .map(|id| fetch_user(id).boxed())
     .collect();
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
 <li>Use <code>par2</code>, <code>par3</code>, and <code>par4</code> for small heterogeneous sets without boxing.</li>

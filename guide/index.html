@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -368,7 +368,9 @@ cargo run --example resource_tracking
 <tr><td>Form validation</td><td>Validation</td><td>Collect all field errors</td></tr>
 <tr><td>API request validation</td><td>Validation</td><td>Return all validation errors</td></tr>
 <tr><td>Collection validation</td><td>traverse</td><td>Validate multiple items, accumulate errors</td></tr>
-<tr><td>Batch processing</td><td>traverse_effect</td><td>Process collection with effects</td></tr>
+<tr><td>Ordered batch processing</td><td>traverse_effect_sequential</td><td>Stop at first effect failure</td></tr>
+<tr><td>Concurrent batch processing</td><td>traverse_effect_parallel</td><td>Run all effects concurrently</td></tr>
+<tr><td>Choosing an API layer</td><td><a href="17-api-tiers.html">API tiers</a></td><td>Start core; adopt advanced APIs deliberately</td></tr>
 <tr><td>Database operations</td><td>Effect</td><td>Separate logic from I/O</td></tr>
 <tr><td>File operations</td><td>Effect + IO</td><td>Testable file processing</td></tr>
 <tr><td>Error debugging</td><td>ContextError</td><td>Add context trails</td></tr>
@@ -395,9 +397,7 @@ cargo run --example resource_tracking
 </table>
 </div>
 <h3 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-text">use stillwater::prelude::*;
 
 // Pattern 1: Independent validations
 Validation::all((
@@ -410,7 +410,7 @@ validate_email(email)
     .and_then(|email| check_email_available(email))
 
 // Pattern 3: Effect with validation
-Effect::from_validation(validate_user(input))
+from_validation(validate_user(input))
     .and_then(|user| save_to_db(user))
 
 // Pattern 4: Error recovery with fallback
@@ -419,7 +419,7 @@ fetch_from_cache(key)
         |e| matches!(e, CacheError::Miss),
         |_| fetch_from_db(key)
     )
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
 <ul>
 <li>Check the <a href="../FAQ.html">FAQ</a> for common questions</li>

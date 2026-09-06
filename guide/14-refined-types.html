@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,9 +183,7 @@
                         <h1 id="refined-types-parse-dont-validate"><a class="header" href="#refined-types-parse-dont-validate">Refined Types: Parse, Don’t Validate</a></h1>
 <h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
 <p>Validation checks are often scattered throughout codebases:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn process_user(name: String, age: i32) -&gt; Result&lt;User, Error&gt; {
+<pre><code class="language-text">fn process_user(name: String, age: i32) -&gt; Result&lt;User, Error&gt; {
     if name.is_empty() {
         return Err(Error::EmptyName);
     }
@@ -205,7 +203,7 @@ fn save_user(name: &amp;str, age: i32) -&gt; Result&lt;(), Error&gt; {
     // The type system doesn't tell us if name is valid
     db.insert(name, age)
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This leads to:</p>
 <ul>
 <li>Redundant validation checks</li>
@@ -215,9 +213,7 @@ fn save_user(name: &amp;str, age: i32) -&gt; Result&lt;(), Error&gt; {
 </ul>
 <h2 id="the-solution-refined-types"><a class="header" href="#the-solution-refined-types">The Solution: Refined Types</a></h2>
 <p>Refined types encode invariants in the type system. Once validated at the boundary, the type <em>guarantees</em> validity:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{Refined, NonEmpty, Positive};
+<pre><code class="language-text">use stillwater::refined::{Refined, NonEmpty, Positive};
 
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
 type PositiveI32 = Refined&lt;i32, Positive&gt;;
@@ -233,7 +229,7 @@ fn save_user(name: &amp;NonEmptyString, age: &amp;PositiveI32) {
     // Types guarantee validity - impossible to have invalid data here
     db.insert(name.get(), *age.get())
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
 <h3 id="creating-refined-values"><a class="header" href="#creating-refined-values">Creating Refined Values</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -515,9 +511,7 @@ match result {
 <span class="boring">}</span></code></pre>
 <h2 id="effect-integration"><a class="header" href="#effect-integration">Effect Integration</a></h2>
 <p>Use refined types in effect chains:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::refined::{refine, NonEmpty, Refined};
 
 type NonEmptyString = Refined&lt;String, NonEmpty&gt;;
@@ -529,11 +523,9 @@ let effect = pure::&lt;_, &amp;str, ()&gt;("hello".to_string())
 
 let result = effect.run(&amp;()).await;
 assert_eq!(result, Ok(5));
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::refined::{
+<pre><code class="language-text">use stillwater::refined::{
     Refined, And, NonEmpty, Trimmed, MaxLength, MinLength, Port,
 };
 use stillwater::Validation;
@@ -587,7 +579,7 @@ fn process_user(user: User) {
     // Types guarantee validity - no runtime checks needed!
     println!("Processing user: {}", user.username.get());
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="zero-cost-abstraction"><a class="header" href="#zero-cost-abstraction">Zero-Cost Abstraction</a></h2>
 <p><code>Refined&lt;T, P&gt;</code> has the same memory layout as <code>T</code>. The predicate <code>P</code> exists only at compile time via <code>PhantomData</code>:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]

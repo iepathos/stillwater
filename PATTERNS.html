@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,9 +185,7 @@
 <h2 id="validation-patterns"><a class="header" href="#validation-patterns">Validation Patterns</a></h2>
 <h3 id="pattern-1-independent-field-validation"><a class="header" href="#pattern-1-independent-field-validation">Pattern 1: Independent Field Validation</a></h3>
 <p>When validating multiple independent fields:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 fn validate_user_registration(input: UserInput) -&gt; Validation&lt;User, Vec&lt;Error&gt;&gt; {
     Validation::all((
@@ -200,23 +198,19 @@ fn validate_user_registration(input: UserInput) -&gt; Validation&lt;User, Vec&lt
         User { email, password, age, username }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-2-dependent-validation"><a class="header" href="#pattern-2-dependent-validation">Pattern 2: Dependent Validation</a></h3>
 <p>When one validation depends on another’s result:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 fn validate_and_check_unique(email: &amp;str) -&gt; Validation&lt;Email, Vec&lt;Error&gt;&gt; {
     validate_email_format(email)
         .and_then(|email| check_email_not_taken(email))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-validating-collections"><a class="header" href="#pattern-3-validating-collections">Pattern 3: Validating Collections</a></h3>
 <p>Validate all items in a collection:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 fn validate_all(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidItem&gt;, Vec&lt;Error&gt;&gt; {
     let validations: Vec&lt;_&gt; = items
@@ -226,12 +220,10 @@ fn validate_all(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;ValidItem&gt;
 
     Validation::all_vec(validations)
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-4-conditional-validation"><a class="header" href="#pattern-4-conditional-validation">Pattern 4: Conditional Validation</a></h3>
 <p>Validate different fields based on conditions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+<pre><code class="language-text">use stillwater::Validation;
 
 fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&lt;Payment, Vec&lt;Error&gt;&gt; {
     match method {
@@ -252,7 +244,7 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&l
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="effect-patterns"><a class="header" href="#effect-patterns">Effect Patterns</a></h2>
 <p>All Effect patterns use the free function style with the prelude import:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -261,9 +253,7 @@ fn validate_payment(method: PaymentMethod, data: PaymentData) -&gt; Validation&l
 <span class="boring">}</span></code></pre>
 <h3 id="pattern-1-read-transform-write"><a class="header" href="#pattern-1-read-transform-write">Pattern 1: Read, Transform, Write</a></h3>
 <p>Classic pattern for processing data:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn process_user_data(id: u64) -&gt; impl Effect&lt;Output = (), Error = Error, Env = Env&gt; {
     from_fn(|env: &amp;Env| env.db.fetch_user(id))
@@ -272,12 +262,10 @@ fn process_user_data(id: u64) -&gt; impl Effect&lt;Output = (), Error = Error, E
             from_fn(|env: &amp;Env| env.db.save_user(&amp;transformed))
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-2-validate-then-execute"><a class="header" href="#pattern-2-validate-then-execute">Pattern 2: Validate Then Execute</a></h3>
 <p>Validate input, then perform I/O if valid:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn create_user(input: UserInput) -&gt; impl Effect&lt;Output = User, Error = Error, Env = Env&gt; {
     from_validation(validate_user(input))
@@ -285,12 +273,10 @@ fn create_user(input: UserInput) -&gt; impl Effect&lt;Output = User, Error = Err
             from_fn(|env: &amp;Env| env.db.insert_user(&amp;valid))
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-try-cache-fall-back-to-db"><a class="header" href="#pattern-3-try-cache-fall-back-to-db">Pattern 3: Try Cache, Fall Back to DB</a></h3>
 <p>Common caching pattern:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn get_user(id: u64) -&gt; impl Effect&lt;Output = User, Error = Error, Env = Env&gt; {
     from_fn(|env: &amp;Env| env.cache.get_user(id))
@@ -308,12 +294,10 @@ fn get_user(id: u64) -&gt; impl Effect&lt;Output = User, Error = Error, Env = En
             }
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-4-sequential-operations-with-context"><a class="header" href="#pattern-4-sequential-operations-with-context">Pattern 4: Sequential Operations with Context</a></h3>
 <p>Add context at each step:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn process_order(id: u64) -&gt; impl Effect&lt;Output = Receipt, Error = Error, Env = Env&gt; {
     fetch_order(id)
@@ -331,12 +315,10 @@ fn process_order(id: u64) -&gt; impl Effect&lt;Output = Receipt, Error = Error, 
                 .context("generating receipt")
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-5-parallel-operations-using-tokio"><a class="header" href="#pattern-5-parallel-operations-using-tokio">Pattern 5: Parallel Operations (using tokio)</a></h3>
 <p>When effects are independent:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use tokio;
 
 async fn load_dashboard(user_id: u64, env: &amp;Env) -&gt; Result&lt;Dashboard, Error&gt; {
@@ -348,12 +330,10 @@ async fn load_dashboard(user_id: u64, env: &amp;Env) -&gt; Result&lt;Dashboard, 
 
     Ok(Dashboard { user, projects, notifications })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-6-combining-independent-effects-with-zip"><a class="header" href="#pattern-6-combining-independent-effects-with-zip">Pattern 6: Combining Independent Effects with Zip</a></h3>
 <p>Use <code>zip</code> when you need both results from independent effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+<pre><code class="language-text">use stillwater::prelude::*;
 
 // Basic zip: combine two independent effects into a tuple
 fn load_user_with_settings(id: UserId) -&gt; impl Effect&lt;Output = (User, Settings), Error = AppError, Env = AppEnv&gt; {
@@ -383,7 +363,7 @@ fn chained_example() -&gt; impl Effect&lt;Output = i32, Error = String, Env = ()
         .zip(pure(3))
         .map(|((a, b), c)| a + b + c)  // Note the nested tuple
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key points:</strong></p>
 <ul>
 <li><code>zip</code> expresses independence - neither effect depends on the other’s output</li>
@@ -396,19 +376,20 @@ fn chained_example() -&gt; impl Effect&lt;Output = i32, Error = String, Env = ()
 <p>Pure functions need no mocking:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[test]
-fn test_pure_validation() {
-    let result = validate_email("user@example.com");
-    assert!(result.is_success());
+</span>use stillwater::Validation;
 
-    let result = validate_email("invalid");
-    assert!(result.is_failure());
+fn validate_email(email: &amp;str) -&gt; Validation&lt;&amp;str, Vec&lt;&amp;str&gt;&gt; {
+    if email.contains('@') {
+        Validation::success(email)
+    } else {
+        Validation::failure(vec!["missing @"])
+    }
 }
+assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
 <span class="boring">}</span></code></pre>
 <h3 id="pattern-2-testing-effects-with-mock-environment"><a class="header" href="#pattern-2-testing-effects-with-mock-environment">Pattern 2: Testing Effects with Mock Environment</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 struct MockEnv {
     users: HashMap&lt;u64, User&gt;,
@@ -432,23 +413,20 @@ async fn test_user_workflow() {
 
     assert!(result.is_ok());
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-testing-error-cases"><a class="header" href="#pattern-3-testing-error-cases">Pattern 3: Testing Error Cases</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+</span>use stillwater::prelude::*;
+use std::collections::HashMap;
 
-#[tokio::test]
-async fn test_user_not_found() {
-    let env = MockEnv {
-        users: HashMap::new(),  // Empty
-    };
+#[derive(Clone, Default)]
+struct Env { users: HashMap&lt;u64, String&gt; }
 
-    let effect = from_fn(|env: &amp;MockEnv| env.fetch_user(999));
-    let result = effect.execute(&amp;env).await;
-
-    assert_eq!(result, Err(Error::NotFound));
-}
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &amp;Env| env.users.get(&amp;999).cloned().ok_or("not found"));
+    assert_eq!(effect.run(&amp;Env::default()).await, Err("not found"));
+});
 <span class="boring">}</span></code></pre>
 <h2 id="error-handling-patterns"><a class="header" href="#error-handling-patterns">Error Handling Patterns</a></h2>
 <h3 id="pattern-1-domain-specific-errors"><a class="header" href="#pattern-1-domain-specific-errors">Pattern 1: Domain-Specific Errors</a></h3>
@@ -474,9 +452,7 @@ impl std::fmt::Display for UserError {
 impl std::error::Error for UserError {}
 <span class="boring">}</span></code></pre>
 <h3 id="pattern-2-error-conversion"><a class="header" href="#pattern-2-error-conversion">Pattern 2: Error Conversion</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn fetch_user(id: u64) -&gt; impl Effect&lt;Output = User, Error = AppError, Env = Env&gt; {
     from_fn(|env: &amp;Env| {
@@ -484,11 +460,9 @@ fn fetch_user(id: u64) -&gt; impl Effect&lt;Output = User, Error = AppError, Env
             .map_err(|e| AppError::Database(e.to_string()))
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-error-context-trails"><a class="header" href="#pattern-3-error-context-trails">Pattern 3: Error Context Trails</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn complex_operation() -&gt; impl Effect&lt;Output = Result, Error = ContextError&lt;Error&gt;, Env = Env&gt; {
     step1()
@@ -501,12 +475,10 @@ fn complex_operation() -&gt; impl Effect&lt;Output = Result, Error = ContextErro
         })
         .context("complex operation")
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="composition-patterns"><a class="header" href="#composition-patterns">Composition Patterns</a></h2>
 <h3 id="pattern-1-building-complex-validations"><a class="header" href="#pattern-1-building-complex-validations">Pattern 1: Building Complex Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_address(addr: &amp;Address) -&gt; Validation&lt;ValidAddress, Vec&lt;Error&gt;&gt; {
+<pre><code class="language-text">fn validate_address(addr: &amp;Address) -&gt; Validation&lt;ValidAddress, Vec&lt;Error&gt;&gt; {
     Validation::all((
         validate_street(&amp;addr.street),
         validate_city(&amp;addr.city),
@@ -528,11 +500,9 @@ fn validate_contact(contact: &amp;Contact) -&gt; Validation&lt;ValidContact, Vec
         ValidContact { email, phone, address }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-2-effect-pipelines"><a class="header" href="#pattern-2-effect-pipelines">Pattern 2: Effect Pipelines</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn user_registration_pipeline(input: UserInput) -&gt; impl Effect&lt;Output = User, Error = Error, Env = Env&gt; {
     validate_input(input)
@@ -542,13 +512,11 @@ fn user_registration_pipeline(input: UserInput) -&gt; impl Effect&lt;Output = Us
         .and_then(|user| create_default_settings(user))
         .context("user registration")
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="resource-management-patterns"><a class="header" href="#resource-management-patterns">Resource Management Patterns</a></h2>
 <p>The bracket pattern ensures resources are properly released even when errors occur.</p>
 <h3 id="pattern-1-single-resource-with-guaranteed-cleanup"><a class="header" href="#pattern-1-single-resource-with-guaranteed-cleanup">Pattern 1: Single Resource with Guaranteed Cleanup</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::bracket;
+<pre><code class="language-text">use stillwater::effect::bracket::bracket;
 use stillwater::prelude::*;
 
 fn with_database_connection&lt;T&gt;(
@@ -565,12 +533,10 @@ fn with_database_connection&lt;T&gt;(
 let result = with_database_connection(|conn| {
     from_fn(move |_| conn.query("SELECT * FROM users"))
 }).execute(&amp;env).await;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-2-multiple-resources-with-lifo-cleanup"><a class="header" href="#pattern-2-multiple-resources-with-lifo-cleanup">Pattern 2: Multiple Resources with LIFO Cleanup</a></h3>
 <p>Resources are released in reverse order of acquisition (Last In, First Out):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::bracket2;
+<pre><code class="language-text">use stillwater::effect::bracket::bracket2;
 
 fn with_db_and_file(
     path: &amp;Path,
@@ -583,12 +549,10 @@ fn with_db_and_file(
         |db, file| process_data(db, file),
     )
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-fluent-builder-for-multiple-resources"><a class="header" href="#pattern-3-fluent-builder-for-multiple-resources">Pattern 3: Fluent Builder for Multiple Resources</a></h3>
 <p>The <code>acquiring</code> builder provides ergonomic multi-resource management:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::acquiring;
+<pre><code class="language-text">use stillwater::effect::bracket::acquiring;
 
 fn complex_operation() -&gt; impl Effect&lt;Output = Result, Error = AppError, Env = AppEnv&gt; {
     acquiring(
@@ -603,12 +567,10 @@ fn complex_operation() -&gt; impl Effect&lt;Output = Result, Error = AppError, E
         do_work(conn, lock, file)
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-4-explicit-error-handling-with-bracketerror"><a class="header" href="#pattern-4-explicit-error-handling-with-bracketerror">Pattern 4: Explicit Error Handling with BracketError</a></h3>
 <p>When you need to distinguish between use errors and cleanup errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::{bracket_full, BracketError};
+<pre><code class="language-text">use stillwater::effect::bracket::{bracket_full, BracketError};
 
 fn with_explicit_errors() -&gt; impl Effect&lt;Output = Data, Error = BracketError&lt;AppError&gt;, Env = AppEnv&gt; {
     bracket_full(
@@ -639,12 +601,10 @@ match result {
         log::error!("Use failed: {:?}, cleanup also failed: {:?}", use_error, cleanup_error);
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-5-partial-acquisition-rollback"><a class="header" href="#pattern-5-partial-acquisition-rollback">Pattern 5: Partial Acquisition Rollback</a></h3>
 <p>When acquiring multiple resources, earlier acquisitions are rolled back if later ones fail:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::acquiring;
+<pre><code class="language-text">use stillwater::effect::bracket::acquiring;
 
 // If file acquisition fails, connection is automatically released
 let effect = acquiring(
@@ -659,12 +619,10 @@ let effect = acquiring(
 
 // Connection is properly cleaned up even though file failed
 let result = effect.execute(&amp;env).await;  // Returns file acquisition error
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-6-connection-pool-pattern"><a class="header" href="#pattern-6-connection-pool-pattern">Pattern 6: Connection Pool Pattern</a></h3>
 <p>Encapsulate resource management in reusable abstractions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::bracket::Resource;
+<pre><code class="language-text">use stillwater::effect::bracket::Resource;
 
 struct ConnectionPool {
     // ... pool internals
@@ -685,7 +643,7 @@ let result = pool.connection()
     .with(|conn| from_fn(move |_| conn.query("SELECT 1")))
     .execute(&amp;env)
     .await;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="performance-patterns"><a class="header" href="#performance-patterns">Performance Patterns</a></h2>
 <h3 id="pattern-1-avoid-excessive-boxing"><a class="header" href="#pattern-1-avoid-excessive-boxing">Pattern 1: Avoid Excessive Boxing</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -703,9 +661,7 @@ let effect = pure::&lt;_, String, ()&gt;(1)
     .map(|x| (x + 1) * 2 - 3);
 <span class="boring">}</span></code></pre>
 <h3 id="pattern-2-batch-operations"><a class="header" href="#pattern-2-batch-operations">Pattern 2: Batch Operations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 // Instead of many individual queries:
 for id in ids {
@@ -714,7 +670,7 @@ for id in ids {
 
 // Batch fetch:
 let users = fetch_users_batch(ids).execute(&amp;env).await?;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <p>These patterns cover common use cases. Mix and match them based on your needs!</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>

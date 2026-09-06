@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -203,10 +203,8 @@
 <h3 id="what-if-i-need-more-than-12-validations"><a class="header" href="#what-if-i-need-more-than-12-validations">What if I need more than 12 validations?</a></h3>
 <p>Use <code>Validation::all_vec()</code> for homogeneous collections, or nest tuples: <code>Validation::all((all1, all2, all3))</code>.</p>
 <h3 id="how-do-i-convert-validation-to-result"><a class="header" href="#how-do-i-convert-validation-to-result">How do I convert Validation to Result?</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let result: Result&lt;T, E&gt; = validation.into_result();
-<span class="boring">}</span></code></pre>
+<pre><code class="language-text">let result: Result&lt;T, E&gt; = validation.into_result();
+</code></pre>
 <h3 id="do-i-need-to-implement-semigroup-for-every-error-type"><a class="header" href="#do-i-need-to-implement-semigroup-for-every-error-type">Do I need to implement Semigroup for every error type?</a></h3>
 <p>Only if you want to use <code>Validation::all()</code>. <code>Vec&lt;T&gt;</code>, <code>String</code>, and tuples already implement Semigroup. Most of the time you’ll use <code>Vec&lt;YourError&gt;</code> which works out of the box.</p>
 <h2 id="effects"><a class="header" href="#effects">Effects</a></h2>
@@ -219,7 +217,9 @@
 <h3 id="how-do-i-test-effects"><a class="header" href="#how-do-i-test-effects">How do I test Effects?</a></h3>
 <p>Create simple mock environments (just data structures). Pure functions in your Effects need no mocking. See <a href="https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs">testing_patterns example</a>.</p>
 <h3 id="does-effect-have-performance-overhead"><a class="header" href="#does-effect-have-performance-overhead">Does Effect have performance overhead?</a></h3>
-<p>No! Stillwater follows the <code>futures</code> crate pattern: <strong>zero-cost by default</strong>. Each combinator returns a concrete type (like <code>Map</code>, <code>AndThen</code>) that the compiler can fully inline. No heap allocations occur for effect chains.</p>
+<p>No. Stillwater follows the <code>futures</code> crate pattern: combinators return concrete types such
+as <code>Map</code> and <code>AndThen</code>, so composition does not box by default. Captured application values,
+service calls, boxed collections, and <code>from_async_ref</code> may still allocate.</p>
 <p>When you need type erasure (collections, recursion, match arms), use <code>.boxed()</code> which allocates once. For I/O-bound work, this is negligible.</p>
 <h3 id="when-should-i-use-boxed"><a class="header" href="#when-should-i-use-boxed">When should I use <code>.boxed()</code>?</a></h3>
 <p>Use <code>.boxed()</code> in exactly three cases:</p>
@@ -228,9 +228,7 @@
 <li><strong>Recursion</strong>: Breaking infinite type recursion</li>
 <li><strong>Match arms</strong>: When different branches return different effect types</li>
 </ol>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Collections
+<pre><code class="language-text">// Collections
 let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
     pure(1).boxed(),
     pure(2).map(|x| x * 2).boxed(),
@@ -241,9 +239,9 @@ fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
     if n &lt;= 0 { pure(0).boxed() }
     else { pure(n).and_then(move |_| countdown(n - 1)).boxed() }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="why-did-the-api-change-in-0110"><a class="header" href="#why-did-the-api-change-in-0110">Why did the API change in 0.11.0?</a></h3>
-<p>Version 0.11.0 introduced a zero-cost Effect design following the <code>futures</code> crate pattern. The old API boxed every combinator; the new API uses concrete types by default.</p>
+<p>Version 0.11.0 introduced a concrete-combinator Effect design following the <code>futures</code> crate pattern. The old API boxed every combinator; the new API uses concrete types by default.</p>
 <p>Key changes:</p>
 <ul>
 <li><code>Effect::pure(x)</code> → <code>pure(x)</code></li>
@@ -264,41 +262,42 @@ fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
 <p>No. Use it at I/O boundaries and major operation boundaries where context helps debugging. Don’t add context to pure functions or in hot loops.</p>
 <h3 id="can-i-mix-validation-and-effect"><a class="header" href="#can-i-mix-validation-and-effect">Can I mix Validation and Effect?</a></h3>
 <p>Yes! Common pattern:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>Effect::from_validation(validate_data(data))
+<pre><code class="language-text">from_validation(validate_data(data))
     .and_then(|valid| save_to_db(valid))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Validate first (pure, accumulates errors), then lift to Effect for I/O.</p>
 <h3 id="how-do-i-handle-errors-from-third-party-libraries"><a class="header" href="#how-do-i-handle-errors-from-third-party-libraries">How do I handle errors from third-party libraries?</a></h3>
 <p>Map them to your error types:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>from_async(|env: &amp;AppEnv| async {
-    env.db.query()
+<pre><code class="language-text">from_async_ref(|env: &amp;AppEnv| Box::pin(async move {
+    env.db
+        .query()
         .await
         .map_err(|err| MyError::Database(err.to_string()))
-})
-<span class="boring">}</span></code></pre>
+}))
+</code></pre>
 <h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
 <h3 id="is-there-overhead"><a class="header" href="#is-there-overhead">Is there overhead?</a></h3>
-<p>No! The Effect trait is zero-cost by default:</p>
+<p>Effect composition does not box by default:</p>
 <ul>
 <li>Each combinator returns a concrete type (like <code>Map&lt;AndThen&lt;Pure&lt;...&gt;, F&gt;, G&gt;</code>)</li>
 <li>The compiler can fully inline the effect chain</li>
-<li>No heap allocations occur</li>
+<li>The combinator layer itself does not allocate</li>
 </ul>
-<p>Validation is just an enum with no overhead. Both compile to efficient code identical to hand-written async functions.</p>
+<p>Validation is an enum and Effect combinators are ordinary concrete structs. Application
+values, service calls, async implementations, and error collections can still allocate;
+benchmark the complete workload when overhead matters.</p>
 <h3 id="when-does-allocation-happen"><a class="header" href="#when-does-allocation-happen">When does allocation happen?</a></h3>
-<p>Only when you explicitly call <code>.boxed()</code>:</p>
+<p>Stillwater allocates for explicit effect type erasure and for APIs whose contracts require it:</p>
 <ul>
 <li>Storing effects in collections</li>
 <li>Recursive effects</li>
 <li>Match arms with different effect types</li>
+<li><code>from_async_ref</code>, which boxes a future once per run so it can borrow the environment</li>
 </ul>
 <p>For I/O-bound applications (API calls, database queries), boxing overhead is negligible compared to actual work.</p>
 <h3 id="can-i-use-stillwater-in-hot-loops"><a class="header" href="#can-i-use-stillwater-in-hot-loops">Can I use Stillwater in hot loops?</a></h3>
-<p>Yes! The zero-cost design means you can use Effects in performance-sensitive code. Just avoid <code>.boxed()</code> in the hot path. For tight loops, benchmark to confirm.</p>
+<p>Yes. Prefer concrete effects in hot paths and benchmark the full workload; avoiding <code>.boxed()</code>
+removes type-erasure allocation but does not make captured application work allocation-free.</p>
 <h3 id="can-i-use-no_std"><a class="header" href="#can-i-use-no_std">Can I use no_std?</a></h3>
 <p>Not currently. Effect requires <code>std</code> for async/boxing. Future versions may add no_std support for Validation.</p>
 <h2 id="comparison"><a class="header" href="#comparison">Comparison</a></h2>
@@ -323,27 +322,29 @@ fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
 <li>Performance improvements</li>
 </ul>
 <h3 id="whats-the-roadmap"><a class="header" href="#whats-the-roadmap">What’s the roadmap?</a></h3>
-<p>See specs in the <a href="https://github.com/iepathos/stillwater/tree/master/specs">specs/</a> directory for planned features. Current areas under consideration include:</p>
+<p>See the <a href="https://github.com/iepathos/stillwater/tree/master/specs">specification index</a>
+for proposal statuses. Drafts are not release commitments. Current areas under consideration include:</p>
 <ul>
 <li>Saga-style compensation for multi-step workflows</li>
 <li>Serde and framework integration</li>
 <li>Benchmarks and performance validation</li>
-<li>Circuit breaker support</li>
-<li>Additional Result and tuple combinator ergonomics</li>
+<li>Additional Result ergonomics</li>
 </ul>
+<p>Circuit breakers and flat tuple Effect combinators are parked, with reactivation
+criteria recorded in their specifications.</p>
 <h3 id="is-this-production-ready"><a class="header" href="#is-this-production-ready">Is this production-ready?</a></h3>
-<p>Yes. Stillwater 1.0 is stable with comprehensive unit, integration, and documentation tests.</p>
+<p>Stillwater 2.0 is the next major release candidate. Its test suite covers library
+behavior, executable documentation, and the canonical registration example. Release
+readiness also requires CI and package verification; examples are not production service adapters.</p>
 <h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
 <h3 id="cannot-infer-type-for-effect"><a class="header" href="#cannot-infer-type-for-effect">“Cannot infer type for Effect”</a></h3>
 <p>Specify type parameters explicitly on constructor functions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Instead of:
+<pre><code class="language-text">// Instead of:
 let effect = pure(42);
 
 // Do:
 let effect = pure::&lt;_, String, ()&gt;(42);
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="expected-struct-found-opaque-type"><a class="header" href="#expected-struct-found-opaque-type">“expected struct, found opaque type”</a></h3>
 <p>You’re returning <code>impl Effect</code> but the caller expects a concrete type. Either:</p>
 <ol>
@@ -352,38 +353,32 @@ let effect = pure::&lt;_, String, ()&gt;(42);
 </ol>
 <h3 id="recursive-type-has-infinite-size"><a class="header" href="#recursive-type-has-infinite-size">“recursive type has infinite size”</a></h3>
 <p>Use <code>.boxed()</code> for recursive effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
+<pre><code class="language-text">fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
     if n &lt;= 0 { pure(0).boxed() }
     else { pure(n).and_then(move |_| countdown(n - 1)).boxed() }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="validationall-doesnt-compile"><a class="header" href="#validationall-doesnt-compile">“Validation::all doesn’t compile”</a></h3>
 <p>Make sure your error type implements Semigroup:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Semigroup;
+<pre><code class="language-text">use stillwater::Semigroup;
 
 impl Semigroup for MyError {
     fn combine(self, other: Self) -&gt; Self {
         // Combine errors
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Or use <code>Vec&lt;MyError&gt;</code> which already implements Semigroup.</p>
 <h3 id="effectrun-returns-nested-results"><a class="header" href="#effectrun-returns-nested-results">“Effect.run() returns nested Results”</a></h3>
 <p>Check your function signatures. <code>from_fn</code> expects functions returning <code>Result&lt;T, E&gt;</code>, not bare values:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Wrong:
+<pre><code class="language-text">// Wrong:
 from_fn(|db: &amp;Db| db.fetch_user(id))  // If fetch_user returns User directly
 
 // Right:
 from_fn(|db: &amp;Db| Ok(db.fetch_user(id)))
 // Or if fetch_user returns Result:
 from_fn(|db: &amp;Db| db.fetch_user(id))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="getting-more-help"><a class="header" href="#getting-more-help">Getting More Help</a></h2>
 <ul>
 <li>Read the <a href="guide/">User Guide</a></li>

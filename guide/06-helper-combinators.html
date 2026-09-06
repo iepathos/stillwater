@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,82 +181,61 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="helper-combinators"><a class="header" href="#helper-combinators">Helper Combinators</a></h1>
-<p>Stillwater provides helper functions for common patterns with Validation and Effect.</p>
-<h2 id="validation-combinators"><a class="header" href="#validation-combinators">Validation Combinators</a></h2>
-<h3 id="all---combine-multiple-validations"><a class="header" href="#all---combine-multiple-validations">all() - Combine multiple validations</a></h3>
-<p>Already covered in <a href="02-validation.html">Validation guide</a>:</p>
+<p>Use composition to describe a small operation clearly. Prefer a named domain struct or
+ordinary function when a long chain makes the data flow difficult to follow.</p>
+<h2 id="accumulate-independent-validations"><a class="header" href="#accumulate-independent-validations">Accumulate independent validations</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use stillwater::Validation;
 
-Validation::all((
-    validate_email(email),
-    validate_age(age),
-    validate_password(password),
-))
-<span class="boring">}</span></code></pre>
-<h3 id="all_vec---combine-vector-of-validations"><a class="header" href="#all_vec---combine-vector-of-validations">all_vec() - Combine vector of validations</a></h3>
-<p>For homogeneous collections:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Validation;
+let values = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all((
+    Validation::&lt;_, Vec&lt;&amp;str&gt;&gt;::success(1),
+    Validation::success(2),
+));
+assert_eq!(values.into_result(), Ok((1, 2)));
 
-let validations: Vec&lt;Validation&lt;Item, Vec&lt;Error&gt;&gt;&gt; = items
-    .into_iter()
-    .map(|item| validate_item(item))
-    .collect();
+let failures = Validation::&lt;i32, Vec&lt;&amp;str&gt;&gt;::all_vec(vec![
+    Validation::failure(vec!["name"]),
+    Validation::failure(vec!["email"]),
+]);
+assert_eq!(failures.into_result(), Err(vec!["name", "email"]));
+<span class="boring">}</span></code></pre>
+<h2 id="map-chain-and-translate-errors"><a class="header" href="#map-chain-and-translate-errors">Map, chain, and translate errors</a></h2>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
 
-let result: Validation&lt;Vec&lt;Item&gt;, Vec&lt;Error&gt;&gt; = Validation::all_vec(validations);
+tokio_test::block_on(async {
+    let effect = pure::&lt;_, &amp;str, ()&gt;(21)
+        .map(|value| value * 2)
+        .and_then(|value| from_result(Ok(value + 1)))
+        .map_err(str::to_string);
+    assert_eq!(effect.run(&amp;()).await, Ok(43));
+});
 <span class="boring">}</span></code></pre>
-<h2 id="effect-combinators"><a class="header" href="#effect-combinators">Effect Combinators</a></h2>
-<h3 id="map---transform-success-value"><a class="header" href="#map---transform-success-value">map() - Transform success value</a></h3>
+<p><code>map</code> transforms a value; <code>and_then</code> constructs a dependent effect; <code>map_err</code> translates
+an error at a boundary. None of these automatically accumulates failures.</p>
+<h2 id="write-a-small-reusable-wrapper"><a class="header" href="#write-a-small-reusable-wrapper">Write a small reusable wrapper</a></h2>
+<p>Accept an effect through its trait instead of using the removed generic Effect struct.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>effect.map(|user| user.email)
-<span class="boring">}</span></code></pre>
-<h3 id="and_then---chain-dependent-effects"><a class="header" href="#and_then---chain-dependent-effects">and_then() - Chain dependent effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>effect.and_then(|user| load_profile(user))
-<span class="boring">}</span></code></pre>
-<h3 id="map_err---transform-error-value"><a class="header" href="#map_err---transform-error-value">map_err() - Transform error value</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>effect.map_err(|e| format!("Failed: {}", e))
-<span class="boring">}</span></code></pre>
-<h2 id="building-custom-combinators"><a class="header" href="#building-custom-combinators">Building Custom Combinators</a></h2>
-<p>You can build your own combinators for common patterns:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, Validation};
+</span>use stillwater::prelude::*;
 
-// Retry combinator
-fn retry&lt;T, E, Env&gt;(
-    effect: Effect&lt;T, E, Env&gt;,
-    times: usize
-) -&gt; Effect&lt;T, E, Env&gt;
+fn require_positive&lt;E&gt;(effect: E) -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = E::Env&gt;
 where
-    T: Clone,
-    E: Clone,
+    E: Effect&lt;Output = i32, Error = &amp;'static str&gt;,
 {
-    // Implementation left as exercise
-    effect
+    effect.ensure(|value| *value &gt; 0, "must be positive")
 }
 
-// Timeout combinator
-fn timeout&lt;T, E, Env&gt;(
-    effect: Effect&lt;T, E, Env&gt;,
-    duration: Duration
-) -&gt; Effect&lt;T, TimeoutError&lt;E&gt;, Env&gt; {
-    // Implementation left as exercise
-    todo!()
-}
+tokio_test::block_on(async {
+    assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(1)).run(&amp;()).await, Ok(1));
+    assert_eq!(require_positive(pure::&lt;_, &amp;str, ()&gt;(0)).run(&amp;()).await, Err("must be positive"));
+});
 <span class="boring">}</span></code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Learn about <a href="07-try-trait.html">Try Trait</a> (nightly feature)</li>
-<li>See <a href="../PATTERNS.html">Patterns</a> for more recipes</li>
-</ul>
+<p>Retry requires a factory because running an effect consumes it. Use the existing
+<a href="12-retry.html">retry and timeout helpers</a> rather than a wrapper that pretends to rerun
+the same effect. See <a href="03-effects.html">effects</a> for the core architecture.</p>
 
                     </main>
 

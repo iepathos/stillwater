@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,273 +180,148 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="migration-guide-stillwater-010x-to-0110"><a class="header" href="#migration-guide-stillwater-010x-to-0110">Migration Guide: Stillwater 0.10.x to 0.11.0</a></h1>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>Stillwater 0.11.0 introduces a zero-cost Effect API, following the <code>futures</code> crate pattern. This is a breaking change that requires updating your code.</p>
-<h2 id="key-changes"><a class="header" href="#key-changes">Key Changes</a></h2>
+                        <h1 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h1>
+<h2 id="stillwater-1x-to-20"><a class="header" href="#stillwater-1x-to-20">Stillwater 1.x to 2.0</a></h2>
+<p>The core <code>Effect</code> trait remains asynchronous. This release removes deprecated
+compatibility APIs and gives effect traversal explicit execution names.</p>
+<h3 id="choose-traversal-semantics-deliberately"><a class="header" href="#choose-traversal-semantics-deliberately">Choose traversal semantics deliberately</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>0.10.x</th><th>0.11.0</th></tr>
+<tr><th>1.x API</th><th>Preserve concurrent execution</th><th>Opt into ordered, fail-fast execution</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Effect&lt;T, E, Env&gt;</code> struct (boxed per combinator)</td><td><code>impl Effect&lt;Output=T, Error=E, Env=Env&gt;</code> trait (zero-cost)</td></tr>
-<tr><td><code>Effect::pure(x)</code></td><td><code>pure(x)</code> or <code>pure::&lt;_, E, Env&gt;(x)</code></td></tr>
-<tr><td><code>Effect::fail(e)</code></td><td><code>fail(e)</code> or <code>fail::&lt;T, _, Env&gt;(e)</code></td></tr>
-<tr><td><code>Effect::from_fn(f)</code></td><td><code>from_fn(f)</code></td></tr>
-<tr><td>N/A</td><td><code>from_async(f)</code>, <code>from_result(r)</code>, <code>from_option(o, err)</code></td></tr>
-<tr><td>N/A</td><td><code>ask()</code>, <code>asks(f)</code>, <code>local(f, effect)</code></td></tr>
-<tr><td><code>.run(&amp;env).await</code></td><td><code>.run(&amp;env).await</code> or <code>.execute(&amp;env).await</code></td></tr>
-<tr><td>Always boxed</td><td>Zero-cost by default, opt-in <code>.boxed()</code></td></tr>
+<tr><td><code>traverse_effect(items, f)</code></td><td><code>traverse_effect_parallel(items, f)</code></td><td><code>traverse_effect_sequential(items, f)</code></td></tr>
+<tr><td><code>sequence_effect(effects)</code></td><td><code>sequence_effect_parallel(effects)</code></td><td><code>sequence_effect_sequential(effects)</code></td></tr>
 </tbody>
 </table>
 </div>
-<h2 id="why-the-change"><a class="header" href="#why-the-change">Why the Change?</a></h2>
-<p>The old API boxed every combinator, allocating on the heap for each <code>.map()</code>, <code>.and_then()</code>, etc. While this was acceptable for I/O-bound work, it added unnecessary overhead for compute-bound code and prevented certain compiler optimizations.</p>
-<p>The new API follows the pattern established by the <code>futures</code> crate:</p>
-<ul>
-<li><strong>Zero-cost by default</strong>: Each combinator returns a concrete type, enabling full inlining</li>
-<li><strong>Explicit boxing</strong>: Use <code>.boxed()</code> only when type erasure is needed</li>
-</ul>
-<h2 id="migration-steps"><a class="header" href="#migration-steps">Migration Steps</a></h2>
-<h3 id="step-1-update-imports"><a class="header" href="#step-1-update-imports">Step 1: Update Imports</a></h3>
+<p>The 1.x implementation ran children concurrently and awaited all results, despite
+documentation claiming sequential fail-fast behavior. The parallel variants preserve
+that execution policy. Choosing sequential is an intentional behavior change: later
+operations will not run after an earlier failure.</p>
+<p>Traversal factory timing also changes. In 1.x, <code>traverse_effect</code> called <code>f</code> immediately
+when building the traversal. Both new variants defer <code>f</code> until execution; parallel
+constructs the full batch before polling children, while sequential constructs each
+child only after the previous one succeeds. Move required construction-time work into
+an explicit step rather than relying on the old factory timing.</p>
+<p>All variants still eagerly enumerate their input iterators when called. They clone the
+environment for execution and return boxed effects. Concurrent completion order does
+not change output ordering or which error is returned: the first error by input position
+wins after all children finish. Dropping the parent future cancels unfinished children.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Before
-use stillwater::Effect;
+</span>use stillwater::prelude::*;
 
-// After - Option A: Use prelude (recommended)
+tokio_test::block_on(async {
+    let batch = traverse_effect_parallel([1, 2, 3], |value| {
+        pure::&lt;_, &amp;str, ()&gt;(value * 2).boxed()
+    });
+    assert_eq!(batch.run(&amp;()).await, Ok(vec![2, 4, 6]));
+
+    let ordered = sequence_effect_sequential(vec![
+        pure::&lt;_, &amp;str, ()&gt;(1).boxed(),
+        fail("stop").boxed(),
+        pure(3).boxed(),
+    ]);
+    assert_eq!(ordered.run(&amp;()).await, Err("stop"));
+});
+<span class="boring">}</span></code></pre>
+<h3 id="replace-legacy-aliases-and-constructors"><a class="header" href="#replace-legacy-aliases-and-constructors">Replace legacy aliases and constructors</a></h3>
+<p><code>LegacyEffect</code> and <code>LegacyConstructors</code> have been removed, not just deprecated.
+Use free constructors, return <code>impl Effect</code> for concrete composition, and use
+<code>BoxedEffect</code> when a single erased type is needed. <code>RunStandalone</code> remains supported.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use stillwater::prelude::*;
+
+fn concrete() -&gt; impl Effect&lt;Output = i32, Error = &amp;'static str, Env = ()&gt; {
+    pure(42)
+}
+
+fn erased() -&gt; BoxedEffect&lt;i32, &amp;'static str, ()&gt; {
+    concrete().boxed()
+}
+
+tokio_test::block_on(async {
+    assert_eq!(concrete().run_standalone().await, Ok(42));
+    assert_eq!(erased().run(&amp;()).await, Ok(42));
+});
+<span class="boring">}</span></code></pre>
+<h3 id="replace-bracket_simple"><a class="header" href="#replace-bracket_simple">Replace bracket_simple</a></h3>
+<p>The removed function accepted <code>(acquire, use_fn, release_fn)</code>. The replacement
+<code>bracket</code> accepts <code>(acquire, release_fn, use_fn)</code>.</p>
+<p>The use callback now receives <code>&amp;R</code>; release receives ownership of <code>R</code> and returns a
+future with output <code>Result&lt;(), E&gt;</code>. It is an async callback, not an Effect.
+The error type also needs <code>Debug</code>. If use needs owned data, explicitly clone the
+necessary data before constructing its effect; the resource itself no longer needs
+<code>Clone</code> just to enter the use callback.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 use stillwater::prelude::*;
-// or
-use stillwater::effect::prelude::*;
 
-// After - Option B: Direct imports
-use stillwater::{pure, fail, from_fn, Effect, EffectExt, BoxedEffect};
+tokio_test::block_on(async {
+    let released = Arc::new(AtomicBool::new(false));
+    let observed = Arc::clone(&amp;released);
+    let effect = bracket(
+        pure::&lt;_, &amp;str, ()&gt;(String::from("connection")),
+        move |_resource| async move {
+            observed.store(true, Ordering::SeqCst);
+            Ok(())
+        },
+        |resource: &amp;String| pure(resource.len()),
+    );
+    assert_eq!(effect.run(&amp;()).await, Ok(10));
+    assert!(released.load(Ordering::SeqCst));
+});
 <span class="boring">}</span></code></pre>
-<h3 id="step-2-update-return-types"><a class="header" href="#step-2-update-return-types">Step 2: Update Return Types</a></h3>
+<p><code>bracket</code> logs cleanup errors and returns the use result. Choose <code>bracket_full</code> when
+cleanup failure must be returned to the caller:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Before
-fn my_effect() -&gt; Effect&lt;i32, String, ()&gt; {
-    Effect::pure(42)
-}
+</span>use stillwater::prelude::*;
 
-// After - Option A: Zero-cost (preferred)
-fn my_effect() -&gt; impl Effect&lt;Output = i32, Error = String, Env = ()&gt; {
-    pure(42)
-}
-
-// After - Option B: Boxed (when needed)
-fn my_effect_boxed() -&gt; BoxedEffect&lt;i32, String, ()&gt; {
-    pure(42).boxed()
-}
-
-// Running effects - both work:
-let result = my_effect().run(&amp;()).await;      // From Effect trait
-let result = my_effect().execute(&amp;()).await;  // Convenience method
+tokio_test::block_on(async {
+    let effect = bracket_full(
+        pure::&lt;_, &amp;str, ()&gt;(()),
+        |_| async { Err("cleanup failed") },
+        |_| pure(42),
+    );
+    assert_eq!(
+        effect.run(&amp;()).await,
+        Err(BracketError::CleanupError("cleanup failed")),
+    );
+});
 <span class="boring">}</span></code></pre>
-<h3 id="step-3-update-constructor-calls"><a class="header" href="#step-3-update-constructor-calls">Step 3: Update Constructor Calls</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before
-Effect::pure(42)
-Effect::fail("error")
-Effect::from_fn(|env| Ok(env.value))
-
-// After - basic constructors
-pure(42)
-fail("error")
-from_fn(|env| Ok(env.value))
-
-// After - additional constructors available
-from_async(|env| async { Ok(value) })  // For async operations
-from_result(Ok(42))                     // From Result
-from_option(Some(42), || "missing")     // From Option with error
-ask()                                   // Get entire environment
-asks(|env| env.config.clone())          // Extract from environment
-local(|env| modified_env, inner_effect) // Run with modified env
-<span class="boring">}</span></code></pre>
-<h3 id="step-4-add-boxed-where-needed"><a class="header" href="#step-4-add-boxed-where-needed">Step 4: Add <code>.boxed()</code> Where Needed</a></h3>
-<p>If you’re storing effects in collections, using recursion, or returning different effect types from match arms, add <code>.boxed()</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{pure, BoxedEffect, EffectExt};
-
-// Collections - need same type
-let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
-    pure(1).boxed(),
-    pure(2).boxed(),
-];
-
-// Recursion - need to break infinite type
-fn recursive(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
-    if n &lt;= 0 {
-        pure(0).boxed()
-    } else {
-        pure(n)
-            .and_then(move |_| recursive(n - 1))
-            .boxed()
-    }
-}
-
-// Match arms - need same type
-fn conditional(flag: bool) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
-    if flag {
-        pure(1).boxed()
-    } else {
-        pure(2).map(|x| x * 2).boxed()
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="using-the-compatibility-module"><a class="header" href="#using-the-compatibility-module">Using the Compatibility Module</a></h2>
-<p>For gradual migration, use the compatibility module:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[allow(deprecated)]
-use stillwater::LegacyEffect; // Type alias for BoxedEffect
-
-// Old-style code (with deprecation warnings)
-fn my_effect() -&gt; LegacyEffect&lt;i32, String, ()&gt; {
-    stillwater::pure(42).boxed()
-}
-<span class="boring">}</span></code></pre>
-<p>The <code>LegacyEffect</code> type alias and <code>LegacyConstructors</code> trait are deprecated. Migrate to the new API as soon as possible.</p>
-<h2 id="common-issues"><a class="header" href="#common-issues">Common Issues</a></h2>
-<h3 id="expected-struct-found-opaque-type"><a class="header" href="#expected-struct-found-opaque-type">“expected struct, found opaque type”</a></h3>
-<p>You’re returning <code>impl Effect</code> but the caller expects a concrete type. Either:</p>
-<ol>
-<li>Use <code>.boxed()</code> to get <code>BoxedEffect</code></li>
-<li>Update the caller to accept <code>impl Effect</code></li>
-</ol>
-<h3 id="cannot-infer-type"><a class="header" href="#cannot-infer-type">“cannot infer type”</a></h3>
-<p>Add type annotations to constructor functions:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pure::&lt;_, String, ()&gt;(42)  // Specify error and env types
-<span class="boring">}</span></code></pre>
-<h3 id="the-trait-bound-is-not-satisfied"><a class="header" href="#the-trait-bound-is-not-satisfied">“the trait bound is not satisfied”</a></h3>
-<p>Make sure your closures are <code>Send</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before (might not be Send)
-.map(|x| x + some_local_ref)
-
-// After (capture by value)
-let value = *some_local_ref;
-.map(move |x| x + value)
-<span class="boring">}</span></code></pre>
-<h3 id="recursive-type-has-infinite-size"><a class="header" href="#recursive-type-has-infinite-size">“recursive type has infinite size”</a></h3>
-<p>You need to use <code>.boxed()</code> for recursive effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn countdown(n: i32) -&gt; BoxedEffect&lt;i32, String, ()&gt; {
-    if n &lt;= 0 {
-        pure(0).boxed()
-    } else {
-        pure(n)
-            .and_then(move |x| countdown(x - 1).map(move |sum| x + sum))
-            .boxed()
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="beforeafter-examples"><a class="header" href="#beforeafter-examples">Before/After Examples</a></h2>
-<h3 id="simple-effect-chain"><a class="header" href="#simple-effect-chain">Simple Effect Chain</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before
-fn calculate() -&gt; Effect&lt;i32, String, AppEnv&gt; {
-    Effect::pure(42)
-        .map(|x| x * 2)
-        .and_then(|x| Effect::pure(x + 10))
-}
-
-// After
-fn calculate() -&gt; impl Effect&lt;Output = i32, Error = String, Env = AppEnv&gt; {
-    pure(42)
-        .map(|x| x * 2)
-        .and_then(|x| pure(x + 10))
-}
-<span class="boring">}</span></code></pre>
-<h3 id="effect-with-environment"><a class="header" href="#effect-with-environment">Effect with Environment</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before
-fn fetch_config() -&gt; Effect&lt;String, AppError, AppEnv&gt; {
-    Effect::from_fn(|env: &amp;AppEnv| {
-        Ok(env.config.api_key.clone())
-    })
-}
-
-// After
-fn fetch_config() -&gt; impl Effect&lt;Output = String, Error = AppError, Env = AppEnv&gt; {
-    asks(|env: &amp;AppEnv| env.config.api_key.clone())
-}
-<span class="boring">}</span></code></pre>
-<h3 id="async-effect"><a class="header" href="#async-effect">Async Effect</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before
-fn fetch_user(id: u64) -&gt; Effect&lt;User, DbError, AppEnv&gt; {
-    Effect::from_async(|env: &amp;AppEnv| {
-        let db = env.db.clone();
-        async move {
-            db.find_user(id).await
-        }
-    })
-}
-
-// After
-fn fetch_user(id: u64) -&gt; impl Effect&lt;Output = User, Error = DbError, Env = AppEnv&gt; {
-    from_async(move |env: &amp;AppEnv| {
-        let db = env.db.clone();
-        async move {
-            db.find_user(id).await
-        }
-    })
-}
-<span class="boring">}</span></code></pre>
-<h3 id="parallel-effects"><a class="header" href="#parallel-effects">Parallel Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
-
-// Heterogeneous parallel (zero-cost) - par2, par3, par4
-let effect = par2(
-    pure::&lt;_, String, ()&gt;(1),
-    pure::&lt;_, String, ()&gt;("hello".to_string()),
-);
-let (num, text) = effect.run(&amp;()).await?;
-
-// Homogeneous parallel (requires boxing) - par_all, race
-let effects: Vec&lt;BoxedEffect&lt;i32, String, ()&gt;&gt; = vec![
-    pure(1).boxed(),
-    pure(2).boxed(),
-    pure(3).boxed(),
-];
-let results = par_all(effects, &amp;()).await?;
-<span class="boring">}</span></code></pre>
-<h2 id="performance-implications"><a class="header" href="#performance-implications">Performance Implications</a></h2>
-<p>The new zero-cost API eliminates heap allocations for effect chains:</p>
+<p>These async brackets do not mask cancellation or guarantee cleanup after panic.
+Use normal ownership/RAII where possible and design asynchronous cleanup protocols explicitly.</p>
+<h3 id="features-and-allocation-expectations"><a class="header" href="#features-and-allocation-expectations">Features and allocation expectations</a></h3>
+<p>The <code>async</code> feature enables Tokio-backed retry and timeout helpers; it does not
+switch <code>Effect</code> between sync and async modes. <code>IO</code> keeps its existing infallible outer
+error channel and is not a replacement for fallible Effect constructors.</p>
+<p>Most combinators store concrete fields without adding boxes. <code>from_async_ref</code> accepts
+a boxed borrowed future; <code>IO</code>, traversal, and retry helpers return boxed effects.
+Calls to <code>.boxed()</code> are therefore not the only possible allocation sites.</p>
+<h2 id="upgrading-directly-from-pre-011-releases"><a class="header" href="#upgrading-directly-from-pre-011-releases">Upgrading directly from pre-0.11 releases</a></h2>
+<p>Those releases used an <code>Effect&lt;T, E, Env&gt;</code> struct and associated constructors.
+Use the current replacements above rather than migrating through removed aliases.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Scenario</th><th>0.10.x</th><th>0.11.0</th></tr>
+<tr><th>Historical spelling</th><th>Current spelling</th></tr>
 </thead>
 <tbody>
-<tr><td>10-combinator chain</td><td>10 Box allocations</td><td>0 allocations</td></tr>
-<tr><td>Effect stored in collection</td><td>1 Box per effect</td><td>1 Box per effect (same)</td></tr>
-<tr><td>Recursive effect</td><td>Multiple boxes</td><td>1 Box per recursion level (same)</td></tr>
+<tr><td><code>Effect::pure(value)</code></td><td><code>pure(value)</code></td></tr>
+<tr><td><code>Effect::fail(error)</code></td><td><code>fail(error)</code></td></tr>
+<tr><td><code>Effect::from_fn(f)</code></td><td><code>from_fn(f)</code></td></tr>
+<tr><td><code>Effect&lt;T, E, Env&gt;</code></td><td><code>impl Effect&lt;Output = T, Error = E, Env = Env&gt;</code> or <code>BoxedEffect&lt;T, E, Env&gt;</code></td></tr>
 </tbody>
 </table>
 </div>
-<p>For I/O-bound applications, this difference is negligible. For compute-bound code or code running in tight loops, the new API can provide meaningful performance improvements.</p>
-<h2 id="getting-help"><a class="header" href="#getting-help">Getting Help</a></h2>
-<ul>
-<li>Check the <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> directory for working code</li>
-<li>Read the <a href="guide/">User Guide</a> for comprehensive tutorials</li>
-<li>See <a href="FAQ.html">FAQ.md</a> for common questions</li>
-<li>Open an issue on <a href="https://github.com/iepathos/stillwater/issues">GitHub</a></li>
-</ul>
+<p>Use <a href="guide/03-effects.html">owned or borrowed async constructors</a> according to whether
+the returned future borrows its environment. See the <a href="guide/17-api-tiers.html">API tiers</a>
+for the recommended 2.0 surface.</p>
 
                     </main>
 

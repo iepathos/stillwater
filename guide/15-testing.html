@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,394 +181,98 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="testing-with-stillwater"><a class="header" href="#testing-with-stillwater">Testing with Stillwater</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Testing code that uses validation and effects requires:</p>
-<ul>
-<li>Setting up mock environments repeatedly</li>
-<li>Writing verbose assertions for <code>Validation</code> types</li>
-<li>Creating test data and checking results manually</li>
-<li>Property-based testing for comprehensive coverage</li>
-</ul>
-<p>Without proper utilities, test code becomes verbose and repetitive, making tests harder to write and maintain.</p>
-<h2 id="the-solution-testing-utilities"><a class="header" href="#the-solution-testing-utilities">The Solution: Testing Utilities</a></h2>
-<p>Stillwater provides ergonomic testing utilities that make writing tests concise and expressive:</p>
+<p>Test domain decisions as ordinary functions, then test the shell’s observable ordering,
+error propagation, and persisted state using explicit service implementations.</p>
+<p>The snippets below execute their assertions as Cargo doctests. In application test files,
+place equivalent bodies in ordinary Rust or Tokio tests. Do not hide doctest examples
+inside test-only modules: a passing doctest can otherwise contain unchecked code.</p>
+<h2 id="pure-decisions-and-accumulated-errors"><a class="header" href="#pure-decisions-and-accumulated-errors">Pure decisions and accumulated errors</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
+</span>use stillwater::{Validation, assert_success, assert_failure, assert_validation_errors};
 
-#[test]
-fn test_user_validation() {
-    let result = validate_user("user@example.com", 25);
-    assert_success!(result);
+fn adult(age: u8) -&gt; Validation&lt;u8, Vec&lt;&amp;'static str&gt;&gt; {
+    if age &gt;= 18 { Validation::success(age) } else { Validation::failure(vec!["underage"]) }
 }
+
+assert_success!(adult(18));
+assert_failure!(adult(17));
+assert_validation_errors!(adult(17), vec!["underage"]);
+
+let checks = Validation::&lt;u8, Vec&lt;&amp;str&gt;&gt;::all((adult(16), adult(17)));
+assert_eq!(checks.into_result(), Err(vec!["underage", "underage"]));
 <span class="boring">}</span></code></pre>
-<h2 id="mockenv-builder"><a class="header" href="#mockenv-builder">MockEnv Builder</a></h2>
-<p>The <code>MockEnv</code> builder creates test environments by composing dependencies:</p>
+<p>Prefer asserting exact outputs and errors over checking only success/failure. Include
+boundary values and verify that independent failures accumulate.</p>
+<h2 id="explicit-test-environments"><a class="header" href="#explicit-test-environments">Explicit test environments</a></h2>
+<p>Small environments often need no builder. <code>MockEnv</code> is available when tuple composition
+helps construct a fixture; each <code>with</code> adds one nested pair.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use stillwater::testing::MockEnv;
 
-struct Database {
-    users: Vec&lt;User&gt;,
-}
+let (((), minimum_age), users) = MockEnv::new()
+    .with(|| 18_u8)
+    .with(|| Vec::&lt;String&gt;::new())
+    .build();
 
-struct Config {
-    min_age: i32,
-}
-
-#[test]
-fn test_with_mock_env() {
-    // Build a mock environment with multiple dependencies
-    let env = MockEnv::new()
-        .with(|| Config { min_age: 18 })
-        .with(|| Database { users: vec![] })
-        .build();
-
-    let ((_, config), db) = env;
-    assert_eq!(config.min_age, 18);
-    assert!(db.users.is_empty());
-}
+assert_eq!(minimum_age, 18);
+assert!(users.is_empty());
 <span class="boring">}</span></code></pre>
-<h3 id="building-complex-environments"><a class="header" href="#building-complex-environments">Building Complex Environments</a></h3>
-<p>For more complex setups:</p>
+<h2 id="shell-ordering-and-failure-boundaries"><a class="header" href="#shell-ordering-and-failure-boundaries">Shell ordering and failure boundaries</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[test]
-fn test_complex_env() {
-    let env = MockEnv::new()
-        .with(|| Config { min_age: 18 })
-        .with(|| Database::with_test_data())
-        .with(|| "auth_token_123")
-        .build();
+</span>use std::sync::{Arc, Mutex};
+use stillwater::prelude::*;
 
-    let (((_, config), db), token) = env;
+#[derive(Clone, Default)]
+struct Env { events: Arc&lt;Mutex&lt;Vec&lt;&amp;'static str&gt;&gt;&gt; }
 
-    // Use your mocked environment
-    let result = process_request(&amp;config, &amp;db, token);
-    assert_success!(result);
-}
-<span class="boring">}</span></code></pre>
-<h2 id="assertion-macros"><a class="header" href="#assertion-macros">Assertion Macros</a></h2>
-<p>Stillwater provides three assertion macros for testing <code>Validation</code> types:</p>
-<h3 id="assert_success"><a class="header" href="#assert_success"><code>assert_success!</code></a></h3>
-<p>Assert that a validation succeeds:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_valid_email() {
-    let result = validate_email("user@example.com");
-    assert_success!(result);
-}
-<span class="boring">}</span></code></pre>
-<p>This will panic if the validation is a <code>Failure</code>, showing the errors.</p>
-<h3 id="assert_failure"><a class="header" href="#assert_failure"><code>assert_failure!</code></a></h3>
-<p>Assert that a validation fails:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_invalid_email() {
-    let result = validate_email("invalid");
-    assert_failure!(result);
-}
-<span class="boring">}</span></code></pre>
-<p>This will panic if the validation is a <code>Success</code>.</p>
-<h3 id="assert_validation_errors"><a class="header" href="#assert_validation_errors"><code>assert_validation_errors!</code></a></h3>
-<p>Assert that a validation fails with specific errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_specific_errors() {
-    let result = validate_email("invalid");
-    assert_validation_errors!(
-        result,
-        vec!["Email must contain @".to_string()]
-    );
-}
-<span class="boring">}</span></code></pre>
-<p>This checks both that the validation failed AND that the errors match exactly.</p>
-<h2 id="testing-patterns"><a class="header" href="#testing-patterns">Testing Patterns</a></h2>
-<h3 id="testing-error-accumulation"><a class="header" href="#testing-error-accumulation">Testing Error Accumulation</a></h3>
-<p>Validation accumulates all errors:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_accumulates_all_errors() {
-    let result = validate_user("invalid", 15);
-    assert_failure!(result);
-
-    match result {
-        Validation::Failure(errors) =&gt; {
-            assert_eq!(errors.len(), 2);
-            assert!(errors.contains(&amp;"Invalid email".to_string()));
-            assert!(errors.contains(&amp;"Must be 18+".to_string()));
-        }
-        _ =&gt; panic!("Expected failure"),
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="testing-validation-composition"><a class="header" href="#testing-validation-composition">Testing Validation Composition</a></h3>
-<p>Test how validations combine:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_validation_and() {
-    let v1 = validate_email("user@example.com");
-    let v2 = validate_age(25);
-
-    let result = v1.and(v2);
-    assert_success!(result);
-
-    match result {
-        Validation::Success((email, age)) =&gt; {
-            assert_eq!(email, "user@example.com");
-            assert_eq!(age, 25);
-        }
-        _ =&gt; panic!("Expected success"),
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="testing-with-effects"><a class="header" href="#testing-with-effects">Testing with Effects</a></h3>
-<p>Test effects using mock environments:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_effect_composition() {
-    let env = MockEnv::new()
-        .with(|| Database::with_test_data())
-        .build();
-
-    let (_, db) = env;
-
-    let effect = Effect::from(|_: &amp;Database| {
-        Ok::&lt;i32, String&gt;(42)
+tokio_test::block_on(async {
+    let env = Env::default();
+    let save = from_fn(|env: &amp;Env| {
+        env.events.lock().unwrap().push("save");
+        Err::&lt;(), _&gt;("database unavailable")
     });
-
-    let result = effect.run(&amp;db);
-    assert_eq!(result, Ok(42));
-}
+    let workflow = save.and_then(|()| from_fn(|env: &amp;Env| {
+        env.events.lock().unwrap().push("email");
+        Ok(())
+    }));
+    assert_eq!(workflow.run(&amp;env).await, Err("database unavailable"));
+    assert_eq!(*env.events.lock().unwrap(), vec!["save"]);
+});
 <span class="boring">}</span></code></pre>
-<h2 id="property-based-testing"><a class="header" href="#property-based-testing">Property-Based Testing</a></h2>
-<p>Enable property-based testing with the <code>proptest</code> feature:</p>
-<pre><code class="language-toml">[dev-dependencies]
-proptest = "1.0"
+<p>The <a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
+also tests stale availability facts at commit time, rejected inputs, hashing failure,
+save failure, and email failure after persistence. Check persisted state as well as return
+values: an error does not imply that earlier operations were rolled back.</p>
+<h2 id="property-tests"><a class="header" href="#property-tests">Property tests</a></h2>
+<p>Add <code>proptest</code> as a development dependency. Stillwater’s optional <code>proptest</code> feature
+also supplies <code>Arbitrary</code> implementations for supported library types. A runner can
+execute a property directly, which works in a doctest as well as in a normal test.</p>
+<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use proptest::{prelude::*, test_runner::TestRunner};
+use stillwater::Validation;
+
+TestRunner::default().run(&amp;any::&lt;i32&gt;(), |value| {
+    let result = Validation::&lt;_, Vec&lt;String&gt;&gt;::success(value).map(|x| x);
+    prop_assert_eq!(result, Validation::Success(value));
+    Ok(())
+}).unwrap();
+<span class="boring">}</span></code></pre>
+<p>Choose domain properties too: for example, rejected registration decisions never emit
+plans, and independent validation errors retain deterministic order. Bound arithmetic
+inputs or use checked operations so overflow does not accidentally become the property.</p>
+<h2 id="run-the-relevant-targets"><a class="header" href="#run-the-relevant-targets">Run the relevant targets</a></h2>
+<pre><code class="language-bash">cargo test
+cargo test --all-features
+cargo test --doc --all-features
+cargo test --example user_registration --all-features
 </code></pre>
-<p>Stillwater provides <code>Arbitrary</code> instances for <code>Validation</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(feature = "proptest")]
-mod proptest_tests {
-    use super::*;
-    use proptest::prelude::*;
-
-    proptest! {
-        #[test]
-        fn test_validation_map_preserves_success(value: i32) {
-            let val = Validation::&lt;_, Vec&lt;String&gt;&gt;::success(value);
-            let mapped = val.map(|x| x * 2);
-            assert_success!(mapped);
-        }
-
-        #[test]
-        fn test_email_validation(
-            local in "[a-z]{1,10}",
-            domain in "[a-z]{1,10}",
-            tld in "[a-z]{2,5}"
-        ) {
-            let email = format!("{}@{}.{}", local, domain, tld);
-            let result = validate_email(&amp;email);
-            assert_success!(result);
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="property-testing-patterns"><a class="header" href="#property-testing-patterns">Property Testing Patterns</a></h3>
-<p>Test invariants that should always hold:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>proptest! {
-    #[test]
-    fn test_success_always_is_success(value: i32) {
-        let val = Validation::&lt;_, Vec&lt;String&gt;&gt;::success(value);
-        assert!(val.is_success());
-    }
-
-    #[test]
-    fn test_failure_always_is_failure(errors: Vec&lt;String&gt;) {
-        prop_assume!(!errors.is_empty());
-        let val = Validation::&lt;i32, _&gt;::failure(errors);
-        assert!(val.is_failure());
-    }
-
-    #[test]
-    fn test_map_preserves_failure(errors: Vec&lt;String&gt;) {
-        prop_assume!(!errors.is_empty());
-        let val = Validation::&lt;i32, _&gt;::failure(errors);
-        let mapped = val.map(|x| x * 2);
-        assert_failure!(mapped);
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="testing-best-practices"><a class="header" href="#testing-best-practices">Testing Best Practices</a></h2>
-<h3 id="1-use-descriptive-test-names"><a class="header" href="#1-use-descriptive-test-names">1. Use Descriptive Test Names</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_email_validation_rejects_missing_at_symbol() {
-    let result = validate_email("invalid.com");
-    assert_failure!(result);
-}
-<span class="boring">}</span></code></pre>
-<h3 id="2-test-both-success-and-failure-cases"><a class="header" href="#2-test-both-success-and-failure-cases">2. Test Both Success and Failure Cases</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_age_validation_accepts_adults() {
-    let result = validate_age(18);
-    assert_success!(result);
-}
-
-#[test]
-fn test_age_validation_rejects_minors() {
-    let result = validate_age(17);
-    assert_failure!(result);
-}
-<span class="boring">}</span></code></pre>
-<h3 id="3-test-error-accumulation-explicitly"><a class="header" href="#3-test-error-accumulation-explicitly">3. Test Error Accumulation Explicitly</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_validates_all_fields_at_once() {
-    let result = validate_user("invalid", 15);
-
-    match result {
-        Validation::Failure(errors) =&gt; {
-            assert!(errors.len() &gt; 1, "Should accumulate multiple errors");
-        }
-        _ =&gt; panic!("Expected validation to fail"),
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="4-use-mockenv-for-complex-dependencies"><a class="header" href="#4-use-mockenv-for-complex-dependencies">4. Use MockEnv for Complex Dependencies</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_with_realistic_environment() {
-    let env = MockEnv::new()
-        .with(|| Config::from_env())
-        .with(|| Database::with_fixtures())
-        .with(|| Cache::empty())
-        .build();
-
-    // Test your code with the full environment
-}
-<span class="boring">}</span></code></pre>
-<h2 id="integration-with-test-frameworks"><a class="header" href="#integration-with-test-frameworks">Integration with Test Frameworks</a></h2>
-<h3 id="using-with-standard-test-framework"><a class="header" href="#using-with-standard-test-framework">Using with Standard Test Framework</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-    use stillwater::prelude::*;
-
-    #[test]
-    fn test_my_function() {
-        let result = my_validation_function();
-        assert_success!(result);
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="using-with-tokio-test"><a class="header" href="#using-with-tokio-test">Using with Tokio Test</a></h3>
-<p>For async tests:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod async_tests {
-    use super::*;
-    use stillwater::prelude::*;
-
-    #[tokio::test]
-    async fn test_async_validation() {
-        let result = async_validate().await;
-        assert_success!(result);
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="complete-example"><a class="header" href="#complete-example">Complete Example</a></h2>
-<p>Here’s a complete example showing all testing utilities:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::prelude::*;
-
-#[derive(Debug, Clone, PartialEq)]
-struct User {
-    email: String,
-    age: i32,
-}
-
-fn validate_email(email: &amp;str) -&gt; Validation&lt;String, Vec&lt;String&gt;&gt; {
-    if email.contains('@') {
-        Validation::success(email.to_string())
-    } else {
-        Validation::failure(vec!["Invalid email".to_string()])
-    }
-}
-
-fn validate_age(age: i32) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
-    if age &gt;= 18 {
-        Validation::success(age)
-    } else {
-        Validation::failure(vec!["Must be 18+".to_string()])
-    }
-}
-
-fn validate_user(email: &amp;str, age: i32) -&gt; Validation&lt;User, Vec&lt;String&gt;&gt; {
-    Validation::all((validate_email(email), validate_age(age)))
-        .map(|(email, age)| User { email, age })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_valid_user() {
-        let result = validate_user("user@example.com", 25);
-        assert_success!(result);
-    }
-
-    #[test]
-    fn test_invalid_email() {
-        let result = validate_user("invalid", 25);
-        assert_failure!(result);
-    }
-
-    #[test]
-    fn test_underage() {
-        let result = validate_user("user@example.com", 15);
-        assert_failure!(result);
-    }
-
-    #[test]
-    fn test_multiple_errors() {
-        let result = validate_user("invalid", 15);
-
-        match result {
-            Validation::Failure(errors) =&gt; {
-                assert_eq!(errors.len(), 2);
-            }
-            _ =&gt; panic!("Expected failure"),
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>See <a href="https://github.com/iepathos/stillwater/blob/master/examples/validation.rs">examples/validation.rs</a> for more examples</li>
-<li>Check <a href="https://github.com/iepathos/stillwater/blob/master/tests/testing_utilities.rs">tests/testing_utilities.rs</a> for comprehensive test patterns</li>
-<li>Read <a href="02-validation.html">Validation Guide</a> for more on validation</li>
-<li>Read <a href="03-effects.html">Effects Guide</a> for testing effects</li>
-</ul>
+<p>Default Cargo/nextest discovery does not run the tests embedded in this example. CI
+selects it explicitly. The documentation contract also rejects test-only attributes
+inside executable snippets and checks that every book chapter is in the Cargo manifest.</p>
 
                     </main>
 

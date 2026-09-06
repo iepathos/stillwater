@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,352 +180,53 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="error-context-never-lose-the-trail"><a class="header" href="#error-context-never-lose-the-trail">Error Context: Never Lose the Trail</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>Standard errors lose context as they bubble up:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn load_user_profile(id: u64) -&gt; Result&lt;Profile, Error&gt; {
-    let user = database.fetch_user(id).await?;
-    // Error: "Connection refused"
-    // Lost: Why were we connecting? What were we trying to do?
-}
-<span class="boring">}</span></code></pre>
-<p>When an error occurs deep in your code, you lose valuable context:</p>
-<ul>
-<li>What operation was being attempted?</li>
-<li>What was the call path?</li>
-<li>Which resource failed?</li>
-</ul>
-<h2 id="the-solution-contexterror"><a class="header" href="#the-solution-contexterror">The Solution: ContextError</a></h2>
-<p><code>ContextError</code> wraps errors and accumulates context as they propagate:</p>
+                        <h1 id="error-context-at-boundaries"><a class="header" href="#error-context-at-boundaries">Error Context at Boundaries</a></h1>
+<p>Keep domain errors structured for decisions and matching. Add contextual information
+when an infrastructure operation crosses an application boundary.</p>
+<h2 id="wrap-an-error"><a class="header" href="#wrap-an-error">Wrap an error</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use stillwater::ContextError;
 
-let err = ContextError::new("connection refused")
-    .context("fetching user from database")
-    .context("loading user profile")
-    .context("rendering dashboard");
-
-println!("{}", err);
-// Output:
-// Error: connection refused
-//   -&gt; fetching user from database
-//   -&gt; loading user profile
-//   -&gt; rendering dashboard
+let error = ContextError::new("connection refused")
+    .context("loading registration facts");
+assert_eq!(error.inner(), &amp;"connection refused");
+assert_eq!(error.context_trail(), &amp;["loading registration facts"]);
 <span class="boring">}</span></code></pre>
-<p>Now you know exactly what failed and why!</p>
-<h2 id="core-api"><a class="header" href="#core-api">Core API</a></h2>
-<h3 id="creating-context-errors"><a class="header" href="#creating-context-errors">Creating Context Errors</a></h3>
+<h2 id="add-context-to-an-effect"><a class="header" href="#add-context-to-an-effect">Add context to an effect</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+</span>use stillwater::prelude::*;
 
-// Wrap an error
-let err = ContextError::new("file not found");
-
-// Add context
-let err = err.context("reading config file");
+tokio_test::block_on(async {
+    let effect = fail::&lt;(), _, ()&gt;("connection refused")
+        .context("loading registration facts")
+        .context_chain("registering user");
+    let error = effect.run(&amp;()).await.unwrap_err();
+    assert_eq!(error.inner(), &amp;"connection refused");
+    assert_eq!(
+        error.context_trail(),
+        &amp;["loading registration facts", "registering user"],
+    );
+});
 <span class="boring">}</span></code></pre>
-<h3 id="adding-context-layers"><a class="header" href="#adding-context-layers">Adding Context Layers</a></h3>
+<p>The first <code>context</code> wraps the error in <code>ContextError</code>. Use <code>context_chain</code> to append
+information to that same wrapper; calling <code>context</code> again would nest wrappers.</p>
+<h2 id="preserve-successful-values"><a class="header" href="#preserve-successful-values">Preserve successful values</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
+</span>use stillwater::prelude::*;
 
-let err = ContextError::new("parse error")
-    .context("reading config.toml")
-    .context("initializing application")
-    .context("startup sequence");
-
-// Context accumulates in order (innermost to outermost)
-assert_eq!(err.context_trail(), &amp;[
-    "reading config.toml",
-    "initializing application",
-    "startup sequence"
-]);
+tokio_test::block_on(async {
+    let effect = pure::&lt;_, &amp;str, ()&gt;(42).context("calculating total");
+    assert_eq!(effect.run(&amp;()).await, Ok(42));
+});
 <span class="boring">}</span></code></pre>
-<h3 id="accessing-the-error"><a class="header" href="#accessing-the-error">Accessing the Error</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
-
-let err = ContextError::new("base error")
-    .context("operation failed");
-
-// Get reference to inner error
-assert_eq!(err.inner(), &amp;"base error");
-
-// Consume and get inner error
-let inner = err.into_inner();
-assert_eq!(inner, "base error");
-
-// Get context trail
-let trail = err.context_trail();
-assert_eq!(trail, &amp;["operation failed"]);
-<span class="boring">}</span></code></pre>
-<h2 id="using-with-effect"><a class="header" href="#using-with-effect">Using with Effect</a></h2>
-<p>Context errors integrate seamlessly with Effect:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, ContextError};
-
-fn load_user(id: u64) -&gt; Effect&lt;User, ContextError&lt;DbError&gt;, AppEnv&gt; {
-    IO::read(|env: &amp;AppEnv| env.db.fetch_user(id))
-        .map_err(|e| ContextError::new(e).context("fetching user from database"))
-        .and_then(|user| {
-            load_profile(&amp;user)
-                .map_err(|e| e.context("loading user profile"))
-        })
-        .map_err(|e| e.context("rendering dashboard"))
-}
-<span class="boring">}</span></code></pre>
-<p>Even better, Effect provides a <code>context</code> method:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::Effect;
-
-fn load_user(id: u64) -&gt; Effect&lt;User, String, AppEnv&gt; {
-    IO::read(|env: &amp;AppEnv| env.db.fetch_user(id))
-        .context("fetching user from database")
-        .and_then(|user| {
-            load_profile(&amp;user)
-                .context("loading user profile")
-        })
-        .context("rendering dashboard")
-}
-<span class="boring">}</span></code></pre>
-<p>The Effect’s <code>context</code> method automatically wraps errors in ContextError!</p>
-<h2 id="real-world-example"><a class="header" href="#real-world-example">Real-World Example</a></h2>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, IO, ContextError};
-
-struct AppEnv {
-    db: Database,
-    cache: Cache,
-}
-
-#[derive(Debug)]
-enum AppError {
-    DatabaseError(String),
-    CacheError(String),
-    NotFound,
-}
-
-impl std::fmt::Display for AppError {
-    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter&lt;'_&gt;) -&gt; std::fmt::Result {
-        match self {
-            AppError::DatabaseError(msg) =&gt; write!(f, "Database error: {}", msg),
-            AppError::CacheError(msg) =&gt; write!(f, "Cache error: {}", msg),
-            AppError::NotFound =&gt; write!(f, "Resource not found"),
-        }
-    }
-}
-
-impl std::error::Error for AppError {}
-
-fn get_user_dashboard(
-    user_id: u64
-) -&gt; Effect&lt;Dashboard, ContextError&lt;AppError&gt;, AppEnv&gt; {
-    // Try cache first
-    IO::read(|env: &amp;AppEnv| {
-        env.cache.get_user(user_id)
-            .map_err(|e| AppError::CacheError(e.to_string()))
-    })
-    .map_err(|e| ContextError::new(e).context("checking user cache"))
-    .and_then(|cached| {
-        match cached {
-            Some(user) =&gt; Effect::pure(user),
-            None =&gt; {
-                // Cache miss - fetch from database
-                IO::read(|env: &amp;AppEnv| {
-                    env.db.fetch_user(user_id)
-                        .map_err(|e| AppError::DatabaseError(e.to_string()))
-                })
-                .map_err(|e| ContextError::new(e).context("fetching user from database"))
-            }
-        }
-    })
-    .and_then(|user| {
-        // Load user's projects
-        IO::read(|env: &amp;AppEnv| {
-            env.db.fetch_user_projects(user.id)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map_err(|e| ContextError::new(e).context("loading user projects"))
-        .map(|projects| (user, projects))
-    })
-    .and_then(|(user, projects)| {
-        // Load user's notifications
-        IO::read(|env: &amp;AppEnv| {
-            env.db.fetch_notifications(user.id)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map_err(|e| ContextError::new(e).context("loading notifications"))
-        .map(|notifications| Dashboard { user, projects, notifications })
-    })
-    .map_err(|e| e.context("building user dashboard"))
-}
-
-// Usage
-match get_user_dashboard(123).run(&amp;env).await {
-    Ok(dashboard) =&gt; println!("Dashboard: {:?}", dashboard),
-    Err(err) =&gt; {
-        eprintln!("{}", err);
-        // Output might be:
-        // Error: Database error: connection timeout
-        //   -&gt; fetching user from database
-        //   -&gt; building user dashboard
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
-<h3 id="add-context-at-boundaries"><a class="header" href="#add-context-at-boundaries">Add Context at Boundaries</a></h3>
-<p>Don’t add context to every function. Add it at major operation boundaries:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Too much context
-fn validate_email(email: &amp;str) -&gt; Result&lt;Email, ContextError&lt;Error&gt;&gt; {
-    check_format(email)
-        .context("checking email format")?;  // Too granular
-    check_domain(email)
-        .context("checking email domain")?;   // Too granular
-    Ok(Email(email))
-}
-
-// ✓ Context at boundaries
-fn register_user(input: UserInput) -&gt; Effect&lt;User, ContextError&lt;Error&gt;, Env&gt; {
-    validate_user(input)
-        .context("validating user input")  // Good
-        .and_then(|valid| {
-            save_to_database(valid)
-                .context("saving user to database")  // Good
-        })
-}
-<span class="boring">}</span></code></pre>
-<h3 id="be-specific-but-concise"><a class="header" href="#be-specific-but-concise">Be Specific but Concise</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ❌ Too vague
-.context("error occurred")
-
-// ❌ Too verbose
-.context("An error occurred while attempting to read the user configuration file from disk")
-
-// ✓ Just right
-.context("reading user config file")
-<span class="boring">}</span></code></pre>
-<h3 id="include-relevant-identifiers"><a class="header" href="#include-relevant-identifiers">Include Relevant Identifiers</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// ✓ Include user ID for debugging
-.context(format!("loading profile for user {}", user_id))
-
-// ✓ Include file path
-.context(format!("reading config from {}", path.display()))
-<span class="boring">}</span></code></pre>
-<h2 id="when-to-use-contexterror"><a class="header" href="#when-to-use-contexterror">When to Use ContextError</a></h2>
-<p><strong>Use ContextError when</strong>:</p>
-<ul>
-<li>Debugging production issues</li>
-<li>Errors cross multiple layers</li>
-<li>You need to understand call paths</li>
-<li>Building user-facing error messages</li>
-</ul>
-<p><strong>Don’t use when</strong>:</p>
-<ul>
-<li>Performance is critical (hot loops)</li>
-<li>Error types already have good messages</li>
-<li>Single-layer operations</li>
-</ul>
-<h2 id="display-format"><a class="header" href="#display-format">Display Format</a></h2>
-<p>ContextError formats nicely for logging:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::ContextError;
-
-let err = ContextError::new("connection timeout")
-    .context("querying database")
-    .context("loading user profile")
-    .context("rendering dashboard");
-
-println!("{}", err);
-// Output:
-// Error: connection timeout
-//   -&gt; querying database
-//   -&gt; loading user profile
-//   -&gt; rendering dashboard
-<span class="boring">}</span></code></pre>
-<p>The indentation makes the error trail clear and readable.</p>
-<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
-<p>Test error context accumulation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_error_context() {
-        let env = MockEnv::with_error();
-
-        let result = load_user_dashboard(123).run(&amp;env).await;
-
-        match result {
-            Err(err) =&gt; {
-                // Check inner error
-                assert_eq!(
-                    err.inner().to_string(),
-                    "Database error: connection failed"
-                );
-
-                // Check context trail
-                let trail = err.context_trail();
-                assert!(trail.contains(&amp;"fetching user from database".to_string()));
-                assert!(trail.contains(&amp;"building user dashboard".to_string()));
-            }
-            Ok(_) =&gt; panic!("Expected error"),
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="integration-with-other-error-crates"><a class="header" href="#integration-with-other-error-crates">Integration with Other Error Crates</a></h2>
-<p>ContextError implements <code>std::error::Error</code>, so it works with libraries like anyhow:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use anyhow::Result;
-use stillwater::ContextError;
-
-fn example() -&gt; Result&lt;()&gt; {
-    let ctx_err = ContextError::new("base error")
-        .context("operation failed");
-
-    Err(ctx_err)?  // Converts to anyhow::Error
-}
-<span class="boring">}</span></code></pre>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<p>ContextError has minimal overhead:</p>
-<ul>
-<li>Small allocation for context Vec</li>
-<li>String allocations for messages</li>
-<li>No runtime cost if not used</li>
-</ul>
-<p>The benefits for debugging usually outweigh the costs.</p>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<ul>
-<li><strong>ContextError</strong> accumulates context as errors propagate</li>
-<li><strong>Context trail</strong> shows the call path</li>
-<li><strong>Effect.context()</strong> makes adding context ergonomic</li>
-<li><strong>Add context at boundaries</strong>, not everywhere</li>
-<li><strong>Display format</strong> is clean and readable</li>
-</ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Learn about the <a href="05-io-module.html">IO Module</a></li>
-<li>See <a href="https://github.com/iepathos/stillwater/blob/master/examples/error_context.rs">error_context example</a></li>
-<li>Read about <a href="06-helper-combinators.html">Helper Combinators</a></li>
-</ul>
+<p>Context strings can allocate. Put useful operation names and identifiers at boundaries,
+avoid secrets such as passwords or tokens, and retain the underlying error for callers.
+A context trail does not imply that preceding writes were rolled back.</p>
+<p>See <a href="03-effects.html">effects</a> for separating domain rejection from infrastructure failures,
+and <a href="15-testing.html">testing</a> for testing error propagation.</p>
 
                     </main>
 

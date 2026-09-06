@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,9 +205,7 @@
 <h3 id="basic-3-field-validation"><a class="header" href="#basic-3-field-validation">Basic 3-Field Validation</a></h3>
 <p><strong>Problem</strong>: Collecting ALL validation errors for a user registration form, not just the first one.</p>
 <p><strong>Before</strong> (Traditional Rust - 22 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_user_registration(
+<pre><code class="language-text">fn validate_user_registration(
     email: &amp;str,
     password: &amp;str,
     age: u8,
@@ -239,11 +237,9 @@
         Err(errors)
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 8 lines, 64% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_user_registration(
     email: &amp;str,
@@ -258,7 +254,7 @@ fn validate_user_registration(
     .validate_all()
     .map(|(email, password, age)| ValidatedUser { email, password, age })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>64% less code (22 → 8 lines)</li>
@@ -270,9 +266,7 @@ fn validate_user_registration(
 <h3 id="5-field-validation-with-nested-objects"><a class="header" href="#5-field-validation-with-nested-objects">5-Field Validation with Nested Objects</a></h3>
 <p><strong>Problem</strong>: Validating a complex order form with shipping address.</p>
 <p><strong>Before</strong> (Traditional Rust - 42 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_order(input: &amp;OrderInput) -&gt; Result&lt;ValidatedOrder, Vec&lt;String&gt;&gt; {
+<pre><code class="language-text">fn validate_order(input: &amp;OrderInput) -&gt; Result&lt;ValidatedOrder, Vec&lt;String&gt;&gt; {
     let mut errors = Vec::new();
 
     let customer_name = match validate_name(&amp;input.customer_name) {
@@ -321,11 +315,9 @@ fn validate_user_registration(
         Err(errors)
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 18 lines, 57% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_order(input: &amp;OrderInput) -&gt; Validation&lt;ValidatedOrder, Vec&lt;String&gt;&gt; {
     let address = (
@@ -350,7 +342,7 @@ fn validate_order(input: &amp;OrderInput) -&gt; Validation&lt;ValidatedOrder, Ve
         ValidatedOrder { customer_name, email, phone, address }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>57% less code (42 → 18 lines)</li>
@@ -362,9 +354,7 @@ fn validate_order(input: &amp;OrderInput) -&gt; Validation&lt;ValidatedOrder, Ve
 <h3 id="conditional-validation"><a class="header" href="#conditional-validation">Conditional Validation</a></h3>
 <p><strong>Problem</strong>: Password confirmation must match, but only validate strength if they match.</p>
 <p><strong>Before</strong> (Traditional Rust - 20 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_password_change(
+<pre><code class="language-text">fn validate_password_change(
     current: &amp;str,
     new_password: &amp;str,
     confirm: &amp;str,
@@ -397,11 +387,9 @@ fn validate_order(input: &amp;OrderInput) -&gt; Validation&lt;ValidatedOrder, Ve
         Err(errors)
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 14 lines, 30% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_password_change(
     current: &amp;str,
@@ -421,7 +409,7 @@ fn validate_password_change(
     .validate_all()
     .map(|(_, password)| ValidatedPassword { password })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>Conditional validation via <code>and_then</code></li>
@@ -433,9 +421,7 @@ fn validate_password_change(
 <h3 id="error-trail-for-debugging"><a class="header" href="#error-trail-for-debugging">Error Trail for Debugging</a></h3>
 <p><strong>Problem</strong>: When a deeply nested operation fails, you need the full context trail.</p>
 <p><strong>Before</strong> (Traditional Rust - 24 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[derive(Debug)]
+<pre><code class="language-text">#[derive(Debug)]
 struct ContextError {
     message: String,
     context: Vec&lt;String&gt;,
@@ -468,11 +454,9 @@ fn process_order(order_id: u64) -&gt; Result&lt;Receipt, ContextError&gt; {
 
     Ok(receipt)
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 16 lines, 33% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::effect::context::{EffectContext, EffectContextChain};
 use stillwater::context::ContextError;
 
@@ -491,7 +475,7 @@ fn process_order(order_id: u64) -&gt; impl Effect&lt;Output = Receipt, Error = C
                 })
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li><code>.context()</code> wraps any error in <code>ContextError&lt;E&gt;</code> with the given message</li>
@@ -508,9 +492,7 @@ Use <code>.context_chain()</code> to add to an existing <code>ContextError</code
 <h3 id="parameter-threading-3-dependencies-4-functions"><a class="header" href="#parameter-threading-3-dependencies-4-functions">Parameter Threading (3 Dependencies, 4 Functions)</a></h3>
 <p><strong>Problem</strong>: Passing database, cache, and email service through multiple function calls.</p>
 <p><strong>Before</strong> (Traditional Rust - 32 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn process_user_signup(
+<pre><code class="language-text">async fn process_user_signup(
     db: &amp;Database,
     cache: &amp;Cache,
     email_service: &amp;EmailService,
@@ -538,11 +520,9 @@ async fn cache_user_session(cache: &amp;Cache, user: &amp;User) -&gt; Result&lt;
 async fn send_welcome_email(email_service: &amp;EmailService, user: &amp;User) -&gt; Result&lt;(), Error&gt; {
     email_service.send_template("welcome", &amp;user.email).await
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater Reader Pattern - 24 lines, 25% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 
 fn process_user_signup(input: SignupInput) -&gt; impl Effect&lt;Output = User, Error = Error, Env = AppEnv&gt; {
     from_result(validate_signup(&amp;input))
@@ -579,7 +559,7 @@ fn send_welcome_email(user: &amp;User) -&gt; impl Effect&lt;Output = (), Error =
         async move { email_service.send_template("welcome", &amp;email).await }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>No parameter threading (dependencies accessed via environment)</li>
@@ -592,68 +572,33 @@ fn send_welcome_email(user: &amp;User) -&gt; impl Effect&lt;Output = (), Error =
 Rust’s ownership rules. The helper functions already extract only what they need.</p>
 </blockquote>
 <hr>
-<h3 id="testing-with-mock-dependencies"><a class="header" href="#testing-with-mock-dependencies">Testing with Mock Dependencies</a></h3>
-<p><strong>Before</strong> (Traditional Rust - complex mocking):</p>
+<h3 id="testing-with-explicit-dependencies"><a class="header" href="#testing-with-explicit-dependencies">Testing with Explicit Dependencies</a></h3>
+<p>Ordinary Rust functions and Stillwater effects can both use hand-written service
+implementations; neither requires a mocking framework. Stillwater’s contribution is
+a consistent environment boundary for the composed operations.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use mockall::{automock, predicate::*};
+</span>use stillwater::prelude::*;
+use std::collections::HashMap;
 
-    #[automock]
-    trait DatabaseTrait {
-        async fn fetch_user(&amp;self, id: u64) -&gt; Result&lt;User, Error&gt;;
-    }
+#[derive(Clone)]
+struct Env { users: HashMap&lt;u64, String&gt; }
 
-    #[tokio::test]
-    async fn test_process_user() {
-        let mut mock_db = MockDatabaseTrait::new();
-        mock_db.expect_fetch_user()
-            .with(eq(123))
-            .times(1)
-            .returning(|_| Ok(User { id: 123, name: "Test".into() }));
-
-        let result = process_user(&amp;mock_db, 123).await;
-        assert!(result.is_ok());
-    }
-}
+tokio_test::block_on(async {
+    let env = Env { users: HashMap::from([(123, "Test".to_string())]) };
+    let effect = from_fn(|env: &amp;Env| env.users.get(&amp;123).cloned().ok_or("not found"));
+    assert_eq!(effect.run(&amp;env).await, Ok("Test".to_string()));
+});
 <span class="boring">}</span></code></pre>
-<p><strong>After</strong> (With Stillwater - 12 lines, simpler):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use stillwater::effect::prelude::*;
-    use std::sync::Arc;
-
-    #[tokio::test]
-    async fn test_process_user() {
-        let test_env = AppEnv {
-            db: Arc::new(InMemoryDb::with_user(User { id: 123, name: "Test".into() })),
-            cache: Arc::new(NoOpCache),
-            email: Arc::new(RecordingEmailService::new()),
-        };
-
-        let result = process_user(123).run(&amp;test_env).await;
-        assert!(result.is_ok());
-    }
-}
-<span class="boring">}</span></code></pre>
-<p><strong>Key Improvements</strong>:</p>
-<ul>
-<li>No mocking framework required</li>
-<li>Test environment is just data</li>
-<li>Easy to reuse test fixtures across tests</li>
-<li>Behavior verification via recording implementations</li>
-</ul>
+<p>Use recording service implementations to verify calls and persistent state. The
+<a href="https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs">registration example</a>
+demonstrates the larger workflow and its failure boundaries.</p>
 <hr>
 <h2 id="beforeafter-examples-async-composition"><a class="header" href="#beforeafter-examples-async-composition">Before/After Examples: Async Composition</a></h2>
 <h3 id="retry-with-exponential-backoff"><a class="header" href="#retry-with-exponential-backoff">Retry with Exponential Backoff</a></h3>
 <p><strong>Problem</strong>: Retry a flaky network call with exponential backoff.</p>
 <p><strong>Before</strong> (Traditional Rust - 35 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::time::Duration;
+<pre><code class="language-text">use std::time::Duration;
 use tokio::time::sleep;
 
 async fn fetch_with_retry(url: &amp;str, max_retries: u32) -&gt; Result&lt;Response, Error&gt; {
@@ -680,11 +625,9 @@ async fn fetch_with_retry(url: &amp;str, max_retries: u32) -&gt; Result&lt;Respo
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 14 lines, 60% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::effect::retry::retry;
 use stillwater::retry::RetryExhausted;
 use stillwater::RetryPolicy;
@@ -711,7 +654,7 @@ fn fetch_with_retry(url: String)
 // let result = fetch_with_retry(url).run(&amp;env).await?;
 // let response = result.into_value();  // Get the Response
 // let attempts = result.attempts;       // How many attempts it took
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>60% less code (35 → 14 lines)</li>
@@ -727,9 +670,7 @@ fn fetch_with_retry(url: String)
 <h3 id="parallel-operations-with-timeout"><a class="header" href="#parallel-operations-with-timeout">Parallel Operations with Timeout</a></h3>
 <p><strong>Problem</strong>: Fetch user data from multiple services concurrently with a timeout.</p>
 <p><strong>Before</strong> (Traditional Rust - 25 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use tokio::time::timeout;
+<pre><code class="language-text">use tokio::time::timeout;
 use futures::future::try_join3;
 
 async fn fetch_user_dashboard(user_id: u64) -&gt; Result&lt;Dashboard, Error&gt; {
@@ -753,11 +694,9 @@ async fn fetch_user_dashboard(user_id: u64) -&gt; Result&lt;Dashboard, Error&gt;
         recommendations,
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 17 lines, 32% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::effect::retry::with_timeout;
 use stillwater::TimeoutError;
 use std::time::Duration;
@@ -777,7 +716,7 @@ fn fetch_user_dashboard(user_id: u64) -&gt; impl Effect&lt;Output = Dashboard, E
         Duration::from_secs(5),
     )
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>32% less code</li>
@@ -794,9 +733,7 @@ that returns a tuple of Results directly, useful when you need individual error 
 <h3 id="scenario-1-api-request-handler"><a class="header" href="#scenario-1-api-request-handler">Scenario 1: API Request Handler</a></h3>
 <p><strong>Problem</strong>: Handle an API request with validation, business logic, and error handling.</p>
 <p><strong>Before</strong> (Traditional Rust - 45 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn handle_create_order(
+<pre><code class="language-text">async fn handle_create_order(
     db: &amp;Database,
     cache: &amp;Cache,
     email: &amp;EmailService,
@@ -845,11 +782,9 @@ that returns a tuple of Results directly, useful when you need individual error 
 
     Ok(ApiResponse::success(order))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 30 lines, 33% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 use stillwater::effect::prelude::*;
 
 fn handle_create_order(request: CreateOrderRequest) -&gt; impl Effect&lt;Output = ApiResponse&lt;Order&gt;, Error = ApiError, Env = AppEnv&gt; {
@@ -877,7 +812,7 @@ fn handle_create_order(request: CreateOrderRequest) -&gt; impl Effect&lt;Output 
         })
         .map_err(|e| ApiError::Internal(e.to_string()))
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>Clear separation: validation → business logic</li>
@@ -889,9 +824,7 @@ fn handle_create_order(request: CreateOrderRequest) -&gt; impl Effect&lt;Output 
 <h3 id="scenario-2-database-transaction"><a class="header" href="#scenario-2-database-transaction">Scenario 2: Database Transaction</a></h3>
 <p><strong>Problem</strong>: Execute multiple database operations atomically.</p>
 <p><strong>Before</strong> (Traditional Rust - 30 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>async fn transfer_funds(
+<pre><code class="language-text">async fn transfer_funds(
     db: &amp;Database,
     from_account: u64,
     to_account: u64,
@@ -930,11 +863,9 @@ fn handle_create_order(request: CreateOrderRequest) -&gt; impl Effect&lt;Output 
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater bracket - 24 lines, 20% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::effect::prelude::*;
+<pre><code class="language-text">use stillwater::effect::prelude::*;
 use stillwater::effect::bracket::{bracket_full, BracketError};
 
 fn transfer_funds(
@@ -959,7 +890,7 @@ fn transfer_funds(
         },
     )
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>Resource safety via <code>bracket_full</code> pattern</li>
@@ -975,9 +906,7 @@ failed. Use plain <code>bracket</code> if you only need the use error (cleanup e
 <h3 id="scenario-3-configuration-validation"><a class="header" href="#scenario-3-configuration-validation">Scenario 3: Configuration Validation</a></h3>
 <p><strong>Problem</strong>: Validate application configuration at startup.</p>
 <p><strong>Before</strong> (Traditional Rust - 40 lines):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn validate_config(config: &amp;RawConfig) -&gt; Result&lt;ValidatedConfig, Vec&lt;ConfigError&gt;&gt; {
+<pre><code class="language-text">fn validate_config(config: &amp;RawConfig) -&gt; Result&lt;ValidatedConfig, Vec&lt;ConfigError&gt;&gt; {
     let mut errors = Vec::new();
 
     let port = match config.port {
@@ -1017,11 +946,9 @@ failed. Use plain <code>bracket</code> if you only need the use error (cleanup e
         Err(errors)
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>After</strong> (With Stillwater - 22 lines, 45% reduction):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 
 fn validate_config(config: &amp;RawConfig) -&gt; Validation&lt;ValidatedConfig, Vec&lt;ConfigError&gt;&gt; {
     (
@@ -1044,7 +971,7 @@ fn validate_port(port: Option&lt;i32&gt;) -&gt; Validation&lt;u16, Vec&lt;Config
     }
 }
 // ... similar for other validators
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Key Improvements</strong>:</p>
 <ul>
 <li>45% less code</li>
@@ -1078,9 +1005,7 @@ fn validate_port(port: Option&lt;i32&gt;) -&gt; Validation&lt;u16, Vec&lt;Config
 <h2 id="complementary-usage-stillwater--other-crates"><a class="header" href="#complementary-usage-stillwater--other-crates">Complementary Usage: Stillwater + Other Crates</a></h2>
 <h3 id="stillwater--anyhow"><a class="header" href="#stillwater--anyhow">Stillwater + anyhow</a></h3>
 <p>Use anyhow for error propagation, Stillwater for validation and effects:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, validation::ValidateAll};
+<pre><code class="language-text">use stillwater::{Validation, validation::ValidateAll};
 use stillwater::effect::prelude::*;
 use anyhow::{Result, Context};
 
@@ -1101,12 +1026,10 @@ fn process_request(input: RequestInput) -&gt; impl Effect&lt;Output = Response, 
                 .map_err(|e| anyhow::anyhow!(e))
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="stillwater--validator"><a class="header" href="#stillwater--validator">Stillwater + validator</a></h3>
 <p>Use validator derive macros for struct validation, Stillwater for custom logic:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use validator::Validate;
+<pre><code class="language-text">use validator::Validate;
 use stillwater::{Validation, validation::ValidateAll};
 
 #[derive(Validate)]
@@ -1135,12 +1058,10 @@ fn validate_user(input: &amp;UserInput) -&gt; Validation&lt;ValidatedUser, Vec&l
             password: input.password.clone(),
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="stillwater--thiserror"><a class="header" href="#stillwater--thiserror">Stillwater + thiserror</a></h3>
 <p>Use thiserror for error definitions, Stillwater for composition:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use thiserror::Error;
+<pre><code class="language-text">use thiserror::Error;
 use stillwater::effect::prelude::*;
 
 #[derive(Error, Debug)]
@@ -1161,7 +1082,7 @@ fn process_order(order: Order) -&gt; impl Effect&lt;Output = Receipt, Error = Or
                 .and_then(move |_| create_receipt(&amp;customer, &amp;order))
         })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="vs-frunk"><a class="header" href="#vs-frunk">vs frunk</a></h2>
 <p><strong>frunk</strong> focuses on type-level functional programming with HLists, Generic, and other advanced concepts.</p>
@@ -1353,9 +1274,7 @@ fn process_order(order: Order) -&gt; impl Effect&lt;Output = Receipt, Error = Or
 <hr>
 <h2 id="migration-guide"><a class="header" href="#migration-guide">Migration Guide</a></h2>
 <h3 id="from-result-to-stillwater"><a class="header" href="#from-result-to-stillwater">From Result to Stillwater</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: Result (short-circuits)
+<pre><code class="language-text">// Before: Result (short-circuits)
 fn validate(data: Data) -&gt; Result&lt;Valid, Error&gt; {
     let email = validate_email(data.email)?;
     let age = validate_age(data.age)?;
@@ -1373,11 +1292,9 @@ fn validate(data: Data) -&gt; Validation&lt;Valid, Vec&lt;Error&gt;&gt; {
     .validate_all()
     .map(|(email, age)| Valid { email, age })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="from-async-fn-to-effect"><a class="header" href="#from-async-fn-to-effect">From async fn to Effect</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Before: async fn (hard to test)
+<pre><code class="language-text">// Before: async fn (hard to test)
 async fn create_user(db: &amp;Database, email: String) -&gt; Result&lt;User, Error&gt; {
     let user = User { email };
     db.save(&amp;user).await?;
@@ -1398,7 +1315,7 @@ fn create_user(email: String) -&gt; impl Effect&lt;Output = User, Error = Error,
         }
     })
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <hr>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <div class="table-wrapper">
@@ -1436,7 +1353,7 @@ fn create_user(email: String) -&gt; impl Effect&lt;Output = User, Error = Error,
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="validation-api-comparison.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="io-api-analysis.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -1450,7 +1367,7 @@ fn create_user(email: String) -&gt; impl Effect&lt;Output = User, Error = Error,
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="validation-api-comparison.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="io-api-analysis.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

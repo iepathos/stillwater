@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -193,9 +193,7 @@
 }
 <span class="boring">}</span></code></pre>
 <p>In a typical scenario, you might write:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl Semigroup for Aggregate {
+<pre><code class="language-text">impl Semigroup for Aggregate {
     fn combine(self, other: Self) -&gt; Self {
         match (self, other) {
             (Aggregate::Sum(a), Aggregate::Sum(b)) =&gt; Aggregate::Sum(a + b),
@@ -204,16 +202,14 @@
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="why-this-matters"><a class="header" href="#why-this-matters">Why This Matters</a></h3>
 <p>This pattern appears frequently in real-world code:</p>
 <p><strong>Aggregation Pipelines</strong>: MapReduce systems where parallel workers combine results</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Workers return different aggregate types
+<pre><code class="language-text">// Workers return different aggregate types
 let results = vec![worker1.result(), worker2.result(), worker3.result()];
 // If types don't match, the program crashes!
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>JSON/Config Merging</strong>: Combining configuration from multiple sources</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -221,24 +217,20 @@ let results = vec![worker1.result(), worker2.result(), worker3.result()];
 // Merging an Object with an Array doesn't make sense
 <span class="boring">}</span></code></pre>
 <p><strong>Database Query Results</strong>: Combining results from sharded queries</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum QueryResult {
+<pre><code class="language-text">enum QueryResult {
     Rows(Vec&lt;Row&gt;),
     Count(usize),
     Affected(usize),
 }
 // Each shard should return the same type
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Plugin Systems</strong>: Aggregating outputs from multiple plugins</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>enum PluginOutput {
+<pre><code class="language-text">enum PluginOutput {
     Metrics(Vec&lt;Metric&gt;),
     Logs(Vec&lt;LogEntry&gt;),
     Events(Vec&lt;Event&gt;),
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="the-traditional-bad-options"><a class="header" href="#the-traditional-bad-options">The Traditional Bad Options</a></h3>
 <p>When faced with this problem, developers typically choose one of two bad options:</p>
 <ol>
@@ -260,9 +252,7 @@ let results = vec![worker1.result(), worker2.result(), worker3.result()];
 </ul>
 <h2 id="solution-homogeneous-validation"><a class="header" href="#solution-homogeneous-validation">Solution: Homogeneous Validation</a></h2>
 <p>Stillwater provides utilities to validate homogeneity before combining:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::validation::homogeneous::validate_homogeneous;
+<pre><code class="language-text">use stillwater::validation::homogeneous::validate_homogeneous;
 use stillwater::Validation;
 use std::mem::discriminant;
 
@@ -291,28 +281,26 @@ match result {
         eprintln!("Validation errors: {:?}", errors);
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="key-features"><a class="header" href="#key-features">Key Features</a></h3>
 <ol>
 <li><strong>Error Accumulation</strong>: Reports ALL type mismatches, not just the first one</li>
 <li><strong>Flexible Error Types</strong>: You provide the error constructor</li>
 <li><strong>Generic Discriminant</strong>: Works with <code>std::mem::discriminant</code> or custom logic</li>
-<li><strong>Zero-Cost Abstraction</strong>: No runtime overhead compared to manual validation</li>
+<li><strong>Explicit work</strong>: A traversal checks discriminants and collects errors; benchmark the actual workload</li>
 </ol>
 <h2 id="api-overview"><a class="header" href="#api-overview">API Overview</a></h2>
 <h3 id="core-functions"><a class="header" href="#core-functions">Core Functions</a></h3>
 <h4 id="validate_homogeneous"><a class="header" href="#validate_homogeneous"><code>validate_homogeneous</code></a></h4>
 <p>Validates that all items in a collection have the same discriminant:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn validate_homogeneous&lt;T, D, E&gt;(
+<pre><code class="language-text">pub fn validate_homogeneous&lt;T, D, E&gt;(
     items: Vec&lt;T&gt;,
     discriminant: impl Fn(&amp;T) -&gt; D,
     make_error: impl Fn(usize, &amp;T, &amp;T) -&gt; E,
 ) -&gt; Validation&lt;Vec&lt;T&gt;, Vec&lt;E&gt;&gt;
 where
     D: Eq,
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Parameters:</strong></p>
 <ul>
 <li><code>items</code>: Collection to validate</li>
@@ -326,9 +314,7 @@ where
 </ul>
 <h4 id="combine_homogeneous"><a class="header" href="#combine_homogeneous"><code>combine_homogeneous</code></a></h4>
 <p>Convenience function that validates and combines in one step:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn combine_homogeneous&lt;T, D, E&gt;(
+<pre><code class="language-text">pub fn combine_homogeneous&lt;T, D, E&gt;(
     items: Vec&lt;T&gt;,
     discriminant: impl Fn(&amp;T) -&gt; D,
     make_error: impl Fn(usize, &amp;T, &amp;T) -&gt; E,
@@ -336,13 +322,11 @@ where
 where
     T: Semigroup,
     D: Eq,
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>This is equivalent to:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>validate_homogeneous(items, discriminant, make_error)
+<pre><code class="language-text">validate_homogeneous(items, discriminant, make_error)
     .map(|items| items.into_iter().reduce(|a, b| a.combine(b)).unwrap())
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="helper-types"><a class="header" href="#helper-types">Helper Types</a></h3>
 <h4 id="discriminantname-trait"><a class="header" href="#discriminantname-trait"><code>DiscriminantName</code> Trait</a></h4>
 <p>Provides human-readable names for discriminants:</p>
@@ -353,9 +337,7 @@ where
 }
 <span class="boring">}</span></code></pre>
 <p>Example implementation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl DiscriminantName for Aggregate {
+<pre><code class="language-text">impl DiscriminantName for Aggregate {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str {
         match self {
             Aggregate::Count(_) =&gt; "Count",
@@ -364,7 +346,7 @@ where
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h4 id="typemismatcherror"><a class="header" href="#typemismatcherror"><code>TypeMismatchError</code></a></h4>
 <p>A standardized error type for type mismatches:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -376,14 +358,12 @@ where
 }
 <span class="boring">}</span></code></pre>
 <p>Use with <code>DiscriminantName</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let result = validate_homogeneous(
+<pre><code class="language-text">let result = validate_homogeneous(
     items,
     |a| std::mem::discriminant(a),
     TypeMismatchError::new,
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <h3 id="example-1-aggregation-pipeline"><a class="header" href="#example-1-aggregation-pipeline">Example 1: Aggregation Pipeline</a></h3>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -439,9 +419,7 @@ match result {
 }
 <span class="boring">}</span></code></pre>
 <h3 id="example-2-json-config-merging"><a class="header" href="#example-2-json-config-merging">Example 2: JSON Config Merging</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use serde_json::Value;
+<pre><code class="language-text">use serde_json::Value;
 use stillwater::validation::homogeneous::{validate_homogeneous, DiscriminantName};
 use std::mem::discriminant;
 
@@ -488,54 +466,45 @@ match result {
         eprintln!("Config validation errors: {:?}", errors);
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="example-3-integration-with-effect"><a class="header" href="#example-3-integration-with-effect">Example 3: Integration with Effect</a></h3>
+<p>Load values in the shell, then lift the pure validation into the effect’s error channel.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Effect, IO, Validation};
-use stillwater::validation::homogeneous::combine_homogeneous;
+</span>use stillwater::prelude::*;
+use stillwater::validation::homogeneous::validate_homogeneous;
 
-fn aggregate_with_validation(
-    job_id: &amp;str,
-) -&gt; Effect&lt;AggregateResult, Vec&lt;String&gt;, Env&gt; {
-    IO::read(|env| env.load_results(job_id))
-        .and_then(|results| {
-            // Validation at I/O boundary
-            match combine_homogeneous(
-                results,
-                |r| std::mem::discriminant(r),
-                |idx, _, _| format!("Worker {} type mismatch", idx),
-            ) {
-                Validation::Success(combined) =&gt; Effect::pure(combined),
-                Validation::Failure(errors) =&gt; Effect::fail(errors),
-            }
-        })
-        .context("Aggregating results with type validation")
-}
+#[derive(Clone)]
+struct Env { results: Vec&lt;i32&gt; }
+
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &amp;Env| Ok::&lt;_, Vec&lt;String&gt;&gt;(env.results.clone()))
+        .and_then(|results| from_validation(validate_homogeneous(
+            results,
+            |value| value % 2,
+            |index, _, _| format!("parity mismatch at {index}"),
+        )));
+    let result = effect.run(&amp;Env { results: vec![2, 4, 3] }).await;
+    assert_eq!(result, Err(vec!["parity mismatch at 2".to_string()]));
+});
 <span class="boring">}</span></code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <h3 id="1-validate-at-boundaries"><a class="header" href="#1-validate-at-boundaries">1. Validate at Boundaries</a></h3>
 <p>Always validate at system boundaries, not in the middle of business logic:</p>
 <p>✅ <strong>Good</strong>: Validate at I/O boundaries</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>IO::read(load_results)
+<pre><code class="language-text">IO::read(load_results)
     .and_then(|results| validate_and_process(results))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>❌ <strong>Bad</strong>: Validate in the middle of logic</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn process(items: Vec&lt;T&gt;) {
+<pre><code class="language-text">fn process(items: Vec&lt;T&gt;) {
     // ... business logic ...
     validate_homogeneous(items, ...);  // Too late!
     // ... more logic ...
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="2-keep-semigroup-pure"><a class="header" href="#2-keep-semigroup-pure">2. Keep Semigroup Pure</a></h3>
 <p>After validation, your <code>Semigroup::combine</code> can safely use <code>unreachable!()</code>:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl Semigroup for MyEnum {
+<pre><code class="language-text">impl Semigroup for MyEnum {
     fn combine(self, other: Self) -&gt; Self {
         match (self, other) {
             (A(x), A(y)) =&gt; A(x + y),
@@ -544,12 +513,10 @@ fn aggregate_with_validation(
         }
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="3-provide-helpful-error-messages"><a class="header" href="#3-provide-helpful-error-messages">3. Provide Helpful Error Messages</a></h3>
 <p>Use <code>DiscriminantName</code> to create clear error messages:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl DiscriminantName for MyEnum {
+<pre><code class="language-text">impl DiscriminantName for MyEnum {
     fn discriminant_name(&amp;self) -&gt; &amp;'static str {
         match self {
             MyEnum::VariantA(_) =&gt; "VariantA",
@@ -563,12 +530,10 @@ let result = validate_homogeneous(
     |e| discriminant(e),
     TypeMismatchError::new,
 );
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="4-accumulate-all-errors"><a class="header" href="#4-accumulate-all-errors">4. Accumulate All Errors</a></h3>
 <p>Take advantage of error accumulation to report all issues at once:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>match validate_homogeneous(...) {
+<pre><code class="language-text">match validate_homogeneous(...) {
     Validation::Failure(errors) =&gt; {
         // All errors are available
         for error in errors {
@@ -578,85 +543,71 @@ let result = validate_homogeneous(
     }
     _ =&gt; { /* ... */ }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="5-compose-with-other-validations"><a class="header" href="#5-compose-with-other-validations">5. Compose with Other Validations</a></h3>
 <p>Homogeneous validation composes naturally with other validations:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let type_check = validate_homogeneous(items, discriminant, make_error);
+<pre><code class="language-text">let type_check = validate_homogeneous(items, discriminant, make_error);
 let range_check = validate_ranges(items);
 
 // Combine validations
 let all_checks = type_check.and(range_check);
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="edge-cases"><a class="header" href="#edge-cases">Edge Cases</a></h2>
 <h3 id="empty-collections"><a class="header" href="#empty-collections">Empty Collections</a></h3>
 <p>Empty collections always validate successfully:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let empty: Vec&lt;MyEnum&gt; = vec![];
+<pre><code class="language-text">let empty: Vec&lt;MyEnum&gt; = vec![];
 let result = validate_homogeneous(empty, discriminant, make_error);
 assert!(result.is_success());
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Why?</strong> There are no pairs to compare, so the homogeneity property is trivially true.</p>
 <h3 id="single-item-collections"><a class="header" href="#single-item-collections">Single-Item Collections</a></h3>
 <p>Single-item collections always validate successfully:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let single = vec![MyEnum::A(42)];
+<pre><code class="language-text">let single = vec![MyEnum::A(42)];
 let result = validate_homogeneous(single, discriminant, make_error);
 assert!(result.is_success());
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Why?</strong> The item is homogeneous with itself.</p>
 <h3 id="after-validation"><a class="header" href="#after-validation">After Validation</a></h3>
 <p>Once validation succeeds, you’re guaranteed that all items have the same discriminant. It’s safe to use <code>unreachable!()</code> or <code>panic!()</code> in the <code>combine</code> method for mismatched cases.</p>
 <h2 id="performance"><a class="header" href="#performance">Performance</a></h2>
-<p>Homogeneous validation is a zero-cost abstraction:</p>
+<p>Homogeneous validation traverses the supplied collection:</p>
 <ul>
 <li><strong>Single pass</strong>: O(n) traversal of the collection</li>
 <li><strong>No allocations</strong>: Besides the error vector if validation fails</li>
 <li><strong>Inlined</strong>: Discriminant and error functions are typically inlined</li>
 <li><strong>Lazy evaluation</strong>: Only evaluates discriminant when needed</li>
 </ul>
-<p>Benchmark results show no overhead compared to manual validation.</p>
+<p>Measure discriminant evaluation and error construction in the actual workload; no fixed overhead ratio is guaranteed.</p>
 <h2 id="common-patterns"><a class="header" href="#common-patterns">Common Patterns</a></h2>
 <h3 id="pattern-1-mapreduce-aggregation"><a class="header" href="#pattern-1-mapreduce-aggregation">Pattern 1: MapReduce Aggregation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validate before reducing
+<pre><code class="language-text">// Validate before reducing
 let aggregated = combine_homogeneous(
     worker_results,
     |r| discriminant(r),
     |idx, _, _| format!("Worker {} mismatch", idx),
 )?;
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-2-config-merging"><a class="header" href="#pattern-2-config-merging">Pattern 2: Config Merging</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validate configs are same type before merging
+<pre><code class="language-text">// Validate configs are same type before merging
 validate_homogeneous(configs, discriminant, make_error)
     .and_then(|configs| merge_configs(configs))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-3-database-sharding"><a class="header" href="#pattern-3-database-sharding">Pattern 3: Database Sharding</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validate shard results are consistent
+<pre><code class="language-text">// Validate shard results are consistent
 combine_homogeneous(
     shard_results,
     |r| discriminant(r),
     |idx, _, _| format!("Shard {} inconsistent", idx),
 )
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="pattern-4-plugin-composition"><a class="header" href="#pattern-4-plugin-composition">Pattern 4: Plugin Composition</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Validate all plugins return same output type
+<pre><code class="language-text">// Validate all plugins return same output type
 validate_homogeneous(
     plugin_outputs,
     |o| discriminant(o),
     |idx, _, _| format!("Plugin {} incompatible", idx),
 )
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="related-concepts"><a class="header" href="#related-concepts">Related Concepts</a></h2>
 <ul>
 <li><strong>Semigroup</strong>: Homogeneous validation enables safe Semigroup usage with enums</li>

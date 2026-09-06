@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -185,21 +185,17 @@
 <h2 id="core-functions"><a class="header" href="#core-functions">Core Functions</a></h2>
 <h3 id="ioread---read-only-operations"><a class="header" href="#ioread---read-only-operations">IO::read - Read-only operations</a></h3>
 <p>For queries that don’t modify state:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::IO;
+<pre><code class="language-text">use stillwater::IO;
 
 struct Database { /* ... */ }
 
 let effect = IO::read(|db: &amp;Database| {
     db.fetch_user(123)
 });
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="iowrite---mutating-operations"><a class="header" href="#iowrite---mutating-operations">IO::write - Mutating operations</a></h3>
 <p>For operations that modify state (uses interior mutability):</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::IO;
+<pre><code class="language-text">use stillwater::IO;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -210,12 +206,10 @@ struct Cache {
 let effect = IO::write(|cache: &amp;Cache| {
     cache.data.lock().unwrap().insert(key, value);
 });
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="ioread_async-and-iowrite_async---async-operations"><a class="header" href="#ioread_async-and-iowrite_async---async-operations">IO::read_async and IO::write_async - Async operations</a></h3>
 <p>For async I/O, use <code>read_async</code> for query-style operations and <code>write_async</code> for operations that mutate through interior mutability:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::IO;
+<pre><code class="language-text">use stillwater::IO;
 use std::future::ready;
 
 let read_effect = IO::read_async(|db: &amp;Database| {
@@ -227,12 +221,10 @@ let write_effect = IO::write_async(|cache: &amp;Cache| {
     cache.set(key, value);
     ready(())
 });
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="environment-pattern"><a class="header" href="#environment-pattern">Environment Pattern</a></h2>
 <p>IO uses <code>AsRef&lt;T&gt;</code> for automatic dependency extraction:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>struct AppEnv {
+<pre><code class="language-text">struct AppEnv {
     db: Database,
     cache: Cache,
 }
@@ -248,7 +240,7 @@ impl AsRef&lt;Cache&gt; for AppEnv {
 // Type inference extracts the right dependency
 let effect = IO::read(|db: &amp;Database| db.fetch_user(123));
 effect.run(&amp;env).await  // AppEnv automatically provides Database
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>See full examples in <a href="https://github.com/iepathos/stillwater/blob/master/examples/io_patterns.rs">examples/io_patterns.rs</a>.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>

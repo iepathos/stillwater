@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,11 +191,9 @@
 }
 <span class="boring">}</span></code></pre>
 <p>The key property is <strong>associativity</strong>: the order of combining doesn’t matter.</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// These two operations must produce the same result:
+<pre><code class="language-text">// These two operations must produce the same result:
 a.combine(b).combine(c) == a.combine(b.combine(c))
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="why-does-this-matter"><a class="header" href="#why-does-this-matter">Why Does This Matter?</a></h2>
 <p>Semigroup is the foundation for error accumulation in Stillwater. When validating multiple fields, we need to combine error collections:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -373,9 +371,7 @@ impl&lt;T&gt; Monoid for Vec&lt;T&gt; {
 <span class="boring">}</span></code></pre>
 <h2 id="real-world-example-form-validation-errors"><a class="header" href="#real-world-example-form-validation-errors">Real-World Example: Form Validation Errors</a></h2>
 <p>Here’s how Semigroup enables multi-field form validation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Semigroup, Validation};
+<pre><code class="language-text">use stillwater::{Semigroup, Validation};
 
 #[derive(Debug, PartialEq, Clone)]
 enum FormError {
@@ -422,7 +418,7 @@ match validate_form("invalid", "short", 15) {
         // [InvalidEmail("invalid"), PasswordTooShort, AgeTooYoung]
     }
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p>Without Semigroup, we couldn’t combine the error vectors automatically!</p>
 <h2 id="extended-implementations-for-collections"><a class="header" href="#extended-implementations-for-collections">Extended Implementations for Collections</a></h2>
 <p>Stillwater provides Semigroup implementations for standard Rust collection types, enabling powerful composition patterns for configuration merging, error aggregation, and data combining.</p>
@@ -628,9 +624,7 @@ let config_value = First("default").combine(First("override"));
 assert_eq!(config_value.0, "default");
 <span class="boring">}</span></code></pre>
 <p><strong>Use case: Default Values</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{First, Semigroup};
 
 // Use First wrapper to keep default config values
@@ -649,7 +643,7 @@ let user_config: HashMap&lt;String, First&lt;i32&gt;&gt; =
 // Combine: user config "wins" by being first
 let final_config = user_config.combine(defaults);
 // timeout is 60, retries is 3
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="last---keep-last-value"><a class="header" href="#last---keep-last-value">Last<t> - Keep Last Value</t></a></h3>
 <p>Always keeps the last (right) value, discarding the first:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -664,9 +658,7 @@ let config_value = Last("default").combine(Last("override"));
 assert_eq!(config_value.0, "override");
 <span class="boring">}</span></code></pre>
 <p><strong>Use case: Layered Configuration</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-text">use std::collections::HashMap;
 use stillwater::{Last, Semigroup};
 
 // Build config from multiple layers (last wins)
@@ -685,7 +677,7 @@ let env_cfg: HashMap&lt;String, Last&lt;String&gt;&gt; =
 let final_cfg = default_cfg.combine(env_cfg);
 // debug is "true" (env_cfg overrides)
 // env is "production" (from defaults)
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h3 id="intersection---set-intersection"><a class="header" href="#intersection---set-intersection">Intersection<set> - Set Intersection</set></a></h3>
 <p>Alternative to the default union operation for sets:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -720,9 +712,7 @@ let effective_perms = Intersection(admin_perms).combine(Intersection(user_perms)
 <span class="boring">}</span></code></pre>
 <h2 id="real-world-example-error-aggregation-by-type"><a class="header" href="#real-world-example-error-aggregation-by-type">Real-World Example: Error Aggregation by Type</a></h2>
 <p>Here’s how these implementations enable sophisticated error handling:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashMap;
+<pre><code class="language-text">use std::collections::HashMap;
 use stillwater::Semigroup;
 
 type ErrorsByType = HashMap&lt;String, Vec&lt;String&gt;&gt;;
@@ -757,7 +747,7 @@ let all_errors = validation_errors.combine(permission_errors);
 //   "validation": ["Invalid email", ...],
 //   "permission": ["Unauthorized", ...]
 // }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <h2 id="testing-your-semigroup-implementation"><a class="header" href="#testing-your-semigroup-implementation">Testing Your Semigroup Implementation</a></h2>
 <p>When implementing Semigroup, test the associativity law:</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
@@ -774,8 +764,7 @@ impl Semigroup for MyErrors {
     }
 }
 
-#[test]
-fn test_associativity() {
+fn check_associativity() {
     let a = MyErrors(vec!["a".to_string()]);
     let b = MyErrors(vec!["b".to_string()]);
     let c = MyErrors(vec!["c".to_string()]);
@@ -785,6 +774,7 @@ fn test_associativity() {
 
     assert_eq!(left, right);
 }
+check_associativity();
 <span class="boring">}</span></code></pre>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,566 +181,104 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="traverse-and-sequence-patterns"><a class="header" href="#traverse-and-sequence-patterns">Traverse and Sequence Patterns</a></h1>
-<h2 id="the-problem"><a class="header" href="#the-problem">The Problem</a></h2>
-<p>When working with collections of data that need validation or effectful processing, you often face a choice:</p>
+<p>Traversal maps a function over inputs and combines its results. Sequencing combines
+results or effects that have already been constructed.</p>
+<h2 id="validation-accumulates-errors"><a class="header" href="#validation-accumulates-errors">Validation accumulates errors</a></h2>
+<p><code>traverse</code> and <code>sequence</code> in this module operate on <code>Validation</code>. They preserve input
+order and combine errors using <code>Semigroup</code>.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Option 1: Process one at a time, manually accumulating
-let mut results = Vec::new();
-let mut errors = Vec::new();
-for item in items {
-    match validate(item) {
-        Validation::Success(val) =&gt; results.push(val),
-        Validation::Failure(err) =&gt; errors.extend(err),
-    }
-}
-// Now what? How do we combine results and errors?
+</span>use stillwater::{Validation, traverse::{traverse, sequence}};
 
-// Option 2: Use map and somehow convert Vec&lt;Validation&lt;T, E&gt;&gt; to Validation&lt;Vec&lt;T&gt;, E&gt;
-let validations: Vec&lt;Validation&lt;_, _&gt;&gt; = items.iter().map(validate).collect();
-// But how do we turn this into a single Validation?
+fn positive(value: i32) -&gt; Validation&lt;i32, Vec&lt;i32&gt;&gt; {
+    if value &gt; 0 { Validation::success(value) } else { Validation::failure(vec![value]) }
+}
+
+assert_eq!(traverse([1, 2, 3], positive), Validation::Success(vec![1, 2, 3]));
+assert_eq!(traverse([1, -2, -3], positive), Validation::Failure(vec![-2, -3]));
+assert_eq!(traverse([], positive), Validation::Success(vec![]));
+
+let checks = [positive(-1), positive(2), positive(-3)];
+assert_eq!(sequence(checks), Validation::Failure(vec![-1, -3]));
 <span class="boring">}</span></code></pre>
-<p>Both approaches are cumbersome and error-prone. This is where <strong>traverse</strong> and <strong>sequence</strong> come in.</p>
-<h2 id="the-solution-traverse-and-sequence"><a class="header" href="#the-solution-traverse-and-sequence">The Solution: Traverse and Sequence</a></h2>
-<p>Stillwater provides two fundamental operations for working with collections of effects:</p>
-<ul>
-<li>
-<p><strong><code>sequence</code></strong>: Converts a collection of effects into an effect of a collection</p>
-<ul>
-<li><code>Vec&lt;Validation&lt;T, E&gt;&gt;</code> → <code>Validation&lt;Vec&lt;T&gt;, E&gt;</code></li>
-<li><code>Vec&lt;Effect&lt;T, E, Env&gt;&gt;</code> → <code>Effect&lt;Vec&lt;T&gt;, E, Env&gt;</code></li>
-</ul>
-</li>
-<li>
-<p><strong><code>traverse</code></strong>: Maps a function over a collection and sequences the results</p>
-<ul>
-<li>Equivalent to <code>map(f).sequence()</code> but more efficient</li>
-</ul>
-</li>
-</ul>
-<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
-<h3 id="sequence"><a class="header" href="#sequence">Sequence</a></h3>
-<p><strong>Sequence</strong> inverts the structure of nested types:</p>
+<h2 id="sequential-effect-traversal"><a class="header" href="#sequential-effect-traversal">Sequential effect traversal</a></h2>
+<p><code>traverse_effect_sequential</code> calls the factory for one item, awaits that child, and
+only then proceeds. After an error, later child effects are neither constructed nor run.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
-
-// We have: Vec&lt;Validation&lt;T, E&gt;&gt;
-let validations = vec![
-    Validation::success(1),
-    Validation::success(2),
-    Validation::success(3),
-];
-
-// We want: Validation&lt;Vec&lt;T&gt;, E&gt;
-let result = sequence(validations);
-assert_eq!(result, Validation::Success(vec![1, 2, 3]));
-<span class="boring">}</span></code></pre>
-<p>If any validation fails, all errors are accumulated:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
-
-let validations = vec![
-    Validation::&lt;i32, _&gt;::failure(vec!["error 1"]),
-    Validation::success(2),
-    Validation::failure(vec!["error 2"]),
-];
-
-let result = sequence(validations);
-match result {
-    Validation::Failure(errors) =&gt; {
-        assert_eq!(errors, vec!["error 1", "error 2"]);
-    }
-    _ =&gt; panic!("Expected failure"),
-}
-<span class="boring">}</span></code></pre>
-<h3 id="traverse"><a class="header" href="#traverse">Traverse</a></h3>
-<p><strong>Traverse</strong> combines mapping and sequencing in one operation:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-fn parse_number(s: &amp;str) -&gt; Validation&lt;i32, Vec&lt;String&gt;&gt; {
-    s.parse()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
-}
-
-// Instead of: items.iter().map(parse_number).collect() then sequence
-let result = traverse(vec!["1", "2", "3"], parse_number);
-assert_eq!(result, Validation::Success(vec![1, 2, 3]));
-<span class="boring">}</span></code></pre>
-<h2 id="validation-examples"><a class="header" href="#validation-examples">Validation Examples</a></h2>
-<h3 id="validating-user-input-collections"><a class="header" href="#validating-user-input-collections">Validating User Input Collections</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-#[derive(Debug, PartialEq)]
-struct Email(String);
-
-#[derive(Debug)]
-enum ValidationError {
-    InvalidEmail(String),
-}
-
-fn validate_email(raw: &amp;str) -&gt; Validation&lt;Email, Vec&lt;ValidationError&gt;&gt; {
-    if raw.contains('@') &amp;&amp; raw.contains('.') {
-        Validation::success(Email(raw.to_string()))
-    } else {
-        Validation::failure(vec![ValidationError::InvalidEmail(raw.to_string())])
-    }
-}
-
-// Validate a list of email addresses
-let emails = vec!["alice@example.com", "bob@example.com", "invalid"];
-let result = traverse(emails, validate_email);
-
-match result {
-    Validation::Success(valid_emails) =&gt; {
-        println!("All valid: {:?}", valid_emails);
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("Found {} invalid emails:", errors.len());
-        for err in errors {
-            println!("  {:?}", err);
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="validating-nested-data"><a class="header" href="#validating-nested-data">Validating Nested Data</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-#[derive(Debug)]
-struct User {
-    name: String,
-    age: u8,
-}
-
-fn validate_user(name: &amp;str, age: u8) -&gt; Validation&lt;User, Vec&lt;String&gt;&gt; {
-    let name_check = if name.is_empty() {
-        Validation::failure(vec!["Name cannot be empty".to_string()])
-    } else {
-        Validation::success(name.to_string())
-    };
-
-    let age_check = if age &gt;= 18 {
-        Validation::success(age)
-    } else {
-        Validation::failure(vec![format!("Age {} too young", age)])
-    };
-
-    Validation::all((name_check, age_check))
-        .map(|(name, age)| User { name, age })
-}
-
-// Validate a batch of user registrations
-let registrations = vec![
-    ("Alice", 25),
-    ("Bob", 16),
-    ("", 30),
-];
-
-let result = traverse(registrations, |(name, age)| validate_user(name, age));
-
-match result {
-    Validation::Success(users) =&gt; {
-        println!("All valid: {} users registered", users.len());
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("Validation errors:");
-        for err in errors {
-            println!("  - {}", err);
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="csv-parsing-with-error-accumulation"><a class="header" href="#csv-parsing-with-error-accumulation">CSV Parsing with Error Accumulation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-#[derive(Debug)]
-struct Record {
-    id: i32,
-    name: String,
-    score: f64,
-}
-
-fn parse_record(line: &amp;str) -&gt; Validation&lt;Record, Vec&lt;String&gt;&gt; {
-    let parts: Vec&lt;_&gt; = line.split(',').collect();
-
-    if parts.len() != 3 {
-        return Validation::failure(vec![
-            format!("Expected 3 fields, got {}", parts.len())
-        ]);
-    }
-
-    let id_check = parts[0].parse::&lt;i32&gt;()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![
-            format!("Invalid ID: {}", parts[0])
-        ]));
-
-    let name_check = if parts[1].is_empty() {
-        Validation::failure(vec!["Name cannot be empty".to_string()])
-    } else {
-        Validation::success(parts[1].to_string())
-    };
-
-    let score_check = parts[2].parse::&lt;f64&gt;()
-        .map(Validation::success)
-        .unwrap_or_else(|_| Validation::failure(vec![
-            format!("Invalid score: {}", parts[2])
-        ]));
-
-    Validation::all((id_check, name_check, score_check))
-        .map(|(id, name, score)| Record { id, name, score })
-}
-
-let csv_lines = vec![
-    "1,Alice,95.5",
-    "2,Bob,invalid",
-    "3,,88.0",
-    "bad,line",
-];
-
-let result = traverse(csv_lines, parse_record);
-
-match result {
-    Validation::Success(records) =&gt; {
-        println!("Parsed {} records", records.len());
-    }
-    Validation::Failure(errors) =&gt; {
-        println!("CSV parsing errors:");
-        for err in errors {
-            println!("  - {}", err);
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="effect-examples"><a class="header" href="#effect-examples">Effect Examples</a></h2>
-<h3 id="batch-file-processing"><a class="header" href="#batch-file-processing">Batch File Processing</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
-
-fn process_file(path: &amp;str) -&gt; Effect&lt;String, String, ()&gt; {
-    Effect::of(move |_env| {
-        Box::pin(async move {
-            // Simulate file reading
-            Ok(format!("Contents of {}", path))
-        })
-    })
-}
-
-let files = vec!["file1.txt", "file2.txt", "file3.txt"];
-let effect = traverse_effect(files, |path| process_file(path));
-
-// Run the effect
-tokio_test::block_on(async {
-    match effect.run_standalone().await {
-        Ok(contents) =&gt; {
-            for content in contents {
-                println!("{}", content);
-            }
-        }
-        Err(e) =&gt; eprintln!("Error: {}", e),
-    }
-});
-<span class="boring">}</span></code></pre>
-<h3 id="database-batch-operations"><a class="header" href="#database-batch-operations">Database Batch Operations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
-
-struct Database {
-    // Database connection details
-}
-
-fn save_user(db: &amp;Database, user: User) -&gt; Effect&lt;i64, String, Database&gt; {
-    Effect::of(|db| {
-        Box::pin(async move {
-            // Simulate database save
-            Ok(42) // user ID
-        })
-    })
-}
-
-let users = vec![
-    User { name: "Alice".to_string(), age: 25 },
-    User { name: "Bob".to_string(), age: 30 },
-];
-
-let db = Database {};
-let effect = traverse_effect(users, |user| save_user(&amp;db, user));
-
-// Run the effect
-tokio_test::block_on(async {
-    match effect.run(&amp;db).await {
-        Ok(ids) =&gt; {
-            println!("Saved {} users with IDs: {:?}", ids.len(), ids);
-        }
-        Err(e) =&gt; eprintln!("Database error: {}", e),
-    }
-});
-<span class="boring">}</span></code></pre>
-<h3 id="parallel-api-calls"><a class="header" href="#parallel-api-calls">Parallel API Calls</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
-
-fn fetch_user(id: i32) -&gt; Effect&lt;String, String, ()&gt; {
-    Effect::of(move |_env| {
-        Box::pin(async move {
-            // Simulate API call
-            Ok(format!("User {}", id))
-        })
-    })
-}
-
-let user_ids = vec![1, 2, 3, 4, 5];
-let effect = traverse_effect(user_ids, fetch_user);
-
-// Effects run in parallel
-tokio_test::block_on(async {
-    match effect.run_standalone().await {
-        Ok(users) =&gt; {
-            println!("Fetched {} users", users.len());
-        }
-        Err(e) =&gt; eprintln!("API error: {}", e),
-    }
-});
-<span class="boring">}</span></code></pre>
-<h2 id="sequence-examples"><a class="header" href="#sequence-examples">Sequence Examples</a></h2>
-<h3 id="sequencing-pre-computed-validations"><a class="header" href="#sequencing-pre-computed-validations">Sequencing Pre-computed Validations</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::sequence};
-
-// When you already have validations (perhaps from different sources)
-let validations = vec![
-    validate_field_1(),
-    validate_field_2(),
-    validate_field_3(),
-];
-
-let result = sequence(validations);
-<span class="boring">}</span></code></pre>
-<h3 id="sequencing-effects"><a class="header" href="#sequencing-effects">Sequencing Effects</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::sequence_effect};
-
-// When you have a collection of effects to run
-let effects = vec![
-    Effect::pure(1),
-    Effect::pure(2),
-    Effect::pure(3),
-];
-
-let combined = sequence_effect(effects);
+</span>use std::sync::{Arc, Mutex};
+use stillwater::prelude::*;
 
 tokio_test::block_on(async {
-    let result = combined.run_standalone().await;
-    assert_eq!(result, Ok(vec![1, 2, 3]));
-});
-<span class="boring">}</span></code></pre>
-<h2 id="practical-patterns"><a class="header" href="#practical-patterns">Practical Patterns</a></h2>
-<h3 id="pattern-1-validate-then-process"><a class="header" href="#pattern-1-validate-then-process">Pattern 1: Validate Then Process</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, Effect, traverse::traverse};
-
-// First validate all inputs
-let validation = traverse(inputs, validate_input);
-
-// Then convert to effect and process
-let effect = Effect::from_validation(validation)
-    .and_then(|valid_inputs| process_batch(valid_inputs));
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-2-fail-fast-vs-accumulate"><a class="header" href="#pattern-2-fail-fast-vs-accumulate">Pattern 2: Fail Fast vs Accumulate</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-// Accumulate all validation errors
-fn validate_all(items: Vec&lt;Item&gt;) -&gt; Validation&lt;Vec&lt;Valid&gt;, Vec&lt;Error&gt;&gt; {
-    traverse(items, validate_item)
-}
-
-// Fail on first error (use Effect instead)
-fn process_all(items: Vec&lt;Item&gt;) -&gt; Effect&lt;Vec&lt;Result&gt;, Error, Env&gt; {
-    traverse_effect(items, process_item)
-}
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-3-filtering-with-validation"><a class="header" href="#pattern-3-filtering-with-validation">Pattern 3: Filtering with Validation</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Validation, traverse::traverse};
-
-fn validate_and_filter(items: Vec&lt;String&gt;) -&gt; Validation&lt;Vec&lt;i32&gt;, Vec&lt;String&gt;&gt; {
-    let parsed = traverse(items, |s| {
-        s.parse::&lt;i32&gt;()
-            .map(Validation::success)
-            .unwrap_or_else(|_| Validation::failure(vec![format!("Invalid: {}", s)]))
+    let constructed = Arc::new(Mutex::new(Vec::new()));
+    let seen = Arc::clone(&amp;constructed);
+    let effect = traverse_effect_sequential([1, 2, 3], move |item| {
+        seen.lock().unwrap().push(item);
+        if item == 2 { fail("stop").boxed() } else { pure(item).boxed() }
     });
-
-    parsed
-}
-<span class="boring">}</span></code></pre>
-<h3 id="pattern-4-transform-with-environment"><a class="header" href="#pattern-4-transform-with-environment">Pattern 4: Transform with Environment</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use stillwater::{Effect, traverse::traverse_effect};
-
-struct Config {
-    api_key: String,
-}
-
-fn fetch_with_auth(id: i32) -&gt; Effect&lt;Data, Error, Config&gt; {
-    Effect::asks(move |config: &amp;Config| {
-        // Use config.api_key in request
-        Data { id }
-    })
-}
-
-let config = Config { api_key: "secret".to_string() };
-let effect = traverse_effect(vec![1, 2, 3], fetch_with_auth);
-
-// All requests share the same config
-tokio_test::block_on(async {
-    let result = effect.run(&amp;config).await;
+    assert!(constructed.lock().unwrap().is_empty());
+    assert_eq!(effect.run(&amp;()).await, Err("stop"));
+    assert_eq!(*constructed.lock().unwrap(), vec![1, 2]);
 });
 <span class="boring">}</span></code></pre>
-<h2 id="when-to-use-what"><a class="header" href="#when-to-use-what">When to Use What</a></h2>
-<h3 id="use-traverse-when"><a class="header" href="#use-traverse-when">Use <code>traverse</code> when:</a></h3>
-<ul>
-<li>You have a collection and a function to apply to each element</li>
-<li>The function returns a Validation or Effect</li>
-<li>You want a single result aggregating all outcomes</li>
-</ul>
-<h3 id="use-sequence-when"><a class="header" href="#use-sequence-when">Use <code>sequence</code> when:</a></h3>
-<ul>
-<li>You already have a collection of Validations or Effects</li>
-<li>You need to invert the structure (Vec of Validations → Validation of Vec)</li>
-</ul>
-<h3 id="use-validationall-when"><a class="header" href="#use-validationall-when">Use <code>Validation::all()</code> when:</a></h3>
-<ul>
-<li>You have a fixed number of validations (tuple)</li>
-<li>The validations are different types</li>
-<li>You want to combine them all</li>
-</ul>
-<h3 id="use-traverse-vs-manual-loop-when"><a class="header" href="#use-traverse-vs-manual-loop-when">Use <code>traverse</code> vs manual loop when:</a></h3>
-<ul>
-<li><strong>traverse</strong>: Pure transformation, all errors matter</li>
-<li><strong>manual loop</strong>: Need early exit, complex control flow</li>
-</ul>
-<h2 id="performance-considerations"><a class="header" href="#performance-considerations">Performance Considerations</a></h2>
-<h3 id="memory-efficiency"><a class="header" href="#memory-efficiency">Memory Efficiency</a></h3>
-<ul>
-<li><code>traverse</code> is more efficient than <code>map().sequence()</code> because it only creates one collection</li>
-<li>For large collections, consider streaming or chunking</li>
-</ul>
-<h3 id="parallel-vs-sequential"><a class="header" href="#parallel-vs-sequential">Parallel vs Sequential</a></h3>
-<ul>
-<li><code>traverse_effect</code> runs effects in parallel by default</li>
-<li>For CPU-bound work, this is optimal</li>
-<li>For I/O-bound work with rate limits, consider sequential processing</li>
-</ul>
-<h3 id="early-termination"><a class="header" href="#early-termination">Early Termination</a></h3>
-<ul>
-<li>Validation accumulates ALL errors (no early exit)</li>
-<li>Effect stops at first error (fail-fast)</li>
-<li>Choose based on your error handling needs</li>
-</ul>
-<h2 id="common-pitfalls"><a class="header" href="#common-pitfalls">Common Pitfalls</a></h2>
-<h3 id="pitfall-1-not-handling-empty-collections"><a class="header" href="#pitfall-1-not-handling-empty-collections">Pitfall 1: Not handling empty collections</a></h3>
+<h2 id="parallel-effect-traversal"><a class="header" href="#parallel-effect-traversal">Parallel effect traversal</a></h2>
+<p><code>traverse_effect_parallel</code> constructs all children when the returned effect executes,
+then polls them concurrently. It waits for the entire batch, even after an error.
+Successful values retain input order; if multiple children fail, the error at the
+earliest input position is returned.</p>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Empty collections return success with empty vec
-let result = traverse(Vec::&lt;i32&gt;::new(), validate);
-assert_eq!(result, Validation::Success(vec![]));
+</span>use stillwater::prelude::*;
 
-// Make sure this is the behavior you want!
+tokio_test::block_on(async {
+    let effect = traverse_effect_parallel([1, 2, 3], |item| {
+        from_async(move |_: &amp;()| async move {
+            tokio::task::yield_now().await;
+            Ok::&lt;_, &amp;'static str&gt;(item * 2)
+        }).boxed()
+    });
+    assert_eq!(effect.run(&amp;()).await, Ok(vec![2, 4, 6]));
+});
 <span class="boring">}</span></code></pre>
-<h3 id="pitfall-2-mixing-traverse-and-for-loops"><a class="header" href="#pitfall-2-mixing-traverse-and-for-loops">Pitfall 2: Mixing traverse and for loops</a></h3>
+<p>Concurrent polling does not move CPU work onto separate threads. A child that blocks
+its poll can block progress for the whole batch. For large I/O batches, use
+<code>par_all_limit</code> or chunking to bound concurrency. Neither parallel traversal variant
+provides rollback or keeps children running after the parent future is dropped.</p>
+<h2 id="sequence-existing-effects"><a class="header" href="#sequence-existing-effects">Sequence existing effects</a></h2>
 <pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Bad: Manual loop loses error accumulation
-for item in items {
-    validate(item)?; // Stops at first error!
-}
+</span>use stillwater::prelude::*;
 
-// Good: Use traverse
-traverse(items, validate)
+tokio_test::block_on(async {
+    let ordered = sequence_effect_sequential(vec![
+        pure::&lt;_, &amp;str, ()&gt;(1).boxed(),
+        pure(2).boxed(),
+    ]);
+    assert_eq!(ordered.run(&amp;()).await, Ok(vec![1, 2]));
+
+    let concurrent = sequence_effect_parallel(vec![
+        fail::&lt;i32, _, ()&gt;("first input").boxed(),
+        fail("second input").boxed(),
+    ]);
+    assert_eq!(concurrent.run(&amp;()).await, Err("first input"));
+});
 <span class="boring">}</span></code></pre>
-<h3 id="pitfall-3-forgetting-to-map-after-traverse"><a class="header" href="#pitfall-3-forgetting-to-map-after-traverse">Pitfall 3: Forgetting to map after traverse</a></h3>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Returns Validation&lt;Vec&lt;(String, i32)&gt;, E&gt;
-traverse(items, |item| {
-    Validation::all((validate_name(item.name), validate_age(item.age)))
-})
-
-// Better: Map to User
-traverse(items, |item| {
-    Validation::all((validate_name(item.name), validate_age(item.age)))
-        .map(|(name, age)| User { name, age })
-})
-<span class="boring">}</span></code></pre>
-<h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
-<p>Testing traverse operations is straightforward:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod tests {
-    use super::*;
-    use stillwater::{Validation, traverse::traverse};
-
-    #[test]
-    fn test_traverse_all_valid() {
-        let result = traverse(vec![1, 2, 3], validate_positive);
-        assert!(result.is_success());
-    }
-
-    #[test]
-    fn test_traverse_accumulates_errors() {
-        let result = traverse(vec![1, -2, -3], validate_positive);
-
-        match result {
-            Validation::Failure(errors) =&gt; {
-                assert_eq!(errors.len(), 2); // Two negative numbers
-            }
-            _ =&gt; panic!("Expected failure"),
-        }
-    }
-
-    #[test]
-    fn test_traverse_empty() {
-        let result = traverse(Vec::&lt;i32&gt;::new(), validate_positive);
-        assert_eq!(result, Validation::Success(vec![]));
-    }
-}
-<span class="boring">}</span></code></pre>
-<h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
-<ul>
-<li><strong>traverse</strong> and <strong>sequence</strong> invert collection structures</li>
-<li>Use <strong>traverse</strong> for Validation to accumulate ALL errors</li>
-<li>Use <strong>traverse_effect</strong> for parallel Effect execution</li>
-<li>Choose based on error handling needs: accumulate vs fail-fast</li>
-<li>Test thoroughly, especially edge cases like empty collections</li>
-</ul>
-<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
-<ul>
-<li>Review <a href="02-validation.html">Validation guide</a> for error accumulation</li>
-<li>See <a href="03-effects.html">Effects guide</a> for async processing</li>
-<li>Check <a href="https://github.com/iepathos/stillwater/tree/master/examples">examples/</a> for complete examples</li>
-<li>Read the <a href="https://docs.rs/stillwater">API docs</a> for full details</li>
-</ul>
+<p>Sequential sequencing stops running children after the first error, but their construction
+has already happened. Use traversal when child construction must also be deferred.</p>
+<h2 id="construction-memory-and-testing"><a class="header" href="#construction-memory-and-testing">Construction, memory, and testing</a></h2>
+<p>All four effect helpers eagerly collect their input iterator when called. Side effects
+in an iterator’s <code>next</code> method therefore occur before execution. Traversal defers the
+supplied child factory, not input enumeration. Inputs must be finite.</p>
+<p>The effect helpers return <code>BoxedEffect</code>, require boxed children, and clone the environment
+for execution. Prefer cheap shared service handles in the environment. Validation
+traversal also materializes an intermediate vector; it makes no single-allocation or
+speedup guarantee over a manual map and sequence.</p>
+<p>Regression tests in
+<a href="https://github.com/iepathos/stillwater/blob/master/src/traverse.rs"><code>src/traverse.rs</code></a>
+cover child construction timing, strict sequential ordering, actual overlap, empty inputs,
+input-ordered errors despite out-of-order completion, and completion after errors.
+Use synchronization to control completion order in tests instead of assuming timer precision.</p>
+<p>For the 1.x behavior and upgrade details, see <a href="../MIGRATION.html">migration</a>.</p>
 
                     </main>
 

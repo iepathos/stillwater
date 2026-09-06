@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8460a12b.js"></script>
+        <script src="toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,6 +181,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="improving-our-design--planning-process"><a class="header" href="#improving-our-design--planning-process">Improving Our Design &amp; Planning Process</a></h1>
+<blockquote>
+<p>Historical design record. This predates the current concrete-combinator API and
+contains unimplemented or superseded proposals. It is not a 2.0 usage guide.
+Use the <a href="guide/03-effects.html">effects guide</a> and <a href="guide/17-api-tiers.html">API tiers</a>
+for current behavior.</p>
+</blockquote>
 <h2 id="what-weve-done-well-"><a class="header" href="#what-weve-done-well-">What We’ve Done Well ✅</a></h2>
 <h3 id="1-example-driven-design"><a class="header" href="#1-example-driven-design">1. Example-Driven Design</a></h3>
 <ul>
@@ -217,9 +223,7 @@
 <li>Hidden complexity not discovered</li>
 </ul>
 <p><strong>Solution:</strong></p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Create a minimal proof-of-concept:
+<pre><code class="language-text">// Create a minimal proof-of-concept:
 // stillwater/prototypes/validation_poc.rs
 
 // Actually implement just Validation&lt;T, E&gt;
@@ -237,7 +241,7 @@ fn test_validation_accumulation() {
     // Is the syntax actually ergonomic?
     // What error messages does the compiler give?
 }
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Action Items:</strong></p>
 <ul>
 <li><input disabled="" type="checkbox"> Create <code>prototypes/</code> directory</li>
@@ -305,9 +309,7 @@ So that pipelines complete faster.
 </ul>
 <p><strong>Solution:</strong></p>
 <h4 id="benchmark-critical-paths"><a class="header" href="#benchmark-critical-paths">Benchmark Critical Paths</a></h4>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// benchmarks/effect_overhead.rs
+<pre><code class="language-text">// benchmarks/effect_overhead.rs
 
 #[bench]
 fn hand_written_sync(b: &amp;mut Bencher) {
@@ -333,7 +335,7 @@ fn stillwater_sync(b: &amp;mut Bencher) {
 // - Future wrapping cost
 // - Comparison to hand-written
 // - Memory allocations
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Acceptance Criteria:</strong></p>
 <ul>
 <li>Effect overhead &lt; 5% vs hand-written</li>
@@ -413,9 +415,7 @@ fn stillwater_sync(b: &amp;mut Bencher) {
 </ul>
 <p><strong>Solution:</strong></p>
 <h4 id="spikeprototype-critical-parts"><a class="header" href="#spikeprototype-critical-parts">Spike/Prototype Critical Parts</a></h4>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// prototypes/effect_lifetimes.rs
+<pre><code class="language-text">// prototypes/effect_lifetimes.rs
 
 // Experiment: Can we avoid boxing?
 struct EffectNoBox&lt;T, E, Env, F&gt;
@@ -433,7 +433,7 @@ where
 // - [ ] Boxing necessary? Why/why not?
 // - [ ] Can we use impl Trait instead?
 // - [ ] What's the actual cost?
-<span class="boring">}</span></code></pre>
+</code></pre>
 <p><strong>Experiments to Run:</strong></p>
 <ol>
 <li><input disabled="" type="checkbox"> Effect without boxing (is it possible?)</li>
@@ -458,119 +458,116 @@ where
 ### Stage 1: Validation Only (Week 1)
 Start with just validation in new API endpoints:
 
-```rust
-// Before
+</code></pre>
+<p>// Before
 fn create_user(input: UserInput) -&gt; Result&lt;User, Error&gt; {
-    if !validate_email(&amp;input.email) {
-        return Err(Error::InvalidEmail);
-    }
-    // ... continue with first-error-only
+if !validate_email(&amp;input.email) {
+return Err(Error::InvalidEmail);
 }
+// … continue with first-error-only
+}</p>
+<p>// After (just add validation)
+fn create_user(input: UserInput) -&gt; Result&lt;User, Vec<validationerror>&gt; {
+Validation::all((
+validate_email(&amp;input.email),
+validate_age(input.age),
+))
+.into_result()
+}</validationerror></p>
+<pre><code class="language-text">
+**Benefits:** Immediate value, low risk, no refactoring needed
 
-// After (just add validation)
-fn create_user(input: UserInput) -&gt; Result&lt;User, Vec&lt;ValidationError&gt;&gt; {
-    Validation::all((
-        validate_email(&amp;input.email),
-        validate_age(input.age),
-    ))
-    .into_result()
-}
+### Stage 2: Effect Separation (Week 2-3)
+Extract pure business logic in critical paths:
+
 </code></pre>
-<p><strong>Benefits:</strong> Immediate value, low risk, no refactoring needed</p>
-<h3 id="stage-2-effect-separation-week-2-3"><a class="header" href="#stage-2-effect-separation-week-2-3">Stage 2: Effect Separation (Week 2-3)</a></h3>
-<p>Extract pure business logic in critical paths:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// Pure functions (new)
-fn calculate_discount(customer: &amp;Customer) -&gt; Money { ... }
-fn apply_discount(order: Order, discount: Money) -&gt; Order { ... }
-
-// Keep existing I/O code (not refactored yet)
+<p>// Pure functions (new)
+fn calculate_discount(customer: &amp;Customer) -&gt; Money { … }
+fn apply_discount(order: Order, discount: Money) -&gt; Order { … }</p>
+<p>// Keep existing I/O code (not refactored yet)
 async fn process_order(id: OrderId) -&gt; Result&lt;Invoice, Error&gt; {
-    let order = db.fetch_order(id).await?;
-    let discount = calculate_discount(&amp;order.customer);  // Pure!
-    let final_order = apply_discount(order, discount);   // Pure!
-    db.save_invoice(final_order).await
-}
-<span class="boring">}</span></code></pre>
-<p><strong>Benefits:</strong> Better testability immediately, incremental change</p>
-<h3 id="stage-3-full-effects-month-2"><a class="header" href="#stage-3-full-effects-month-2">Stage 3: Full Effects (Month 2+)</a></h3>
-<p>Gradually wrap I/O in Effects for new features:</p>
-<pre class="playground"><code class="language-rust edition2021"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>fn process_order_v2(id: OrderId) -&gt; Effect&lt;Invoice, Error, AppEnv&gt; {
-    // Full stillwater style
-}
-<span class="boring">}</span></code></pre>
-<p><strong>Benefits:</strong> New code uses best practices, old code still works</p>
-<pre><code>
-**Action Items:**
-- [ ] Write migration guide
-- [ ] Create "starter" templates
-- [ ] Document integration with popular frameworks
-- [ ] Show how to use with existing codebases
+let order = db.fetch_order(id).await?;
+let discount = calculate_discount(&amp;order.customer);  // Pure!
+let final_order = apply_discount(order, discount);   // Pure!
+db.save_invoice(final_order).await
+}</p>
+<pre><code class="language-text">
+**Benefits:** Better testability immediately, incremental change
 
----
-
-### Gap 7: No Clear Success Metrics
-
-**Problem:** "100+ stars" is vague. How do we know we succeeded?
-
-**Impact:**
-- Can't measure progress
-- Don't know when to pivot
-- Unclear what "good" looks like
-
-**Solution:**
-
-#### Define Concrete Metrics
-
-**Technical Metrics:**
-- [ ] Compiles with zero warnings
-- [ ] 100% documented (rustdoc)
-- [ ] &lt;5% overhead vs hand-written (benchmark)
-- [ ] &lt;2s additional compile time for simple project
-- [ ] All examples compile and run
-
-**Adoption Metrics (6 months):**
-- [ ] 3+ production users (verified via contact)
-- [ ] 10+ GitHub issues filed (engagement)
-- [ ] 100+ downloads/week on crates.io
-- [ ] Featured in "This Week in Rust" or similar
-
-**Quality Metrics:**
-- [ ] Positive HN/Reddit feedback (&gt;70% upvote)
-- [ ] 0 critical bugs reported
-- [ ] &lt;24hr response time to issues
-- [ ] 5+ external contributors
-
-**Educational Metrics:**
-- [ ] Blog post written about it
-- [ ] Conference talk accepted
-- [ ] 3+ community examples/tutorials
-
-**Leading Indicators (Month 1):**
-- [ ] 5 people try it and give feedback
-- [ ] 2 people say "I'd use this"
-- [ ] 0 people say "This solves nothing"
-
----
-
-### Gap 8: Documentation Organization
-
-**Problem:** Design docs scattered across many files.
-
-**Impact:**
-- Hard to find information
-- Redundancy/conflicts
-- No clear entry point
-
-**Solution:**
-
-#### Documentation Structure
+### Stage 3: Full Effects (Month 2+)
+Gradually wrap I/O in Effects for new features:
 
 </code></pre>
-<p>stillwater/
+<p>fn process_order_v2(id: OrderId) -&gt; Effect&lt;Invoice, Error, AppEnv&gt; {
+// Full stillwater style
+}</p>
+<pre><code class="language-text">
+**Benefits:** New code uses best practices, old code still works
+</code></pre>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Write migration guide</li>
+<li><input disabled="" type="checkbox"> Create “starter” templates</li>
+<li><input disabled="" type="checkbox"> Document integration with popular frameworks</li>
+<li><input disabled="" type="checkbox"> Show how to use with existing codebases</li>
+</ul>
+<hr>
+<h3 id="gap-7-no-clear-success-metrics"><a class="header" href="#gap-7-no-clear-success-metrics">Gap 7: No Clear Success Metrics</a></h3>
+<p><strong>Problem:</strong> “100+ stars” is vague. How do we know we succeeded?</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Can’t measure progress</li>
+<li>Don’t know when to pivot</li>
+<li>Unclear what “good” looks like</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="define-concrete-metrics"><a class="header" href="#define-concrete-metrics">Define Concrete Metrics</a></h4>
+<p><strong>Technical Metrics:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Compiles with zero warnings</li>
+<li><input disabled="" type="checkbox"> 100% documented (rustdoc)</li>
+<li><input disabled="" type="checkbox"> &lt;5% overhead vs hand-written (benchmark)</li>
+<li><input disabled="" type="checkbox"> &lt;2s additional compile time for simple project</li>
+<li><input disabled="" type="checkbox"> All examples compile and run</li>
+</ul>
+<p><strong>Adoption Metrics (6 months):</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 3+ production users (verified via contact)</li>
+<li><input disabled="" type="checkbox"> 10+ GitHub issues filed (engagement)</li>
+<li><input disabled="" type="checkbox"> 100+ downloads/week on crates.io</li>
+<li><input disabled="" type="checkbox"> Featured in “This Week in Rust” or similar</li>
+</ul>
+<p><strong>Quality Metrics:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Positive HN/Reddit feedback (&gt;70% upvote)</li>
+<li><input disabled="" type="checkbox"> 0 critical bugs reported</li>
+<li><input disabled="" type="checkbox"> &lt;24hr response time to issues</li>
+<li><input disabled="" type="checkbox"> 5+ external contributors</li>
+</ul>
+<p><strong>Educational Metrics:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Blog post written about it</li>
+<li><input disabled="" type="checkbox"> Conference talk accepted</li>
+<li><input disabled="" type="checkbox"> 3+ community examples/tutorials</li>
+</ul>
+<p><strong>Leading Indicators (Month 1):</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 5 people try it and give feedback</li>
+<li><input disabled="" type="checkbox"> 2 people say “I’d use this”</li>
+<li><input disabled="" type="checkbox"> 0 people say “This solves nothing”</li>
+</ul>
+<hr>
+<h3 id="gap-8-documentation-organization"><a class="header" href="#gap-8-documentation-organization">Gap 8: Documentation Organization</a></h3>
+<p><strong>Problem:</strong> Design docs scattered across many files.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Hard to find information</li>
+<li>Redundancy/conflicts</li>
+<li>No clear entry point</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="documentation-structure"><a class="header" href="#documentation-structure">Documentation Structure</a></h4>
+<pre><code class="language-text">stillwater/
 ├── README.md                          # Quick intro, examples
 ├── docs/
 │   ├── guide/
@@ -599,31 +596,27 @@ async fn process_order(id: OrderId) -&gt; Result&lt;Invoice, Error&gt; {
 │       └── releasing.md
 ├── examples/                          # Runnable code
 ├── prototypes/                        # Experiments
-└── benchmarks/                        # Performance tests</p>
-<pre><code>
-**Action Items:**
-- [ ] Reorganize current docs into structure
-- [ ] Create templates for decision records
-- [ ] Add navigation/ToC to each doc
-- [ ] Cross-reference related docs
-
----
-
-### Gap 9: No "Why Not" Section
-
-**Problem:** Don't address objections head-on.
-
-**Impact:**
-- Users have unanswered concerns
-- Seems like we're hiding weaknesses
-- Can't learn from critics
-
-**Solution:**
-
-#### Address Objections Explicitly
-
-```markdown
-## Why NOT Use Stillwater?
+└── benchmarks/                        # Performance tests
+</code></pre>
+<p><strong>Action Items:</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> Reorganize current docs into structure</li>
+<li><input disabled="" type="checkbox"> Create templates for decision records</li>
+<li><input disabled="" type="checkbox"> Add navigation/ToC to each doc</li>
+<li><input disabled="" type="checkbox"> Cross-reference related docs</li>
+</ul>
+<hr>
+<h3 id="gap-9-no-why-not-section"><a class="header" href="#gap-9-no-why-not-section">Gap 9: No “Why Not” Section</a></h3>
+<p><strong>Problem:</strong> Don’t address objections head-on.</p>
+<p><strong>Impact:</strong></p>
+<ul>
+<li>Users have unanswered concerns</li>
+<li>Seems like we’re hiding weaknesses</li>
+<li>Can’t learn from critics</li>
+</ul>
+<p><strong>Solution:</strong></p>
+<h4 id="address-objections-explicitly"><a class="header" href="#address-objections-explicitly">Address Objections Explicitly</a></h4>
+<pre><code class="language-markdown">## Why NOT Use Stillwater?
 
 ### "I don't need validation accumulation"
 **Then use:** anyhow/eyre for simple error handling
@@ -839,7 +832,7 @@ Build small, validate often, talk to users.</p>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="io-api-analysis.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="async-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -850,7 +843,7 @@ Build small, validate often, talk to users.</p>
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="io-api-analysis.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="async-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

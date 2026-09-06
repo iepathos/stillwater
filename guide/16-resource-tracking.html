@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "rust";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d7f45c93.js";
+            window.path_to_searchindex_js = "../searchindex-8f033762.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-8460a12b.js"></script>
+        <script src="../toc-21dc18f9.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,7 +194,7 @@
 <p>For ordinary scoped cleanup, the runtime bracket helpers are often enough. Resource tracking adds type-level documentation and compile-time neutrality checks on top.</p>
 <h2 id="core-types"><a class="header" href="#core-types">Core Types</a></h2>
 <p>Resource tracking is built from marker types and type-level sets:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+<pre><code class="language-text">use stillwater::effect::resource::*;
 
 // Built-in resource markers
 FileRes;
@@ -205,16 +205,18 @@ TxRes;
 
 // Type-level resource sets
 Empty;        // no resources
-Has&lt;FileRes&gt;; // one tracked resource</code></pre>
+Has&lt;FileRes&gt;; // one tracked resource
+</code></pre>
 <p>Tracked effects implement <code>ResourceEffect</code>, which extends <code>Effect</code> with two associated resource sets:</p>
-<pre><code class="language-rust ignore">trait ResourceEffect {
+<pre><code class="language-text">trait ResourceEffect {
     type Acquires;
     type Releases;
-}</code></pre>
+}
+</code></pre>
 <p>These sets describe what an effect acquires and releases at the type level. The tracking wrapper has no runtime behavior beyond running the original effect.</p>
 <h2 id="annotating-effects"><a class="header" href="#annotating-effects">Annotating Effects</a></h2>
 <p>Use extension methods to mark effects as acquiring, releasing, or neutral with respect to resources:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+<pre><code class="language-text">use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
 fn open_file(path: &amp;str) -&gt; impl ResourceEffect&lt;
@@ -247,7 +249,8 @@ fn read_contents(handle: &amp;str) -&gt; impl ResourceEffect&lt;
     Releases = Empty,
 &gt; {
     pure::&lt;_, String, ()&gt;(format!("Contents of {handle}")).neutral()
-}</code></pre>
+}
+</code></pre>
 <p>The function signatures make the resource contract explicit:</p>
 <ul>
 <li><code>open_file</code> acquires <code>FileRes</code></li>
@@ -256,7 +259,7 @@ fn read_contents(handle: &amp;str) -&gt; impl ResourceEffect&lt;
 </ul>
 <h2 id="prefer-bracket-for-resource-safety"><a class="header" href="#prefer-bracket-for-resource-safety">Prefer Bracket for Resource Safety</a></h2>
 <p>The most ergonomic way to acquire and release a resource safely is the bracket builder:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+<pre><code class="language-text">use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
 let effect = bracket::&lt;FileRes&gt;()
@@ -269,7 +272,8 @@ let effect = bracket::&lt;FileRes&gt;()
         pure::&lt;_, String, ()&gt;(format!("Processed: {handle}"))
     });
 
-let result = effect.run(&amp;()).await;</code></pre>
+let result = effect.run(&amp;()).await;
+</code></pre>
 <p>The bracket shape is:</p>
 <ol>
 <li>acquire the resource</li>
@@ -279,7 +283,7 @@ let result = effect.run(&amp;()).await;</code></pre>
 <p>The bracketed effect is resource-neutral as a whole: it does not leak its acquired resource through the type signature.</p>
 <h2 id="protocol-enforcement"><a class="header" href="#protocol-enforcement">Protocol Enforcement</a></h2>
 <p>Resource tracking is also useful for protocols such as transactions:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+<pre><code class="language-text">use stillwater::effect::resource::*;
 use stillwater::{pure, Effect};
 
 fn begin_transaction() -&gt; impl ResourceEffect&lt;
@@ -314,28 +318,31 @@ fn run_in_transaction() -&gt; impl ResourceEffect&lt;
         .acquire(begin_transaction())
         .release(|tx| async move { commit_transaction(tx).run(&amp;()).await })
         .use_fn(|tx| pure::&lt;_, String, ()&gt;(format!("used {tx}")))
-}</code></pre>
+}
+</code></pre>
 <p>The return type says <code>run_in_transaction</code> is neutral: it begins and ends the transaction internally.</p>
 <h2 id="compile-time-neutrality-checks"><a class="header" href="#compile-time-neutrality-checks">Compile-Time Neutrality Checks</a></h2>
 <p>Use <code>assert_resource_neutral</code> when an API must not expose outstanding resources:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::*;
+<pre><code class="language-text">use stillwater::effect::resource::*;
 
 fn must_be_neutral&lt;E&gt;(effect: E) -&gt; E
 where
     E: ResourceEffect&lt;Acquires = Empty, Releases = Empty&gt;,
 {
     assert_resource_neutral(effect)
-}</code></pre>
+}
+</code></pre>
 <p>If the effect still acquires or releases a resource, the code will fail to compile.</p>
 <h2 id="custom-resource-markers"><a class="header" href="#custom-resource-markers">Custom Resource Markers</a></h2>
 <p>Define a marker when the built-in resource kinds do not fit your domain:</p>
-<pre><code class="language-rust ignore">use stillwater::effect::resource::ResourceKind;
+<pre><code class="language-text">use stillwater::effect::resource::ResourceKind;
 
 pub struct PoolCheckout;
 
 impl ResourceKind for PoolCheckout {
     const NAME: &amp;'static str = "PoolCheckout";
-}</code></pre>
+}
+</code></pre>
 <p>You can then use <code>.acquires::&lt;PoolCheckout&gt;()</code>, <code>.releases::&lt;PoolCheckout&gt;()</code>, and <code>bracket::&lt;PoolCheckout&gt;()</code> the same way as built-in markers.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <p>Run the full example:</p>
@@ -352,7 +359,7 @@ impl ResourceKind for PoolCheckout {
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../PERFORMANCE.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../guide/17-api-tiers.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -366,7 +373,7 @@ impl ResourceKind for PoolCheckout {
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../PERFORMANCE.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../guide/17-api-tiers.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
