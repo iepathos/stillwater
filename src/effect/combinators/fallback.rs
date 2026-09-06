@@ -4,7 +4,7 @@ use crate::effect::Effect;
 
 /// Provides a default value on any error.
 ///
-/// Zero-cost: no heap allocation. Stores only the inner effect
+/// Construction adds no heap allocation. Stores only the inner effect
 /// and the default value.
 ///
 /// # Examples

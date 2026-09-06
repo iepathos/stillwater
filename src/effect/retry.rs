@@ -24,8 +24,8 @@ use crate::retry::{RetryEvent, RetryExhausted, RetryPolicy, TimeoutError};
 ///
 /// # Returns
 ///
-/// Returns a `BoxedEffect` because the retry loop creates dynamic control flow
-/// that cannot be represented as a zero-cost combinator type.
+/// Returns a `BoxedEffect` to erase the implementation's retry-loop type.
+/// This helper therefore allocates even when each child effect is concrete.
 ///
 /// # Example
 ///

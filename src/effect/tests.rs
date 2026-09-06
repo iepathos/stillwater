@@ -584,7 +584,7 @@ fn test_zip_size() {
     );
 }
 
-// Complex zip chain to verify no allocations
+// Complex zip chain to verify composed results (not allocation behavior)
 #[tokio::test]
 async fn test_zip_five_effects_no_allocation() {
     let effect = pure::<_, String, ()>(1)

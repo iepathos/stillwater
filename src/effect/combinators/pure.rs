@@ -6,7 +6,7 @@ use crate::effect::trait_def::Effect;
 
 /// A pure value wrapped as an Effect.
 ///
-/// This is zero-cost - no heap allocation occurs. The `Pure` struct
+/// Construction adds no heap allocation. The `Pure` struct
 /// stores only the value itself plus phantom data for type parameters.
 ///
 /// # Example

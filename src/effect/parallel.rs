@@ -221,7 +221,7 @@ where
 
 /// Execute two effects in parallel (heterogeneous).
 ///
-/// Zero-cost when effects have concrete types.
+/// Uses concrete child futures without combinator boxing; child operations may allocate.
 ///
 /// # Example
 ///
@@ -251,7 +251,7 @@ where
 
 /// Execute three effects in parallel (heterogeneous).
 ///
-/// Zero-cost when effects have concrete types.
+/// Uses concrete child futures without combinator boxing; child operations may allocate.
 pub async fn par3<E1, E2, E3>(
     e1: E1,
     e2: E2,
@@ -272,7 +272,7 @@ where
 
 /// Execute four effects in parallel (heterogeneous).
 ///
-/// Zero-cost when effects have concrete types.
+/// Uses concrete child futures without combinator boxing; child operations may allocate.
 pub async fn par4<E1, E2, E3, E4>(
     e1: E1,
     e2: E2,

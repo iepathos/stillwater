@@ -6,7 +6,7 @@ use crate::effect::trait_def::Effect;
 
 /// Effect from a Result value.
 ///
-/// Zero-cost: no heap allocation. The Result is stored directly
+/// Construction adds no heap allocation. The Result is stored directly
 /// in the struct and returned when the effect is run.
 ///
 /// # Example

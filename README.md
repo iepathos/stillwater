@@ -352,7 +352,7 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
 - **Validation combinators** - Declarative validation with `ensure` family (replaces verbose `and_then` boilerplate)
   - `Effect`: `.ensure()`, `.ensure_with()`, `.ensure_pred()`, `.unless()`, `.filter_or()`
   - `Validation`: `.ensure()`, `.ensure_fn()`, `.ensure_with()`, `.ensure_fn_with()`, `.unless()`, `.filter_or()`
-  - Zero-cost: compiles to concrete types with no heap allocation
+  - Concrete combinator types; predicates and error construction may allocate
   - Reduces 12-line validation blocks to single-line predicates
 - **Refined types** - "Parse, don't validate" pattern for type-level invariants
   - `Refined<T, P>` wrapper guarantees value satisfies predicate P at compile time
@@ -362,7 +362,7 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - Combinators: `And`, `Or`, `Not` for composing complex predicates
   - Type aliases: `NonEmptyString`, `PositiveI32`, `Port`, `Percentage`, etc.
   - Validation integration: `validate()`, `validate_vec()`, `with_field()` for error accumulation
-  - Zero-cost: same memory layout as inner type, predicate is compile-time only
+  - Same stored layout as the inner type; construction checks the predicate at runtime
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
 - **`Effect` trait** - Boxing-free composition by default, following the `futures` crate pattern
   - No combinator boxing unless type erasure is requested
@@ -373,9 +373,9 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
 - **Zip combinators** - Combine independent effects into tuples
   - `zip()`, `zip_with()` methods for pairwise combination
   - `zip3()` through `zip8()` for flat tuple results
-  - Zero-cost: all combinators return concrete types
+  - Concrete combinator types without combinator boxing
 - **Parallel effect execution** - Run independent effects concurrently
-  - Zero-cost: `par2()`, `par3()`, `par4()` for heterogeneous effects
+  - Concrete futures: `par2()`, `par3()`, `par4()` for heterogeneous effects
   - Boxed: `par_all()`, `par_try_all()`, `race()`, `par_all_limit()` for homogeneous collections
 - **Retry and resilience** - Policy-as-data approach with exponential, linear, constant, and Fibonacci backoff. Includes jitter, conditional retry, retry hooks, and timeout support
 - **Error recovery** - Selective error handling with predicate-based recovery
@@ -585,7 +585,7 @@ Run any example with `cargo run --example <name>`:
 | [monoid](examples/monoid.rs) | Monoid and Semigroup traits for composition |
 | [extended_semigroup](examples/extended_semigroup.rs) | Semigroup for HashMap, HashSet, Option, and wrapper types |
 | [tracing_demo](examples/tracing_demo.rs) | Tracing integration with semantic spans and context |
-| [boxing_decisions](examples/boxing_decisions.rs) | When to use `.boxed()` vs zero-cost effects |
+| [boxing_decisions](examples/boxing_decisions.rs) | When to use type erasure vs concrete effects |
 | [resource_scopes](examples/resource_scopes.rs) | Bracket pattern for safe resource management with guaranteed cleanup |
 | [resource_tracking](examples/resource_tracking.rs) | Compile-time resource tracking with type-level safety |
 | [refined](examples/refined.rs) | Refined types for "parse, don't validate" pattern with type-level invariants |

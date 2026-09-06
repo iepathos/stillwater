@@ -1,8 +1,9 @@
-//! Zero-cost combinator types for effect composition.
+//! Concrete combinator types for effect composition.
 //!
 //! This module contains concrete types returned by effect combinators.
-//! Unlike boxed effects, these types are zero-cost - they don't allocate
-//! on the heap and can be optimized by the compiler.
+//! Most store their inputs and closures directly. FromAsyncRef accepts a boxed
+//! future, and user operations or captured values can allocate independently.
+//! Concrete types allow optimization; runtime costs still depend on the workflow.
 //!
 //! Most users won't need to work with these types directly. Instead,
 //! use the combinator methods on `EffectExt` which return these types
@@ -66,4 +67,4 @@ pub use zip_with::ZipWith;
 mod recover_tests;
 
 #[cfg(test)]
-mod layout_tests;
+mod size_tests;

@@ -4,7 +4,7 @@ use crate::effect::trait_def::Effect;
 
 /// OrElse combinator - recovers from errors.
 ///
-/// Zero-cost: no heap allocation. The `OrElse` struct stores only
+/// Construction adds no heap allocation. The `OrElse` struct stores only
 /// the inner effect and the recovery function.
 ///
 /// If the inner effect succeeds, the value passes through unchanged.

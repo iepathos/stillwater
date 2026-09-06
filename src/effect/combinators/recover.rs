@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 
 /// Recovers from errors matching a predicate.
 ///
-/// Zero-cost: no heap allocation. The struct stores only the inner effect,
+/// Construction adds no heap allocation. The struct stores only the inner effect,
 /// predicate, and handler function.
 ///
 /// # Examples

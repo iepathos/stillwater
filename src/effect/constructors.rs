@@ -73,7 +73,7 @@
 //! ```
 //!
 //! The free function style reduces boilerplate while maintaining the same
-//! type safety and zero-cost abstractions.
+//! type safety and concrete composition.
 
 use std::future::Future;
 
@@ -86,7 +86,7 @@ use crate::effect::trait_def::Effect;
 
 /// Create a pure effect that succeeds with the given value.
 ///
-/// Zero-cost: no heap allocation.
+/// Construction adds no heap allocation.
 ///
 /// # Example
 ///
@@ -109,7 +109,7 @@ where
 
 /// Create an effect that fails with the given error.
 ///
-/// Zero-cost: no heap allocation.
+/// Construction adds no heap allocation.
 ///
 /// # Example
 ///
@@ -403,7 +403,7 @@ where
 
 /// Combine three effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip3` type, no heap allocation.
+/// Returns a concrete `Zip3` type without combinator boxing.
 ///
 /// # Example
 ///
@@ -428,7 +428,7 @@ where
 
 /// Combine four effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip4` type, no heap allocation.
+/// Returns a concrete `Zip4` type without combinator boxing.
 ///
 /// # Example
 ///
@@ -450,7 +450,7 @@ where
 
 /// Combine five effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip5` type, no heap allocation.
+/// Returns a concrete `Zip5` type without combinator boxing.
 pub fn zip5<E1, E2, E3, E4, E5>(e1: E1, e2: E2, e3: E3, e4: E4, e5: E5) -> Zip5<E1, E2, E3, E4, E5>
 where
     E1: Effect,
@@ -464,7 +464,7 @@ where
 
 /// Combine six effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip6` type, no heap allocation.
+/// Returns a concrete `Zip6` type without combinator boxing.
 pub fn zip6<E1, E2, E3, E4, E5, E6>(
     e1: E1,
     e2: E2,
@@ -486,7 +486,7 @@ where
 
 /// Combine seven effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip7` type, no heap allocation.
+/// Returns a concrete `Zip7` type without combinator boxing.
 pub fn zip7<E1, E2, E3, E4, E5, E6, E7>(
     e1: E1,
     e2: E2,
@@ -510,7 +510,7 @@ where
 
 /// Combine eight effects into a flat tuple.
 ///
-/// Zero-cost: returns a concrete `Zip8` type, no heap allocation.
+/// Returns a concrete `Zip8` type without combinator boxing.
 #[allow(clippy::too_many_arguments)]
 pub fn zip8<E1, E2, E3, E4, E5, E6, E7, E8>(
     e1: E1,

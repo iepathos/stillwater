@@ -4,7 +4,7 @@ use crate::effect::trait_def::Effect;
 
 /// MapErr combinator - transforms the error value.
 ///
-/// Zero-cost: no heap allocation. The `MapErr` struct stores only
+/// Construction adds no heap allocation. The `MapErr` struct stores only
 /// the inner effect and the error transformation function.
 ///
 /// # Example

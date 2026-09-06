@@ -1,4 +1,7 @@
-//! Inline layout tests for recovery combinators.
+//! Size smoke tests for representative recovery combinators.
+//!
+//! These checks catch some accidental size growth. They do not establish inline
+//! field storage, absence of heap allocation, or runtime performance.
 
 #[cfg(test)]
 mod tests {
@@ -11,30 +14,29 @@ mod tests {
     use std::mem::size_of;
 
     #[test]
-    fn recover_has_inline_layout() {
+    fn recover_has_bounded_size() {
         type InnerEffect = Pure<i32, String, ()>;
         type Predicate = fn(&String) -> bool;
         type Handler = fn(String) -> Pure<i32, String, ()>;
         type RecoverEffect = Recover<InnerEffect, Predicate, Handler, Pure<i32, String, ()>>;
 
-        // The combinator stores its fields inline (with possible alignment padding).
-        assert!(size_of::<RecoverEffect>() < 100); // Bounded inline size
+        // A coarse budget for this instantiation, not an allocation assertion.
+        assert!(size_of::<RecoverEffect>() < 100);
         assert!(size_of::<RecoverEffect>() >= size_of::<InnerEffect>()); // At least as big as inner
     }
 
     #[test]
-    fn recover_with_has_inline_layout() {
+    fn recover_with_has_bounded_size() {
         type InnerEffect = Pure<i32, String, ()>;
         type RecoverWithEffect =
             RecoverWith<InnerEffect, fn(&String) -> bool, fn(String) -> Result<i32, String>>;
 
-        // The combinator stores its fields inline.
-        assert!(size_of::<RecoverWithEffect>() < 100); // Bounded inline size
+        assert!(size_of::<RecoverWithEffect>() < 100);
         assert!(size_of::<RecoverWithEffect>() >= size_of::<InnerEffect>());
     }
 
     #[test]
-    fn recover_some_has_inline_layout() {
+    fn recover_some_has_bounded_size() {
         type InnerEffect = Pure<i32, String, ()>;
         type RecoverSomeEffect = RecoverSome<
             InnerEffect,
@@ -42,13 +44,12 @@ mod tests {
             Pure<i32, String, ()>,
         >;
 
-        // The combinator stores its fields inline.
-        assert!(size_of::<RecoverSomeEffect>() < 100); // Bounded inline size
+        assert!(size_of::<RecoverSomeEffect>() < 100);
         assert!(size_of::<RecoverSomeEffect>() >= size_of::<InnerEffect>());
     }
 
     #[test]
-    fn fallback_has_inline_layout() {
+    fn fallback_has_expected_size_for_i32() {
         type InnerEffect = Pure<i32, String, ()>;
         type FallbackEffect = Fallback<InnerEffect>;
 
@@ -59,7 +60,7 @@ mod tests {
     }
 
     #[test]
-    fn fallback_to_has_inline_layout() {
+    fn fallback_to_has_expected_size_for_i32() {
         type PrimaryEffect = Pure<i32, String, ()>;
         type AlternativeEffect = Pure<i32, String, ()>;
         type FallbackToEffect = FallbackTo<PrimaryEffect, AlternativeEffect>;

@@ -6,7 +6,7 @@ use crate::effect::trait_def::Effect;
 
 /// A failure value wrapped as an Effect.
 ///
-/// This is zero-cost - no heap allocation occurs. The `Fail` struct
+/// Construction adds no heap allocation. The `Fail` struct
 /// stores only the error value plus phantom data for type parameters.
 ///
 /// # Example

@@ -5,7 +5,7 @@ use crate::predicate::Predicate;
 
 /// Recovers from errors with a Result-returning function.
 ///
-/// Zero-cost: no heap allocation. Useful when recovery doesn't need
+/// Construction adds no heap allocation. Useful when recovery doesn't need
 /// to run an effect, just return a value or transform the error.
 ///
 /// # Examples

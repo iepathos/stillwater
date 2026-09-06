@@ -4,7 +4,7 @@ use crate::effect::Effect;
 
 /// Tries an alternative effect on any error.
 ///
-/// Zero-cost: no heap allocation. Stores only the primary and
+/// Construction adds no heap allocation. Stores only the primary and
 /// alternative effects.
 ///
 /// # Examples

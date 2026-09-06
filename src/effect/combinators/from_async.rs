@@ -7,7 +7,7 @@ use crate::effect::trait_def::Effect;
 
 /// Effect from an async function.
 ///
-/// Zero-cost: no heap allocation (beyond the future itself).
+/// Construction stores the function directly; the returned future may allocate internally.
 /// The async function is stored directly in the struct and
 /// invoked when the effect is run.
 ///

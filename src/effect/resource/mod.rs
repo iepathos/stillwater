@@ -148,13 +148,16 @@
 //! All existing Effect code continues to work unchanged. Resource tracking
 //! is purely additive and opt-in.
 //!
-//! # Zero-Cost Abstraction
+//! # Type-Level Accounting
 //!
-//! The entire resource tracking system is zero-cost:
+//! The accounting markers do not add runtime state:
 //! - All marker types are zero-sized
 //! - `Tracked` wrapper has the same runtime behavior as the inner effect
 //! - Type-level computations happen at compile time only
-//! - No runtime checks, allocations, or indirection
+//! - No runtime checks or allocations for the markers themselves
+//!
+//! Underlying resource operations and composition helpers can still allocate or
+//! perform cleanup work; marker accounting is not a whole-workflow cost guarantee.
 
 pub mod bracket;
 pub mod builder;

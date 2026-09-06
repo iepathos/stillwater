@@ -6,7 +6,7 @@ use crate::Semigroup;
 
 /// Chains dependent WriterEffects, combining their writes.
 ///
-/// Zero-cost: no heap allocation. The `WriterAndThen` struct stores only
+/// Construction adds no heap allocation. The `WriterAndThen` struct stores only
 /// the inner effect and the function that produces the next effect.
 ///
 /// Writes from both effects are combined using `Monoid::combine`, ensuring

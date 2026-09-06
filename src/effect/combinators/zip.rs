@@ -4,7 +4,7 @@ use crate::effect::trait_def::Effect;
 
 /// Combines two effects, running them sequentially and returning both results.
 ///
-/// This is zero-cost: no heap allocation occurs. The `Zip` struct stores
+/// Construction adds no heap allocation. The `Zip` struct stores
 /// both effects inline.
 ///
 /// # Execution Order
@@ -84,7 +84,7 @@ where
 
 /// Combines three effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs. Returns a flat tuple
+/// Construction adds no heap allocation. Returns a flat tuple
 /// `(T1, T2, T3)` rather than nested `((T1, T2), T3)`.
 ///
 /// # Example
@@ -129,7 +129,7 @@ where
 
 /// Combines four effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs.
+/// Construction adds no heap allocation.
 #[derive(Debug)]
 pub struct Zip4<E1, E2, E3, E4> {
     e1: E1,
@@ -167,7 +167,7 @@ where
 
 /// Combines five effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs.
+/// Construction adds no heap allocation.
 #[derive(Debug)]
 pub struct Zip5<E1, E2, E3, E4, E5> {
     e1: E1,
@@ -208,7 +208,7 @@ where
 
 /// Combines six effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs.
+/// Construction adds no heap allocation.
 #[derive(Debug)]
 pub struct Zip6<E1, E2, E3, E4, E5, E6> {
     e1: E1,
@@ -266,7 +266,7 @@ where
 
 /// Combines seven effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs.
+/// Construction adds no heap allocation.
 #[derive(Debug)]
 pub struct Zip7<E1, E2, E3, E4, E5, E6, E7> {
     e1: E1,
@@ -329,7 +329,7 @@ where
 
 /// Combines eight effects into a flat tuple.
 ///
-/// This is zero-cost: no heap allocation occurs.
+/// Construction adds no heap allocation.
 #[derive(Debug)]
 pub struct Zip8<E1, E2, E3, E4, E5, E6, E7, E8> {
     e1: E1,

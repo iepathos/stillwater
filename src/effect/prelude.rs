@@ -80,7 +80,7 @@ pub use crate::effect::parallel::{
     par_all, par_all_limit, par_try_all, race, race_unwrap, RaceError,
 };
 
-// Parallel (heterogeneous, zero-cost)
+// Parallel (heterogeneous, concrete types)
 pub use crate::effect::parallel::{par2, par3, par4};
 
 // Re-export the par! macro

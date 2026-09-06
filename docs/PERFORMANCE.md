@@ -58,14 +58,18 @@ The [Benchmarks workflow](https://github.com/iepathos/stillwater/blob/master/.gi
 
 Regressions are detected by comparing new results to the stored baseline on the default branch.
 
-## Inline layout verification
+## Size smoke tests
 
-Layout checks live in `src/effect/combinators/layout_tests.rs` (combinator struct sizes).
-Runtime benchmarks validate that composition does not add unexpected overhead in hot paths.
+Checks in `src/effect/combinators/size_tests.rs` measure a few concrete struct sizes.
+They can catch some size growth; a small struct can still contain pointers to heap
+allocations. They do not prove inline storage, allocation counts, or runtime overhead.
+Use allocation instrumentation for allocation claims and runtime benchmarks for hot paths.
 
 Practices for low-overhead usage:
 
-1. Prefer concrete effect types; call `.boxed()` only at collection boundaries (`par_all`, heterogeneous vectors).
+1. Prefer concrete effect types; use `.boxed()` where type erasure is needed.
+   Borrowed async construction boxes its future, and helpers such as `IO`, traversal,
+   and retry return boxed effects internally. Account for those costs too.
 2. Use `Validation::all_vec` / tuple `validate_all` for accumulation instead of fail-fast `?` when you need every error.
 3. Add `ContextError` at boundaries, not inside tight inner loops.
 

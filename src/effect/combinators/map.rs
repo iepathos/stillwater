@@ -4,7 +4,7 @@ use crate::effect::trait_def::Effect;
 
 /// Map combinator - transforms the success value.
 ///
-/// Zero-cost: no heap allocation. The `Map` struct stores only
+/// Construction adds no heap allocation. The `Map` struct stores only
 /// the inner effect and the transformation function.
 ///
 /// # Example

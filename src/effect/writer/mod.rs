@@ -37,7 +37,7 @@
 //!
 //! - **Monoid-based accumulation**: Works with any `W: Monoid`
 //! - **Type-safe log types**: Different effects can use different accumulator types
-//! - **Zero-cost abstractions**: Concrete types, no boxing for Writer infrastructure
+//! - **Concrete composition**: No combinator boxing for the concrete Writer types; accumulators can allocate
 //! - **Composable with Effect**: Full integration with existing combinators
 //!
 //! # Module Structure

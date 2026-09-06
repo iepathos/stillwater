@@ -4,7 +4,7 @@ use crate::effect::trait_def::Effect;
 
 /// AndThen combinator - chains dependent effects.
 ///
-/// Zero-cost: no heap allocation. The `AndThen` struct stores only
+/// Construction adds no heap allocation. The `AndThen` struct stores only
 /// the inner effect and the function that produces the next effect.
 ///
 /// The error type of the chained effect must match the error type

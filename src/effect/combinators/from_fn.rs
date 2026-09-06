@@ -6,7 +6,7 @@ use crate::effect::trait_def::Effect;
 
 /// Effect from a synchronous function.
 ///
-/// Zero-cost: no heap allocation. The function is stored directly
+/// Construction adds no heap allocation. The function is stored directly
 /// in the struct and invoked when the effect is run.
 ///
 /// # Example

@@ -25,7 +25,7 @@ type BoxedSinkFn<T, E, Env, Item> = Box<
 ///
 /// # Implementation Note
 ///
-/// Unlike the zero-cost SinkEffect implementations, BoxedSinkEffect internally
+/// Unlike concrete SinkEffect implementations, BoxedSinkEffect internally
 /// collects items and then replays them to the sink. This means it has O(n)
 /// memory for the items during execution. For truly constant-memory streaming
 /// of boxed effects, consider restructuring to avoid boxing.

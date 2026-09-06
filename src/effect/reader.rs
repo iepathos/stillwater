@@ -13,7 +13,7 @@ use crate::effect::trait_def::Effect;
 
 /// Get the entire environment (cloned).
 ///
-/// Zero-cost struct, but clones `Env` at runtime.
+/// Stores only type markers, but clones `Env` at runtime; that clone may allocate.
 ///
 /// # Example
 ///
@@ -68,7 +68,7 @@ where
 
 /// Query a value from the environment.
 ///
-/// Zero-cost: no heap allocation. The query function is stored
+/// Construction adds no heap allocation. The query function is stored
 /// directly in the struct and invoked when the effect is run.
 ///
 /// # Example
@@ -121,7 +121,7 @@ where
 
 /// Run an effect with a modified environment.
 ///
-/// Zero-cost: no heap allocation. The environment transformation
+/// Construction adds no heap allocation. The environment transformation
 /// function and inner effect are stored directly in the struct.
 ///
 /// # Example
