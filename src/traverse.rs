@@ -142,6 +142,8 @@ where
 ///
 /// Constructs and runs one effect at a time, collecting results in input order.
 /// On failure, later effects are neither constructed nor run.
+/// The input iterator is collected immediately; only the child factory is deferred.
+/// Inputs must be finite. Execution clones the environment and uses boxed children.
 ///
 /// # Type Parameters
 ///
@@ -199,6 +201,10 @@ where
 /// Constructs all effects when the returned effect runs, then runs them
 /// concurrently. All effects run to completion. Successful values and the
 /// first returned error are ordered by input position, not completion time.
+///
+/// The input iterator is collected immediately. Concurrency is unbounded and
+/// polls on the parent's task, not on separate worker threads. Dropping the parent
+/// future cancels unfinished children; completion is guaranteed only while awaited.
 pub fn traverse_effect_parallel<T, U, E, Env, F, I>(
     iter: I,
     mut f: F,
@@ -227,6 +233,7 @@ where
 ///
 /// Runs one effect at a time and stops at the first error. Effects after the
 /// failure are not run. Successful values retain input order.
+/// The input iterator is collected immediately, so child construction is not deferred.
 ///
 /// # Type Parameters
 ///
@@ -278,6 +285,8 @@ where
 /// Runs all effects concurrently and waits for all of them to complete.
 /// Successful values and the first returned error are ordered by input
 /// position, not completion time.
+/// The input iterator is collected immediately. Dropping the parent future cancels
+/// unfinished children. This does not provide rollback or CPU parallelism.
 pub fn sequence_effect_parallel<T, E, Env, I>(iter: I) -> BoxedEffect<Vec<T>, E, Env>
 where
     I: IntoIterator<Item = BoxedEffect<T, E, Env>>,
@@ -600,5 +609,122 @@ mod tests {
         assert_eq!(parallel.run(&()).await, Ok(vec![]));
         assert_eq!(sequential_sequence.run(&()).await, Ok(vec![]));
         assert_eq!(parallel_sequence.run(&()).await, Ok(vec![]));
+    }
+
+    #[tokio::test]
+    async fn traversal_collects_inputs_now_but_constructs_children_on_execution() {
+        use crate::effect::prelude::*;
+        use std::sync::{Arc, Mutex};
+
+        for parallel in [false, true] {
+            let events = Arc::new(Mutex::new(Vec::new()));
+            let iter_events = Arc::clone(&events);
+            let inputs = (1..=2).inspect(move |item| {
+                iter_events.lock().unwrap().push(format!("input-{item}"));
+            });
+            let factory_events = Arc::clone(&events);
+            let factory = move |item| {
+                factory_events
+                    .lock()
+                    .unwrap()
+                    .push(format!("construct-{item}"));
+                let run_events = Arc::clone(&factory_events);
+                from_fn(move |_: &()| {
+                    run_events.lock().unwrap().push(format!("run-{item}"));
+                    Ok::<_, &str>(item)
+                })
+                .boxed()
+            };
+            let effect = if parallel {
+                traverse_effect_parallel(inputs, factory)
+            } else {
+                traverse_effect_sequential(inputs, factory)
+            };
+            assert_eq!(*events.lock().unwrap(), vec!["input-1", "input-2"]);
+            assert_eq!(effect.run(&()).await, Ok(vec![1, 2]));
+            let expected = if parallel {
+                vec![
+                    "input-1",
+                    "input-2",
+                    "construct-1",
+                    "construct-2",
+                    "run-1",
+                    "run-2",
+                ]
+            } else {
+                vec![
+                    "input-1",
+                    "input-2",
+                    "construct-1",
+                    "run-1",
+                    "construct-2",
+                    "run-2",
+                ]
+            };
+            assert_eq!(*events.lock().unwrap(), expected);
+        }
+    }
+
+    #[tokio::test]
+    async fn parallel_helpers_return_first_input_error_despite_reverse_completion() {
+        use crate::effect::prelude::*;
+        use std::sync::{Arc, Mutex};
+        use std::time::Duration;
+        use tokio::sync::oneshot;
+
+        for sequence in [false, true] {
+            let (release, wait) = oneshot::channel();
+            let completed = Arc::new(Mutex::new(Vec::new()));
+            let first_events = Arc::clone(&completed);
+            let first = from_async(move |_: &()| async move {
+                wait.await.unwrap();
+                first_events.lock().unwrap().push(0);
+                Err::<(), _>("first input")
+            })
+            .boxed();
+            let second_events = Arc::clone(&completed);
+            let second = from_async(move |_: &()| async move {
+                second_events.lock().unwrap().push(1);
+                release.send(()).unwrap();
+                Err::<(), _>("second input")
+            })
+            .boxed();
+            let effects = vec![first, second];
+            let effect = if sequence {
+                sequence_effect_parallel(effects)
+            } else {
+                traverse_effect_parallel(effects, |effect| effect)
+            };
+            let result = tokio::time::timeout(Duration::from_secs(5), effect.run(&()))
+                .await
+                .expect("both children must make progress");
+            assert_eq!(result, Err("first input"));
+            assert_eq!(*completed.lock().unwrap(), vec![1, 0]);
+        }
+    }
+
+    #[tokio::test]
+    async fn sequential_sequence_does_not_run_children_after_failure() {
+        use crate::effect::prelude::*;
+        use std::sync::{
+            atomic::{AtomicBool, Ordering},
+            Arc,
+        };
+
+        let ran = Arc::new(AtomicBool::new(false));
+        let observed = Arc::clone(&ran);
+        let effects = vec![
+            fail::<(), _, ()>("stop").boxed(),
+            from_fn(move |_: &()| {
+                observed.store(true, Ordering::SeqCst);
+                Ok(())
+            })
+            .boxed(),
+        ];
+        assert_eq!(
+            sequence_effect_sequential(effects).run(&()).await,
+            Err("stop")
+        );
+        assert!(!ran.load(Ordering::SeqCst));
     }
 }
