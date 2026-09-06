@@ -1,35 +1,72 @@
-# Migration Guide: Stillwater 0.10.x to 0.11.0
+# Migration Guide
+
+## Stillwater 1.x to 2.0
+
+Stillwater 2.0 makes execution semantics explicit and removes compatibility APIs that had
+been deprecated since the 0.x releases. The core `Effect` execution model, environment
+cloning rules, boxing behavior, and `IO` API are otherwise unchanged.
+
+### Traversal names
+
+Choose the name that matches the ordering contract you need:
+
+| 1.x | 2.0 |
+|-----|-----|
+| `traverse_effect(items, f)` | `traverse_effect_sequential(items, f)` or `traverse_effect_parallel(items, f)` |
+| `sequence_effect(effects)` | `sequence_effect_sequential(effects)` or `sequence_effect_parallel(effects)` |
+
+Sequential traversal constructs and runs one child at a time and stops at the first error.
+Parallel traversal constructs the full batch, polls children concurrently, waits for the
+batch to settle, and preserves input order in successful output.
+
+### Removed deprecated APIs
+
+| Removed | Replacement |
+|---------|-------------|
+| `LegacyEffect<T, E, Env>` | `BoxedEffect<T, E, Env>` for type erasure, or `impl Effect<...>` |
+| `LegacyConstructors` | Free constructors such as `pure`, `fail`, and `from_fn` |
+| `bracket_simple` | `bracket` with an explicit release effect |
+
+`RunStandalone` remains available for effects whose environment is `()`.
+
+### Feature naming
+
+The Cargo feature named `async` enables the Tokio-backed retry and timeout helpers. It does
+not switch the core effect system between synchronous and asynchronous modes: `Effect` is
+always async.
+
+## Stillwater 0.10.x to 0.11.0
 
 ## Overview
 
-Stillwater 0.11.0 introduces a zero-cost Effect API, following the `futures` crate pattern. This is a breaking change that requires updating your code.
+Stillwater 0.11.0 introduced a concrete-combinator Effect API, following the `futures` crate pattern. This was a breaking change.
 
 ## Key Changes
 
 | 0.10.x | 0.11.0 |
 |--------|--------|
-| `Effect<T, E, Env>` struct (boxed per combinator) | `impl Effect<Output=T, Error=E, Env=Env>` trait (zero-cost) |
+| `Effect<T, E, Env>` struct (boxed per combinator) | `impl Effect<Output=T, Error=E, Env=Env>` trait (concrete) |
 | `Effect::pure(x)` | `pure(x)` or `pure::<_, E, Env>(x)` |
 | `Effect::fail(e)` | `fail(e)` or `fail::<T, _, Env>(e)` |
 | `Effect::from_fn(f)` | `from_fn(f)` |
 | N/A | `from_async(f)`, `from_result(r)`, `from_option(o, err)` |
 | N/A | `ask()`, `asks(f)`, `local(f, effect)` |
 | `.run(&env).await` | `.run(&env).await` or `.execute(&env).await` |
-| Always boxed | Zero-cost by default, opt-in `.boxed()` |
+| Always boxed | Boxing-free by default, opt-in `.boxed()` |
 
 ## Why the Change?
 
 The old API boxed every combinator, allocating on the heap for each `.map()`, `.and_then()`, etc. While this was acceptable for I/O-bound work, it added unnecessary overhead for compute-bound code and prevented certain compiler optimizations.
 
 The new API follows the pattern established by the `futures` crate:
-- **Zero-cost by default**: Each combinator returns a concrete type, enabling full inlining
+- **Boxing-free by default**: Each combinator returns a concrete type, enabling inlining
 - **Explicit boxing**: Use `.boxed()` only when type erasure is needed
 
 ## Migration Steps
 
 ### Step 1: Update Imports
 
-```rust
+```text
 // Before
 use stillwater::Effect;
 
@@ -44,13 +81,13 @@ use stillwater::{pure, fail, from_fn, Effect, EffectExt, BoxedEffect};
 
 ### Step 2: Update Return Types
 
-```rust
+```text
 // Before
 fn my_effect() -> Effect<i32, String, ()> {
     Effect::pure(42)
 }
 
-// After - Option A: Zero-cost (preferred)
+// After - Option A: Concrete (preferred)
 fn my_effect() -> impl Effect<Output = i32, Error = String, Env = ()> {
     pure(42)
 }
@@ -67,7 +104,7 @@ let result = my_effect().execute(&()).await;  // Convenience method
 
 ### Step 3: Update Constructor Calls
 
-```rust
+```text
 // Before
 Effect::pure(42)
 Effect::fail("error")
@@ -91,7 +128,7 @@ local(|env| modified_env, inner_effect) // Run with modified env
 
 If you're storing effects in collections, using recursion, or returning different effect types from match arms, add `.boxed()`:
 
-```rust
+```text
 use stillwater::{pure, BoxedEffect, EffectExt};
 
 // Collections - need same type
@@ -125,7 +162,7 @@ fn conditional(flag: bool) -> BoxedEffect<i32, String, ()> {
 
 For gradual migration, use the compatibility module:
 
-```rust
+```text
 #[allow(deprecated)]
 use stillwater::LegacyEffect; // Type alias for BoxedEffect
 
@@ -148,14 +185,14 @@ You're returning `impl Effect` but the caller expects a concrete type. Either:
 ### "cannot infer type"
 
 Add type annotations to constructor functions:
-```rust
+```text
 pure::<_, String, ()>(42)  // Specify error and env types
 ```
 
 ### "the trait bound is not satisfied"
 
 Make sure your closures are `Send`:
-```rust
+```text
 // Before (might not be Send)
 .map(|x| x + some_local_ref)
 
@@ -167,7 +204,7 @@ let value = *some_local_ref;
 ### "recursive type has infinite size"
 
 You need to use `.boxed()` for recursive effects:
-```rust
+```text
 fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
     if n <= 0 {
         pure(0).boxed()
@@ -183,7 +220,7 @@ fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
 
 ### Simple Effect Chain
 
-```rust
+```text
 // Before
 fn calculate() -> Effect<i32, String, AppEnv> {
     Effect::pure(42)
@@ -201,7 +238,7 @@ fn calculate() -> impl Effect<Output = i32, Error = String, Env = AppEnv> {
 
 ### Effect with Environment
 
-```rust
+```text
 // Before
 fn fetch_config() -> Effect<String, AppError, AppEnv> {
     Effect::from_fn(|env: &AppEnv| {
@@ -217,7 +254,7 @@ fn fetch_config() -> impl Effect<Output = String, Error = AppError, Env = AppEnv
 
 ### Async Effect
 
-```rust
+```text
 // Before
 fn fetch_user(id: u64) -> Effect<User, DbError, AppEnv> {
     Effect::from_async(|env: &AppEnv| {
@@ -241,10 +278,10 @@ fn fetch_user(id: u64) -> impl Effect<Output = User, Error = DbError, Env = AppE
 
 ### Parallel Effects
 
-```rust
+```text
 use stillwater::effect::prelude::*;
 
-// Heterogeneous parallel (zero-cost) - par2, par3, par4
+// Heterogeneous parallel (concrete types) - par2, par3, par4
 let effect = par2(
     pure::<_, String, ()>(1),
     pure::<_, String, ()>("hello".to_string()),
@@ -262,7 +299,7 @@ let results = par_all(effects, &()).await?;
 
 ## Performance Implications
 
-The new zero-cost API eliminates heap allocations for effect chains:
+The concrete API eliminates the old per-combinator box allocations:
 
 | Scenario | 0.10.x | 0.11.0 |
 |----------|--------|--------|

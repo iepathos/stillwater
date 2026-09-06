@@ -19,7 +19,7 @@ Keep your business logic pure and calm like still water. Let effects flow at the
 
 ### 1. "I want ALL validation errors, not just the first one"
 
-```rust
+```text
 use stillwater::Validation;
 
 // Standard Result: stops at first error
@@ -37,7 +37,7 @@ let user = Validation::all((
 
 ### 2. "How do I validate that all items have the same type before combining?"
 
-```rust
+```text
 use stillwater::validation::homogeneous::validate_homogeneous;
 use std::mem::discriminant;
 
@@ -72,7 +72,7 @@ match result {
 
 ### 3. "How do I test code with database calls?"
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Pure business logic (no DB, easy to test)
@@ -83,7 +83,7 @@ fn calculate_discount(customer: &Customer, total: Money) -> Money {
     }
 }
 
-// Effects at boundaries (mockable) - zero-cost by default
+// Effects at boundaries (mockable) - no combinator boxing by default
 fn process_order(id: OrderId) -> impl Effect<Output = Invoice, Error = AppError, Env = AppEnv> {
     from_fn(move |env: &AppEnv| env.db.fetch_order(id))  // I/O
         .and_then(|order| {
@@ -109,7 +109,7 @@ async fn test_with_mock_db() {
 
 ### 4. "I need to fetch multiple independent resources"
 
-```rust
+```text
 use stillwater::prelude::*;
 
 // Combine independent effects - neither depends on the other
@@ -137,7 +137,7 @@ let effect = fetch_price(item_id)
 
 ### 5. "My errors lose context as they bubble up"
 
-```rust
+```text
 use stillwater::prelude::*;
 
 fetch_user(id)
@@ -154,7 +154,7 @@ fetch_user(id)
 
 ### 6. "I need clean dependency injection without passing parameters everywhere"
 
-```rust
+```text
 use stillwater::prelude::*;
 
 #[derive(Clone)]
@@ -184,7 +184,7 @@ let result = fetch_with_extended_timeout().run(&config).await?;
 
 ### 7. "I need guaranteed cleanup even when errors occur"
 
-```rust
+```text
 use stillwater::effect::bracket::{bracket, bracket2, acquiring, BracketError};
 use stillwater::prelude::*;
 
@@ -225,7 +225,7 @@ match result {
 
 ### 8. "Retry logic is scattered and hard to test"
 
-```rust
+```text
 use stillwater::effect::retry::{retry, retry_if, retry_with_hooks};
 use stillwater::RetryPolicy;
 use std::time::Duration;
@@ -266,7 +266,7 @@ retry_with_hooks(
 
 ### 9. "I need to accumulate logs/metrics without threading state everywhere"
 
-```rust
+```text
 use stillwater::effect::writer::prelude::*;
 use stillwater::effect::prelude::*;
 
@@ -306,7 +306,7 @@ assert_eq!(count, 3);
 
 ### 10. "I want the type system to prevent resource leaks"
 
-```rust
+```text
 use stillwater::effect::resource::*;
 
 // Mark effects with resource acquisition at the TYPE level
@@ -364,8 +364,8 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - Validation integration: `validate()`, `validate_vec()`, `with_field()` for error accumulation
   - Zero-cost: same memory layout as inner type, predicate is compile-time only
 - **`NonEmptyVec<T>`** - Type-safe non-empty collections with guaranteed head element
-- **`Effect` trait** - Zero-cost effect composition following the `futures` crate pattern
-  - Zero heap allocations by default
+- **`Effect` trait** - Boxing-free composition by default, following the `futures` crate pattern
+  - No combinator boxing unless type erasure is requested
   - Explicit `.boxed()` when type erasure is needed
   - `from_async()` for owned async work without an extra future allocation
   - `from_async_ref()` for borrowing across `.await` with one boxed future per run
@@ -395,7 +395,8 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - `bracket::<R>()` builder for ergonomic resource brackets (single type parameter)
   - `resource_bracket` function for guaranteed resource-neutral operations
   - `assert_resource_neutral` for compile-time leak detection
-- **Traverse and sequence** - Transform collections with `traverse()` and `sequence()` for both validations and effects
+- **Traverse and sequence** - Use `traverse()` / `sequence()` for validation, and explicit
+  `_sequential` / `_parallel` effect variants when execution order matters
 - **Reader pattern helpers** - Clean dependency injection with `ask()`, `asks()`, and `local()`
 - **Writer Effect** - Accumulate logs, metrics, or audit trails alongside computation
   - `tell()`, `tell_one()` for emitting values to accumulator
@@ -415,64 +416,62 @@ fn transfer_funds() -> impl ResourceEffect<Acquires = Empty, Releases = Empty> {
   - Optional `proptest` feature for property-based testing
 - **Context chaining** - Never lose error context
 - **Tracing integration** - Instrument effects with semantic spans using the standard `tracing` crate
-- **Zero-cost abstractions** - Follows `futures` crate pattern: concrete types, no allocation by default
+- **Concrete effect composition** - Follows the `futures` pattern: concrete combinator types and opt-in boxing
 - **Works with `?` operator** - Integrates with Rust idioms
 - **No heavy macros** - Clear types, obvious behavior
 
 ## Quick Start
 
+Model the application as facts, a pure decision, and an interpreted plan:
+
 ```rust
-use stillwater::prelude::*;
+use stillwater::{NonEmptyVec, Validation};
 
-// 1. Validation with error accumulation
-fn validate_user(input: UserInput) -> Validation<User, Vec<Error>> {
-    Validation::all((
-        validate_email(&input.email),
-        validate_age(input.age),
-        validate_name(&input.name),
-    ))
-    .map(|(email, age, name)| User { email, age, name })
+#[derive(Debug, PartialEq)]
+enum RegistrationError { UsernameTaken }
+
+#[derive(Debug, PartialEq)]
+struct RegistrationPlan { username: String }
+
+fn decide_registration(
+    username: String,
+    username_taken: bool,
+) -> Validation<RegistrationPlan, NonEmptyVec<RegistrationError>> {
+    if username_taken {
+        Validation::fail(RegistrationError::UsernameTaken)
+    } else {
+        Validation::success(RegistrationPlan { username })
+    }
 }
 
-// 2. Effect composition (zero-cost by default)
-fn create_user(input: UserInput) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
-    // Validate (pure, accumulates errors)
-    from_validation(validate_user(input).map_err(AppError::Validation))
-        // Check if exists (I/O)
-        .and_then(|user| {
-            from_fn(move |env: &AppEnv| env.db.find_by_email(&user.email))
-                .and_then(move |existing| {
-                    if existing.is_some() {
-                        fail(AppError::EmailExists)
-                    } else {
-                        pure(user)
-                    }
-                })
-        })
-        // Save user (I/O)
-        .and_then(|user| {
-            from_fn(move |env: &AppEnv| env.db.insert_user(&user))
-                .map(move |_| user)
-        })
-        .context("Creating new user")
-}
-
-// 3. Run at application boundary
-let env = AppEnv { db, cache, logger };
-let result = create_user(input).run(&env).await?;
+assert!(decide_registration("calm_user".into(), false).is_success());
 ```
 
-## Zero-Cost Effect System
+The imperative shell then has only three jobs:
 
-Stillwater's current effect API uses a zero-cost effect system following the `futures` crate pattern:
+```text
+load_registration_facts(input)
+    .and_then(|(input, facts)| from_validation(decide_registration(input, facts)))
+    .and_then(interpret_registration)
+    .run(&app_env)
+    .await
+```
 
-```rust
+The runnable [`user_registration` example](examples/user_registration.rs) shows accumulated
+domain errors, narrow service traits, async borrowing, ordered persistence/email effects,
+and focused tests for the pure core and shell.
+
+## Boxing-Free Effect Composition
+
+Stillwater's effect API uses concrete combinator types and explicit type erasure, following the `futures` crate pattern:
+
+```text
 // Free-standing constructors (not methods)
 let effect = pure(42);                    // Not Effect::pure(42)
 let effect = fail("error");               // Not Effect::fail("error")
 let effect = from_fn(|env| Ok(env.value)); // Not Effect::from_fn(...)
 
-// Chain combinators - each returns a concrete type, zero allocations
+// Chain combinators - each returns a concrete type with no combinator boxing
 let result = pure(1)
     .map(|x| x + 1)
     .and_then(|x| pure(x * 2))
@@ -517,7 +516,7 @@ let results = par_all(effects, &env).await;
 
 **vs. monadic:**
 - No awkward macro syntax (`rdrdo! { ... }`)
-- Zero-cost by default (follows `futures` crate pattern)
+- Boxing-free by default (follows the `futures` crate pattern)
 - Idiomatic Rust, not Haskell port
 
 **vs. hand-rolling:**
@@ -530,7 +529,7 @@ let results = par_all(effects, &env).await;
 
 - No attempt at full monad abstraction (impossible without HKTs)
 - Works with `?` operator via `Try` trait
-- Zero-cost via concrete types and monomorphization (like `futures`)
+- Concrete types and monomorphization by default (like `futures`)
 - Integrates with async/await
 - Borrows checker friendly
 - Clear error messages
@@ -541,22 +540,22 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-stillwater = "1.0"
+stillwater = "2.0"
 
-# Optional: async support
-stillwater = { version = "1.0", features = ["async"] }
+# Optional: Tokio-backed retry and timeout helpers (Effect itself is always async)
+stillwater = { version = "2.0", features = ["async"] }
 
 # Optional: tracing integration
-stillwater = { version = "1.0", features = ["tracing"] }
+stillwater = { version = "2.0", features = ["tracing"] }
 
 # Optional: jitter for retry policies
-stillwater = { version = "1.0", features = ["jitter"] }
+stillwater = { version = "2.0", features = ["jitter"] }
 
 # Optional: property-based testing
-stillwater = { version = "1.0", features = ["proptest"] }
+stillwater = { version = "2.0", features = ["proptest"] }
 
 # Multiple features
-stillwater = { version = "1.0", features = ["async", "tracing", "jitter"] }
+stillwater = { version = "2.0", features = ["async", "tracing", "jitter"] }
 ```
 
 ## Examples
@@ -607,10 +606,10 @@ This library is stable and ready for use.
 
 ## Migration from Pre-0.11 Releases
 
-The zero-cost effect API was introduced in 0.11.0 and remains the current API in 1.x. See [MIGRATION.md](docs/MIGRATION.md) for detailed upgrade instructions from the older boxed effect API.
+The concrete-combinator Effect API was introduced in 0.11.0 and remains the core API in 2.0. See [MIGRATION.md](docs/MIGRATION.md) for 2.0 breaking changes and older upgrade instructions.
 
 **Key changes:**
-```rust
+```text
 // Before (0.10.x)
 Effect::pure(x)
 Effect::fail(e)
@@ -623,7 +622,7 @@ from_fn(f)
 
 // Return types changed
 fn old() -> Effect<T, E, Env> { ... }      // Boxed by default
-fn new() -> impl Effect<...> { ... }        // Zero-cost by default
+fn new() -> impl Effect<...> { ... }        // No combinator boxing by default
 fn boxed() -> BoxedEffect<T, E, Env> { ... } // Explicit boxing
 ```
 
@@ -643,7 +642,7 @@ fn boxed() -> BoxedEffect<T, E, Env> { ... } // Explicit boxing
 
 Already using `Result` everywhere? No problem! Stillwater integrates seamlessly:
 
-```rust
+```text
 // Your existing code works as-is
 fn validate_email(email: &str) -> Result<Email, Error> {
     // ...
@@ -687,7 +686,7 @@ Stillwater is part of a family of libraries that share the same functional progr
 All libraries emphasize:
 - Error accumulation over short-circuiting
 - Pure core, effects at the boundaries
-- Zero-cost abstractions
+- Concrete composition and explicit runtime costs
 - Testability through dependency injection
 
 ## License

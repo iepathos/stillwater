@@ -7,13 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-09-05
+
 ### Added
 
 - Added `from_async_ref` for effects that borrow their environment across `.await`.
+- Added explicit sequential and parallel effect traversal and sequencing APIs.
+- Added Cargo-backed compile coverage for Rust-labelled README and mdBook examples.
 
 ### Changed
 
 - Removed unnecessary `Clone` requirements and cloning from `tap`, `with`, and `and_then_ref`.
+- Reworked the user-registration example around a pure decision core and an imperative shell.
+- Clarified that the `async` feature enables Tokio-backed retry and timeout operations; the
+  core `Effect` abstraction is always asynchronous.
+
+### Removed
+
+- Removed ambiguous `traverse_effect` and `sequence_effect`; migrate to the explicit
+  `_sequential` or `_parallel` variants.
+- Removed deprecated `LegacyEffect`, `LegacyConstructors`, and `bracket_simple` APIs.
 
 ## [1.1.1] - 2026-08-09
 
@@ -1132,7 +1145,7 @@ Zero-cost effect chains eliminate heap allocations:
 
 ### Design Decisions
 
-- **Zero-cost abstractions**: Uses generics and monomorphization, no runtime overhead
+- **Concrete composition**: Uses generics and monomorphization without combinator boxing
 - **Rust-first**: Works with `?` operator, integrates with existing error handling
 - **Pure core, imperative shell**: Explicit separation of pure logic and I/O effects
 - **Progressive adoption**: Can be adopted incrementally alongside `Result`
@@ -1142,10 +1155,11 @@ Zero-cost effect chains eliminate heap allocations:
 ### Known Limitations
 
 - `try_trait` feature requires nightly Rust and `RUSTFLAGS="--cfg try_trait_nightly"` (optional, not needed for core functionality)
-- API may evolve in 0.x versions based on community feedback
+- Breaking API changes follow major-version releases
 - No HKT-style monad abstractions (intentional - Rust doesn't support HKTs)
 
-[Unreleased]: https://github.com/iepathos/stillwater/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/iepathos/stillwater/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/iepathos/stillwater/compare/v1.1.1...v2.0.0
 [1.1.1]: https://github.com/iepathos/stillwater/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/iepathos/stillwater/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/iepathos/stillwater/compare/v1.0.0...v1.0.1
