@@ -1,845 +1,176 @@
-# Effect Composition: Pure Core, Imperative Shell
+# Effects: Pure Core, Imperative Shell
 
-## The Philosophy
+Use ordinary Rust functions for domain decisions and `Effect` for composing fallible
+operations at application boundaries. An effect is consumed when it runs; retrying means
+constructing a fresh effect.
 
-Effect helps you structure applications with:
-- **Pure core**: Business logic with no side effects (easy to test)
-- **Imperative shell**: I/O operations at the boundaries (controlled)
+## Start with a pure decision
 
-This separation makes code more testable, maintainable, and composable.
+Load the external facts a decision needs, pass input and facts to a pure function, then
+interpret the resulting plain plan. The decision needs no runtime or service mocks.
 
-## Boxing-Free by Default
-
-Stillwater's Effect system follows the `futures` crate pattern: **concrete combinator types by default, explicit boxing when type erasure is needed**.
-
-```text
-use stillwater::prelude::*;
-
-// No combinator boxing; the compiler can inline the concrete chain
-let effect = pure::<_, String, ()>(42)
-    .map(|x| x + 1)           // Returns Map<Pure<...>, ...>
-    .and_then(|x| pure(x * 2)) // Returns AndThen<Map<...>, ...>
-    .map(|x| x.to_string());   // Returns Map<AndThen<...>, ...>
-
-// Type: Map<AndThen<Map<Pure<i32, String, ()>, ...>, ...>, ...>
-// No combinator boxing.
-```
-
-Each combinator returns a concrete type. The compiler knows the exact type at compile time and can fully optimize the effect chain.
-
-## The Problem
-
-How do you test this code?
-
-```text
-async fn create_user(email: String, age: u8) -> Result<User, Error> {
-    // Validation mixed with I/O
-    if !email.contains('@') {
-        return Err(Error::InvalidEmail);
-    }
-
-    // Database call (requires real/mock DB)
-    let existing = database.find_by_email(&email).await?;
-    if existing.is_some() {
-        return Err(Error::EmailExists);
-    }
-
-    // More I/O
-    let user = User { email, age };
-    database.save(&user).await?;
-    Ok(user)
-}
-```
-
-Problems:
-- Can't test without database
-- Business logic mixed with I/O
-- Hard to reason about what's pure vs effectful
-
-## The Solution: Effect
-
-Effect separates pure decisions from I/O. A useful default is:
-
-1. Load the facts a decision needs.
-2. Pass input and facts to one pure function that returns `Validation<Plan, Errors>`.
-3. Interpret the plain plan as effects.
-4. Run the resulting shell at the application boundary.
-
-```text
-fn register_user(input: RegistrationInput) -> impl Effect<
-    Output = User,
-    Error = AppError,
-    Env = AppEnv,
-> {
-    load_registration_facts(input)
-        .and_then(|(input, facts)| {
-            from_validation(decide_registration(input, facts).map_err(AppError::Rejected))
-        })
-        .and_then(interpret_registration)
-}
-```
-
-Benefits:
-- Pure functions need no mocks
-- Domain rejection is distinct from infrastructure failure
-- Branching stays in the pure decision instead of being buried in `and_then`
-- I/O is explicit via `from_fn`, `from_async`, or `from_async_ref`
-- Easy to test with mock environments
-- No combinator boxing in the effect chain
-
-The complete [`user_registration` example](../../examples/user_registration.rs) uses cheap
-`Arc<dyn Service>` handles. It executes save before welcome email and deliberately provides
-no rollback if email fails; use a saga when compensation is a business requirement.
-
-## Core API
-
-### Creating Effects
-
-```text
-use stillwater::prelude::*;
-
-// Pure value (no I/O)
-let effect = pure::<_, String, ()>(42);
-
-// Failed effect
-let effect = fail::<i32, _, ()>("error".to_string());
-
-// From Result
-let effect = from_result::<_, String, ()>(Ok(42));
-
-// From Validation
-let validation = Validation::success(42);
-let effect = from_validation(validation);
-
-// From sync function
-let effect = from_fn(|env: &Env| {
-    Ok::<_, String>(env.config.value)
-});
-
-// From an async function that owns a cloned service handle
-let effect = from_async(|env: &Env| {
-    let db = env.db.clone();
-    async move { db.fetch_user(123).await }
-});
-
-// Borrow directly from the environment across `.await`.
-// This allocates one boxed future when the effect runs.
-let effect = from_async_ref(|env: &Env| {
-    Box::pin(async move { env.db.fetch_user(123).await })
-});
-
-// From Option
-let effect = from_option::<_, _, ()>(Some(42), || "value missing");
-```
-
-### Transforming Effects
-
-```text
-use stillwater::prelude::*;
-
-// Map success value
-let effect = pure::<_, String, ()>(21).map(|x| x * 2);
-let result = effect.run(&()).await; // Ok(42)
-
-// Map error value
-let effect = fail::<i32, _, ()>("oops").map_err(|e| format!("Error: {}", e));
-
-// Chain dependent effects
-let effect = pure::<_, String, ()>(5)
-    .and_then(|x| pure(x * 2))
-    .and_then(|x| pure(x + 10));
-let result = effect.run(&()).await; // Ok(20)
-```
-
-### Validation Combinators
-
-Stillwater provides declarative validation combinators that eliminate verbose `and_then` boilerplate when validating effect outputs:
-
-#### Using `ensure()` with Closures
-
-The `ensure()` method validates an effect's success value and fails if the predicate returns false:
-
-```text
-use stillwater::prelude::*;
+```rust
+use stillwater::{NonEmptyVec, Validation};
 
 #[derive(Debug, PartialEq)]
-enum Error {
-    Negative,
-    TooLarge,
-}
-
-// Before: verbose and_then pattern
-let effect = pure::<_, Error, ()>(5)
-    .and_then(|x| {
-        if x > 0 {
-            pure(x)
-        } else {
-            fail(Error::Negative)
-        }
-    });
-
-// After: declarative ensure
-let effect = pure::<_, Error, ()>(5)
-    .ensure(|x| *x > 0, Error::Negative);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Ok(5));
-```
-
-#### Using `ensure_with()` for Lazy Errors
-
-When you need the value to construct the error:
-
-```text
-use stillwater::prelude::*;
+struct Plan { username: String }
 
 #[derive(Debug, PartialEq)]
-struct RangeError {
-    value: i32,
-    min: i32,
-}
+enum Rejection { EmptyUsername, UsernameTaken }
 
-let effect = pure::<_, RangeError, ()>(-5)
-    .ensure_with(
-        |x| *x >= 0,
-        |x| RangeError { value: *x, min: 0 }
-    );
-
-let result = effect.run(&()).await;
-assert_eq!(result, Err(RangeError { value: -5, min: 0 }));
-```
-
-#### Using `ensure_pred()` with Composable Predicates
-
-For reusable validation logic, use predicates from the `predicate` module:
-
-```text
-use stillwater::prelude::*;
-use stillwater::predicate::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    InvalidAge,
-}
-
-let valid_age = between(18, 120);
-
-let effect = pure::<_, Error, ()>(25)
-    .ensure_pred(valid_age, Error::InvalidAge);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Ok(25));
-
-// Fails for invalid ages
-let effect = pure::<_, Error, ()>(15)
-    .ensure_pred(valid_age, Error::InvalidAge);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Err(Error::InvalidAge));
-```
-
-#### Using `unless()` for Inverse Validation
-
-The `unless()` method fails when the predicate is TRUE (inverse of `ensure`):
-
-```text
-use stillwater::prelude::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    UserBanned,
-}
-
-struct User {
-    id: u32,
-    is_banned: bool,
-}
-
-let effect = from_fn(|_: &()| User { id: 1, is_banned: false })
-    .unless(|u| u.is_banned, Error::UserBanned);
-
-let result = effect.run(&()).await;
-assert!(result.is_ok());
-
-// Fails when user is banned
-let effect = from_fn(|_: &()| User { id: 2, is_banned: true })
-    .unless(|u| u.is_banned, Error::UserBanned);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Err(Error::UserBanned));
-```
-
-#### Using `filter_or()` Alias
-
-`filter_or()` is an alias for `ensure()` following functional programming conventions:
-
-```text
-use stillwater::prelude::*;
-
-let effect = pure::<_, &str, ()>(5)
-    .filter_or(|x| *x > 0, "must be positive");
-
-let result = effect.run(&()).await;
-assert_eq!(result, Ok(5));
-```
-
-#### Chaining Multiple Validations
-
-Combine multiple validation checks for comprehensive validation:
-
-```text
-use stillwater::prelude::*;
-use stillwater::predicate::*;
-
-#[derive(Debug, PartialEq)]
-enum Error {
-    TooShort,
-    TooLong,
-    NotAlpha,
-}
-
-let effect = pure::<_, Error, ()>(String::from("hello"))
-    .ensure_pred(len_min(3), Error::TooShort)
-    .ensure_pred(len_max(10), Error::TooLong)
-    .ensure_pred(is_alphabetic(), Error::NotAlpha);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Ok(String::from("hello")));
-
-// Fails at first violation (fail-fast)
-let effect = pure::<_, Error, ()>(String::from("hi"))
-    .ensure_pred(len_min(3), Error::TooShort)  // fails here
-    .ensure_pred(len_max(10), Error::TooLong)
-    .ensure_pred(is_alphabetic(), Error::NotAlpha);
-
-let result = effect.run(&()).await;
-assert_eq!(result, Err(Error::TooShort));
-```
-
-#### Real-World Example
-
-```text
-use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Database;
-
-impl Database {
-    async fn fetch_user(&self, id: u32) -> Result<User, DbError> {
-        // ... database logic
-    }
-}
-
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
-}
-
-#[derive(Debug)]
-enum AppError {
-    Db(DbError),
-    UserBanned,
-    Underage,
-}
-
-struct User {
-    id: u32,
-    age: u8,
-    is_banned: bool,
-}
-
-fn fetch_valid_user(id: u32) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
-    from_fn(move |env: &AppEnv| env.db.fetch_user(id))
-        .map_err(AppError::Db)
-        .unless(|u| u.is_banned, AppError::UserBanned)
-        .ensure(|u| u.age >= 18, AppError::Underage)
-}
-
-// Usage
-let env = AppEnv { db: Database };
-let user = fetch_valid_user(123).run(&env).await?;
-```
-
-#### Why Use Effect Validation Combinators?
-
-**Before** (12 lines):
-```text
-from_fn(|env: &AppEnv| fetch_data(env))
-    .and_then(|data| {
-        if data.value > 0 {
-            pure(data)
-        } else {
-            fail(Error::InvalidValue)
-        }
-    })
-    .and_then(|data| {
-        if data.count < 100 {
-            pure(data)
-        } else {
-            fail(Error::TooMany)
-        }
-    })
-```
-
-**After** (3 lines):
-```text
-from_fn(|env: &AppEnv| fetch_data(env))
-    .ensure(|data| data.value > 0, Error::InvalidValue)
-    .ensure(|data| data.count < 100, Error::TooMany)
-```
-
-### Running Effects
-
-```text
-use stillwater::prelude::*;
-
-// With environment
-let env = AppEnv { /* ... */ };
-let result = effect.run(&env).await;
-
-// With unit environment (when Env = ())
-use stillwater::RunStandalone;
-let result = effect.run_standalone().await;
-```
-
-## When to Use `.boxed()`
-
-Boxing is needed in exactly three situations:
-
-### 1. Storing in Collections
-
-```text
-use stillwater::prelude::*;
-
-// Different effect types can't be stored in the same Vec
-// Boxing gives them a uniform type
-let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-    pure(1).boxed(),
-    pure(2).map(|x| x * 2).boxed(),
-    pure(3).and_then(|x| pure(x * 3)).boxed(),
-];
-
-// Process them
-for effect in effects {
-    let result = effect.run(&()).await?;
-    println!("Result: {}", result);
-}
-```
-
-### 2. Recursive Effects
-
-```text
-use stillwater::prelude::*;
-
-// Recursive function needs concrete return type
-fn countdown(n: i32) -> BoxedEffect<i32, String, ()> {
-    if n <= 0 {
-        pure(0).boxed()
+fn decide(username: String, taken: bool) -> Validation<Plan, NonEmptyVec<Rejection>> {
+    let name = if username.is_empty() {
+        Validation::fail(Rejection::EmptyUsername)
     } else {
-        pure(n)
-            .and_then(move |x| countdown(x - 1).map(move |sum| x + sum))
-            .boxed()
-    }
-}
-
-let sum = countdown(5).run(&()).await?; // 15
-```
-
-### 3. Match Arms with Different Effect Types
-
-```text
-use stillwater::prelude::*;
-
-enum DataSource {
-    Cache,
-    Database,
-    Remote,
-}
-
-fn fetch_data(source: DataSource) -> BoxedEffect<String, String, ()> {
-    match source {
-        DataSource::Cache => {
-            // Just pure value
-            pure("cached data".to_string()).boxed()
-        }
-        DataSource::Database => {
-            // Effect with map
-            pure("db")
-                .map(|s| format!("{} data", s))
-                .boxed()
-        }
-        DataSource::Remote => {
-            // Effect with and_then
-            pure("remote")
-                .and_then(|s| pure(format!("{} data", s)))
-                .boxed()
-        }
-    }
-}
-```
-
-## Reader Pattern
-
-The Reader pattern provides functional dependency injection. Stillwater includes three helpers:
-
-### `ask()` - Access the Environment
-
-Returns the entire environment:
-
-```text
-use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Config {
-    api_key: String,
-    timeout: u64,
-}
-
-// Get the whole environment
-let effect = ask::<String, Config>();
-
-let config = Config {
-    api_key: "secret".into(),
-    timeout: 30,
-};
-
-let result = effect.run(&config).await.unwrap();
-assert_eq!(result.api_key, "secret");
-```
-
-### `asks()` - Query Environment
-
-Extract a specific value:
-
-```text
-use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct AppEnv {
-    database: String,
-    cache: String,
-}
-
-// Query just the database field
-let effect = asks(|env: &AppEnv| env.database.clone());
-
-let env = AppEnv {
-    database: "postgres".into(),
-    cache: "redis".into(),
-};
-
-let result = effect.run(&env).await.unwrap();
-assert_eq!(result, "postgres");
-```
-
-### `local()` - Modify Environment
-
-Run an effect with a temporarily modified environment:
-
-```text
-use stillwater::prelude::*;
-
-#[derive(Clone)]
-struct Config {
-    debug: bool,
-    timeout: u64,
-}
-
-fn fetch_data() -> impl Effect<Output = String, Error = String, Env = Config> {
-    asks(|cfg: &Config| format!("fetched with timeout {}", cfg.timeout))
-}
-
-let config = Config {
-    debug: false,
-    timeout: 30,
-};
-
-// Run with modified timeout
-let effect = local(
-    |cfg: &Config| Config { timeout: 60, ..*cfg },
-    fetch_data()
-);
-
-let result = effect.run(&config).await.unwrap();
-assert_eq!(result, "fetched with timeout 60");
-// Original config still has timeout=30
-```
-
-## Parallel Effects
-
-### Heterogeneous Parallel (No Type Erasure)
-
-For 2-4 effects of different types, use `par2`, `par3`, `par4`:
-
-```text
-use stillwater::prelude::*;
-
-let (num, text) = par2(
-    pure::<_, String, ()>(42),
-    pure::<_, String, ()>("hello".to_string()),
-    &(),
-).await;
-let num = num?;
-let text = text?;
-```
-
-### Homogeneous Parallel (Requires Boxing)
-
-For collections of effects, use `par_all`, `race`, `par_all_limit`:
-
-```text
-use stillwater::prelude::*;
-
-// par_all - run all, collect all results
-let effects: Vec<BoxedEffect<i32, String, ()>> = vec![
-    pure(1).boxed(),
-    pure(2).boxed(),
-    pure(3).boxed(),
-];
-let results = par_all(effects, &()).await?; // [1, 2, 3]
-
-// race - return first completed result
-let effects: Vec<BoxedEffect<String, String, ()>> = vec![
-    pure("first completed".to_string()).boxed(),
-    pure("second completed".to_string()).boxed(),
-];
-let result = race(effects, &()).await?; // one completed value, or RaceError::Empty
-
-// par_all_limit - run with concurrency limit
-let effects: Vec<BoxedEffect<i32, String, ()>> = /* many effects */;
-let results = par_all_limit(effects, 10, &()).await?; // max 10 concurrent
-```
-
-## Real-World Example: User Registration
-
-```text
-use stillwater::prelude::*;
-
-// Environment with dependencies
-#[derive(Clone)]
-struct AppEnv {
-    db: Database,
-    email_service: EmailService,
-}
-
-// Error type
-#[derive(Debug)]
-enum AppError {
-    ValidationError(Vec<String>),
-    EmailExists,
-    DatabaseError(String),
-    EmailError(String),
-}
-
-// Pure validation (no I/O, easy to test)
-fn validate_user(email: &str, age: u8) -> Validation<(), Vec<String>> {
-    Validation::all((
-        validate_email(email),
-        validate_age(age),
-    ))
-    .map(|_| ())
-}
-
-// Effect composition (I/O at boundaries)
-fn register_user(
-    email: String,
-    age: u8,
-) -> impl Effect<Output = User, Error = AppError, Env = AppEnv> {
-    // 1. Validate input (pure)
-    from_validation(
-        validate_user(&email, age)
-            .map_err(AppError::ValidationError)
-    )
-    // 2. Check if email exists (I/O)
-    .and_then(move |_| {
-        from_fn(move |env: &AppEnv| {
-            env.db.find_by_email(&email)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-    })
-    // 3. Check uniqueness (pure logic)
-    .and_then(move |existing| {
-        if existing.is_some() {
-            fail(AppError::EmailExists)
-        } else {
-            pure(())
-        }
-    })
-    // 4. Create user (pure)
-    .map(move |_| User { email: email.clone(), age })
-    // 5. Save to database (I/O)
-    .and_then(|user| {
-        from_fn(move |env: &AppEnv| {
-            env.db.save_user(&user)
-                .map_err(|e| AppError::DatabaseError(e.to_string()))
-        })
-        .map(move |_| user)
-    })
-    // 6. Send welcome email (I/O)
-    .and_then(|user| {
-        from_fn(move |env: &AppEnv| {
-            env.email_service.send_welcome(&user.email)
-                .map_err(|e| AppError::EmailError(e.to_string()))
-        })
-        .map(move |_| user)
-    })
-}
-
-// Usage at application boundary
-#[tokio::main]
-async fn main() -> Result<(), AppError> {
-    let env = AppEnv {
-        db: Database::connect("postgres://...").await?,
-        email_service: EmailService::new(),
+        Validation::success(())
     };
-
-    let user = register_user(
-        "user@example.com".to_string(),
-        25
-    ).run(&env).await?;
-
-    println!("Registered: {:?}", user);
-    Ok(())
-}
-```
-
-## Testing Effects
-
-The key benefit: pure functions need no mocks!
-
-```text
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Test pure validation (no mocks needed!)
-    #[test]
-    fn test_validate_user() {
-        let result = validate_user("user@example.com", 25);
-        assert!(result.is_success());
-
-        let result = validate_user("invalid", 15);
-        assert!(result.is_failure());
-    }
-
-    // Test effectful code with mock environment
-    #[derive(Clone)]
-    struct MockEnv {
-        users: Vec<User>,
-    }
-
-    impl MockEnv {
-        fn find_by_email(&self, email: &str) -> Result<Option<User>, String> {
-            Ok(self.users.iter().find(|u| u.email == email).cloned())
-        }
-    }
-
-    #[tokio::test]
-    async fn test_effect_with_mock_env() {
-        let env = MockEnv { users: vec![] };
-
-        let effect = from_fn(|env: &MockEnv| env.find_by_email("test@example.com"))
-            .and_then(|existing| {
-                if existing.is_some() {
-                    fail("Email exists")
-                } else {
-                    pure(User {
-                        email: "test@example.com".to_string(),
-                        age: 25,
-                    })
-                }
-            });
-
-        let result = effect.run(&env).await;
-        assert!(result.is_ok());
-    }
-}
-```
-
-## Performance Considerations
-
-The Effect trait uses concrete combinator types by default:
-- No allocation by the concrete combinator layer itself
-- Compiler can fully inline combinators
-- Performance can approach hand-written async code; benchmark hot paths
-
-Boxing happens only when you call `.boxed()`:
-- Collections of effects
-- Recursive effects
-- Match arms with different types
-
-For I/O-bound work (API calls, database queries), boxing overhead is negligible compared to actual work.
-
-## Common Patterns
-
-### Pattern 1: Validate Then Execute
-
-```text
-from_validation(validate_input(input))
-    .and_then(|valid| execute_with_db(valid))
-```
-
-### Pattern 2: Read, Decide, Write
-
-```text
-from_fn(|env: &Env| env.db.fetch(id))
-    .and_then(|data| {
-        let result = pure_business_logic(data);
-        from_fn(move |env: &Env| env.db.save(result))
-    })
-```
-
-### Pattern 3: Error Context
-
-```text
-create_user(email, age)
-    .context("Creating user account")
-    .and_then(|user| {
-        send_welcome_email(&user)
-            .context("Sending welcome email")
-    })
-```
-
-### Pattern 4: Conditional Effect
-
-```text
-fn conditional_fetch(use_cache: bool) -> BoxedEffect<String, String, AppEnv> {
-    if use_cache {
-        from_fn(|env: &AppEnv| Ok(env.cache.get("data"))).boxed()
+    let available = if taken {
+        Validation::fail(Rejection::UsernameTaken)
     } else {
-        from_async(|env: &AppEnv| async { env.db.fetch().await }).boxed()
-    }
+        Validation::success(())
+    };
+    Validation::<(), NonEmptyVec<Rejection>>::all((name, available))
+        .map(|_| Plan { username })
 }
+
+assert_eq!(decide("calm".into(), false).into_result(), Ok(Plan { username: "calm".into() }));
+assert_eq!(
+    decide("".into(), true).into_result().unwrap_err().into_vec(),
+    vec![Rejection::EmptyUsername, Rejection::UsernameTaken],
+);
 ```
 
-## When to Use Effect
+The complete [registration example](https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs)
+connects this architecture to narrow repository, password-hasher, and email-sender traits.
+Its shell loads facts, calls the decision, then hashes, saves, and sends email in order.
 
-**Use Effect when**:
-- Separating I/O from business logic
-- Testing effectful code
-- Composing async operations
-- Dependency injection needed
+Facts are snapshots. The repository must enforce uniqueness atomically when saving,
+using database constraints in a real adapter. A plan can therefore be rejected at commit
+time even if the earlier decision accepted it. Domain rejection, commit conflicts, and
+infrastructure failures have distinct outcomes.
 
-**Use plain async fn when**:
-- Simple CRUD operations
-- No complex composition
-- Testing not critical
-- Maximum simplicity needed
+Email failure leaves the user saved. Retrying the entire registration is not an email
+retry protocol; use an application-owned outbox or an explicit compensation protocol
+when delivery or rollback is a requirement. The example's hasher is a test double.
 
-## Summary
+## Constructors and execution
 
-- **Effect trait**: Concrete, boxing-free composition by default following the `futures` pattern
-- **Pure core**: Business logic is easy to test (no mocks)
-- **Imperative shell**: I/O at boundaries via `from_fn`, `from_async`
-- **Environment**: Provides dependency injection
-- **Boxing**: Use `.boxed()` only when type erasure is needed
-- **Composition**: Via `map`, `and_then`, `or_else`, etc.
-- **Reader pattern**: `ask()`, `asks()`, `local()` for environment access
+```rust
+use stillwater::prelude::*;
 
-## Next Steps
+tokio_test::block_on(async {
+    let chain = pure::<_, String, ()>(20)
+        .map(|value| value + 1)
+        .and_then(|value| pure(value * 2));
+    assert_eq!(chain.run(&()).await, Ok(42));
 
-- Learn about [Error Context](04-error-context.md)
-- Explore the [Reader Pattern](09-reader-pattern.md) in depth
-- See the [Migration Guide](../MIGRATION.md) if upgrading from 0.10.x
-- Check out [testing_patterns example](https://github.com/iepathos/stillwater/blob/master/examples/testing_patterns.rs)
-- Read the [API docs](https://docs.rs/stillwater)
+    let failure = fail::<i32, _, ()>("unavailable");
+    assert_eq!(failure.run(&()).await, Err("unavailable"));
+
+    let existing = from_result::<_, &str, ()>(Ok(7));
+    assert_eq!(existing.run(&()).await, Ok(7));
+});
+```
+
+Use `from_fn` for synchronous fallible operations. Keep slow blocking work off an async
+executor's worker thread using the runtime's blocking-work facilities.
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { limit: usize }
+
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &Env| Ok::<_, &str>(env.limit))
+        .ensure(|limit| *limit > 0, "limit must be positive");
+    assert_eq!(effect.run(&Env { limit: 10 }).await, Ok(10));
+});
+```
+
+`ensure` short-circuits on the first failed predicate. Use `Validation` in the pure
+decision when independent checks must accumulate errors.
+
+## Owned and borrowed async work
+
+`from_async` accepts a future whose type does not borrow the supplied environment.
+Clone a cheap shared handle before building that future.
+
+```rust
+use std::sync::Arc;
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { name: Arc<String> }
+
+tokio_test::block_on(async {
+    let effect = from_async(|env: &Env| {
+        let name = Arc::clone(&env.name);
+        async move { Ok::<_, &str>(name.len()) }
+    });
+    assert_eq!(effect.run(&Env { name: Arc::new("water".into()) }).await, Ok(5));
+});
+```
+
+Use `from_async_ref` when the operation must borrow the environment across an await.
+It accepts a boxed future, adding one future allocation in the usual `Box::pin` usage.
+
+```rust
+use stillwater::prelude::*;
+
+#[derive(Clone)]
+struct Env { name: String }
+
+tokio_test::block_on(async {
+    let effect = from_async_ref(|env: &Env| {
+        Box::pin(async move {
+            tokio::task::yield_now().await;
+            Ok::<_, &str>(env.name.len())
+        })
+    });
+    assert_eq!(effect.run(&Env { name: "water".into() }).await, Ok(5));
+});
+```
+
+## Concrete types and explicit type erasure
+
+Most combinators store their inputs and closures directly. Return `impl Effect` when
+callers do not need to name that concrete type. Use `BoxedEffect` at boundaries that
+require a single erased type, such as heterogeneous collections or different branches.
+
+```rust
+use stillwater::prelude::*;
+
+fn choose(cached: bool) -> BoxedEffect<i32, &'static str, ()> {
+    if cached {
+        pure(21).map(|value| value * 2).boxed()
+    } else {
+        fail("cache miss").boxed()
+    }
+}
+
+tokio_test::block_on(async {
+    assert_eq!(choose(true).run(&()).await, Ok(42));
+    assert_eq!(choose(false).run(&()).await, Err("cache miss"));
+});
+```
+
+Concrete types do not promise allocation-free execution or a fixed performance ratio.
+`from_async_ref` boxes its future; helpers returning `BoxedEffect` (including `IO`,
+effect traversal, and retry) erase types internally. User operations, captured data,
+and environment clones may allocate too. Benchmark the actual workflow.
+
+## Choose execution semantics explicitly
+
+Use `and_then` when an operation needs an earlier output. Use sequential traversal for
+ordered batches that stop on failure. Parallel traversal concurrently polls the batch,
+waits for every result, and selects an error by input position.
+
+These operations do not provide transactions or cancellation masking. Dropping the
+parent future cancels unfinished work. Runtime bracket cleanup is an explicit protocol
+for normal success/error paths, not a guarantee that async cleanup runs after cancellation
+or panic; ordinary Rust ownership and `Drop` still matter.
+
+See [traversal](11-traverse-patterns.md), [parallel effects](10-parallel-effects.md),
+[reader helpers](09-reader-pattern.md), [testing](15-testing.md), and
+[API tiers](17-api-tiers.md) for focused examples.

@@ -653,8 +653,7 @@ impl Semigroup for MyErrors {
     }
 }
 
-#[test]
-fn test_associativity() {
+fn check_associativity() {
     let a = MyErrors(vec!["a".to_string()]);
     let b = MyErrors(vec!["b".to_string()]);
     let c = MyErrors(vec!["c".to_string()]);
@@ -664,6 +663,7 @@ fn test_associativity() {
 
     assert_eq!(left, right);
 }
+check_associativity();
 ```
 
 ## Summary

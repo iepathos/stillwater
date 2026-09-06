@@ -240,14 +240,17 @@ fn chained_example() -> impl Effect<Output = i32, Error = String, Env = ()> {
 Pure functions need no mocking:
 
 ```rust
-#[test]
-fn test_pure_validation() {
-    let result = validate_email("user@example.com");
-    assert!(result.is_success());
+use stillwater::Validation;
 
-    let result = validate_email("invalid");
-    assert!(result.is_failure());
+fn validate_email(email: &str) -> Validation<&str, Vec<&str>> {
+    if email.contains('@') {
+        Validation::success(email)
+    } else {
+        Validation::failure(vec!["missing @"])
+    }
 }
+assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
 ```
 
 ### Pattern 2: Testing Effects with Mock Environment
@@ -282,19 +285,16 @@ async fn test_user_workflow() {
 ### Pattern 3: Testing Error Cases
 
 ```rust
-use stillwater::effect::prelude::*;
+use stillwater::prelude::*;
+use std::collections::HashMap;
 
-#[tokio::test]
-async fn test_user_not_found() {
-    let env = MockEnv {
-        users: HashMap::new(),  // Empty
-    };
+#[derive(Clone, Default)]
+struct Env { users: HashMap<u64, String> }
 
-    let effect = from_fn(|env: &MockEnv| env.fetch_user(999));
-    let result = effect.execute(&env).await;
-
-    assert_eq!(result, Err(Error::NotFound));
-}
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &Env| env.users.get(&999).cloned().ok_or("not found"));
+    assert_eq!(effect.run(&Env::default()).await, Err("not found"));
+});
 ```
 
 ## Error Handling Patterns

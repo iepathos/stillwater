@@ -444,26 +444,24 @@ Collection helpers require boxing because a vector needs one concrete type. Pref
 Parallel effects use the same environment pattern as sequential effects:
 
 ```rust
-#[tokio::test]
-async fn loads_users_in_parallel() {
-    let env = TestEnv::with_users(vec![
-        User::new(1),
-        User::new(2),
-        User::new(3),
-    ]);
+use stillwater::prelude::*;
 
-    let effects: Vec<BoxedEffect<User, TestError, TestEnv>> = vec![
-        fetch_user(1).boxed(),
-        fetch_user(2).boxed(),
-        fetch_user(3).boxed(),
+tokio_test::block_on(async {
+    let effects: Vec<BoxedEffect<u64, &str, ()>> = vec![
+        pure(1).boxed(),
+        fail("missing").boxed(),
+        pure(3).boxed(),
     ];
+    let users = par_all(effects, &()).await;
+    assert_eq!(users, Err(vec!["missing"]));
 
-    let users = par_all(effects, &env).await.unwrap();
-    assert_eq!(users.len(), 3);
-}
+    let effects = vec![pure::<_, &str, ()>(1).boxed(), pure(3).boxed()];
+    assert_eq!(par_all(effects, &()).await, Ok(vec![1, 3]));
+});
 ```
 
-For timing-sensitive tests, keep assertions loose enough to avoid flakes. Prefer testing result shape and concurrency limits over exact elapsed time.
+This checks result collection, not overlap. For concurrency tests, use a barrier or
+channel to control child progress and a timeout to detect deadlock. Avoid exact timing assertions.
 
 ## Common Pitfalls
 
@@ -502,7 +500,8 @@ struct AppEnv {
 
 ### Box At Collection Boundaries
 
-Keep individual effect builders zero-cost, and box only when placing them into a homogeneous collection:
+Keep child effects concrete where useful, and box them when a collection requires type erasure.
+Borrowed-future constructors and other helpers may allocate internally as well:
 
 ```text
 fn fetch_user(id: UserId) -> impl Effect<Output = User, Error = DbError, Env = AppEnv> {

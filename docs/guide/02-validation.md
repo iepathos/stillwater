@@ -582,47 +582,23 @@ fn validate_config(input: ConfigInput) -> Validation<Config, Vec<Error>> {
 Validation is pure - testing is trivial:
 
 ```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
+use stillwater::Validation;
 
-    #[test]
-    fn test_valid_email() {
-        let result = validate_email("user@example.com");
-        assert!(result.is_success());
-    }
-
-    #[test]
-    fn test_invalid_email() {
-        let result = validate_email("invalid");
-        assert!(result.is_failure());
-    }
-
-    #[test]
-    fn test_accumulation() {
-        let result = validate_registration("bad", "short", 15);
-
-        match result {
-            Validation::Failure(errors) => {
-                assert_eq!(errors.len(), 3);
-            }
-            _ => panic!("Expected failure"),
-        }
-    }
-
-    #[test]
-    fn test_partial_failure() {
-        // Valid email, invalid password and age
-        let result = validate_registration("user@example.com", "short", 15);
-
-        match result {
-            Validation::Failure(errors) => {
-                assert_eq!(errors.len(), 2);
-            }
-            _ => panic!("Expected failure"),
-        }
+fn validate_email(email: &str) -> Validation<&str, Vec<&str>> {
+    if email.contains('@') {
+        Validation::success(email)
+    } else {
+        Validation::failure(vec!["missing @"])
     }
 }
+
+assert_eq!(validate_email("user@example.com").into_result(), Ok("user@example.com"));
+assert_eq!(validate_email("invalid").into_result(), Err(vec!["missing @"]));
+let result = Validation::<&str, Vec<&str>>::all((
+    validate_email("bad"),
+    validate_email("also bad"),
+));
+assert_eq!(result.into_result(), Err(vec!["missing @", "missing @"]));
 ```
 
 ## Advanced: Custom Error Types

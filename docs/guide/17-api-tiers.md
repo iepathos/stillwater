@@ -15,7 +15,9 @@ Start here for most applications:
 
 The recommended architecture is data first: load facts in the shell, pass them to a pure
 function that returns a decision or plan, then interpret that plan at the boundary. See the
-[`user_registration` example](../../examples/user_registration.rs) for the canonical shape.
+[`user_registration` example](https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs)
+for the canonical shape. Facts are snapshots: the repository still enforces uniqueness
+atomically when committing a plan and reports conflicts separately.
 
 ## Operational
 
@@ -42,7 +44,8 @@ the default application architecture:
   incrementally instead of retained in memory.
 - Type-level resource tracking proves acquire/release accounting in composition. Prefer
   ordinary Rust RAII for ownership-bound cleanup and runtime `bracket` when cleanup is
-  asynchronous or must be represented in the effect result.
+  asynchronous. Use `bracket_full` when cleanup errors must be represented in the result.
+  Async brackets do not mask cancellation; see the [migration guide](../MIGRATION.md).
 
 ## Decision table
 

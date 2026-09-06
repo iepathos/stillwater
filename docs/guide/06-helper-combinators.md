@@ -1,89 +1,63 @@
 # Helper Combinators
 
-Stillwater provides helper functions for common patterns with Validation and Effect.
+Use composition to describe a small operation clearly. Prefer a named domain struct or
+ordinary function when a long chain makes the data flow difficult to follow.
 
-## Validation Combinators
+## Accumulate independent validations
 
-### all() - Combine multiple validations
-
-Already covered in [Validation guide](02-validation.md):
-
-```text
+```rust
 use stillwater::Validation;
 
-Validation::all((
-    validate_email(email),
-    validate_age(age),
-    validate_password(password),
-))
+let values = Validation::<i32, Vec<&str>>::all((
+    Validation::<_, Vec<&str>>::success(1),
+    Validation::success(2),
+));
+assert_eq!(values.into_result(), Ok((1, 2)));
+
+let failures = Validation::<i32, Vec<&str>>::all_vec(vec![
+    Validation::failure(vec!["name"]),
+    Validation::failure(vec!["email"]),
+]);
+assert_eq!(failures.into_result(), Err(vec!["name", "email"]));
 ```
 
-### all_vec() - Combine vector of validations
+## Map, chain, and translate errors
 
-For homogeneous collections:
+```rust
+use stillwater::prelude::*;
 
-```text
-use stillwater::Validation;
-
-let validations: Vec<Validation<Item, Vec<Error>>> = items
-    .into_iter()
-    .map(|item| validate_item(item))
-    .collect();
-
-let result: Validation<Vec<Item>, Vec<Error>> = Validation::all_vec(validations);
+tokio_test::block_on(async {
+    let effect = pure::<_, &str, ()>(21)
+        .map(|value| value * 2)
+        .and_then(|value| from_result(Ok(value + 1)))
+        .map_err(str::to_string);
+    assert_eq!(effect.run(&()).await, Ok(43));
+});
 ```
 
-## Effect Combinators
+`map` transforms a value; `and_then` constructs a dependent effect; `map_err` translates
+an error at a boundary. None of these automatically accumulates failures.
 
-### map() - Transform success value
+## Write a small reusable wrapper
 
-```text
-effect.map(|user| user.email)
-```
+Accept an effect through its trait instead of using the removed generic Effect struct.
 
-### and_then() - Chain dependent effects
+```rust
+use stillwater::prelude::*;
 
-```text
-effect.and_then(|user| load_profile(user))
-```
-
-### map_err() - Transform error value
-
-```text
-effect.map_err(|e| format!("Failed: {}", e))
-```
-
-## Building Custom Combinators
-
-You can build your own combinators for common patterns:
-
-```text
-use stillwater::{Effect, Validation};
-
-// Retry combinator
-fn retry<T, E, Env>(
-    effect: Effect<T, E, Env>,
-    times: usize
-) -> Effect<T, E, Env>
+fn require_positive<E>(effect: E) -> impl Effect<Output = i32, Error = &'static str, Env = E::Env>
 where
-    T: Clone,
-    E: Clone,
+    E: Effect<Output = i32, Error = &'static str>,
 {
-    // Implementation left as exercise
-    effect
+    effect.ensure(|value| *value > 0, "must be positive")
 }
 
-// Timeout combinator
-fn timeout<T, E, Env>(
-    effect: Effect<T, E, Env>,
-    duration: Duration
-) -> Effect<T, TimeoutError<E>, Env> {
-    // Implementation left as exercise
-    todo!()
-}
+tokio_test::block_on(async {
+    assert_eq!(require_positive(pure::<_, &str, ()>(1)).run(&()).await, Ok(1));
+    assert_eq!(require_positive(pure::<_, &str, ()>(0)).run(&()).await, Err("must be positive"));
+});
 ```
 
-## Next Steps
-
-- Learn about [Try Trait](07-try-trait.md) (nightly feature)
-- See [Patterns](../PATTERNS.md) for more recipes
+Retry requires a factory because running an effect consumes it. Use the existing
+[retry and timeout helpers](12-retry.md) rather than a wrapper that pretends to rerun
+the same effect. See [effects](03-effects.md) for the core architecture.

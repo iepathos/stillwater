@@ -125,7 +125,7 @@ match result {
 1. **Error Accumulation**: Reports ALL type mismatches, not just the first one
 2. **Flexible Error Types**: You provide the error constructor
 3. **Generic Discriminant**: Works with `std::mem::discriminant` or custom logic
-4. **Zero-Cost Abstraction**: No runtime overhead compared to manual validation
+4. **Explicit work**: A traversal checks discriminants and collects errors; benchmark the actual workload
 
 ## API Overview
 
@@ -331,27 +331,25 @@ match result {
 
 ### Example 3: Integration with Effect
 
-```text
-use stillwater::{Effect, IO, Validation};
-use stillwater::validation::homogeneous::combine_homogeneous;
+Load values in the shell, then lift the pure validation into the effect's error channel.
 
-fn aggregate_with_validation(
-    job_id: &str,
-) -> Effect<AggregateResult, Vec<String>, Env> {
-    IO::read(|env| env.load_results(job_id))
-        .and_then(|results| {
-            // Validation at I/O boundary
-            match combine_homogeneous(
-                results,
-                |r| std::mem::discriminant(r),
-                |idx, _, _| format!("Worker {} type mismatch", idx),
-            ) {
-                Validation::Success(combined) => Effect::pure(combined),
-                Validation::Failure(errors) => Effect::fail(errors),
-            }
-        })
-        .context("Aggregating results with type validation")
-}
+```rust
+use stillwater::prelude::*;
+use stillwater::validation::homogeneous::validate_homogeneous;
+
+#[derive(Clone)]
+struct Env { results: Vec<i32> }
+
+tokio_test::block_on(async {
+    let effect = from_fn(|env: &Env| Ok::<_, Vec<String>>(env.results.clone()))
+        .and_then(|results| from_validation(validate_homogeneous(
+            results,
+            |value| value % 2,
+            |index, _, _| format!("parity mismatch at {index}"),
+        )));
+    let result = effect.run(&Env { results: vec![2, 4, 3] }).await;
+    assert_eq!(result, Err(vec!["parity mismatch at 2".to_string()]));
+});
 ```
 
 ## Best Practices
@@ -473,14 +471,14 @@ Once validation succeeds, you're guaranteed that all items have the same discrim
 
 ## Performance
 
-Homogeneous validation is a zero-cost abstraction:
+Homogeneous validation traverses the supplied collection:
 
 - **Single pass**: O(n) traversal of the collection
 - **No allocations**: Besides the error vector if validation fails
 - **Inlined**: Discriminant and error functions are typically inlined
 - **Lazy evaluation**: Only evaluates discriminant when needed
 
-Benchmark results show no overhead compared to manual validation.
+Measure discriminant evaluation and error construction in the actual workload; no fixed overhead ratio is guaranteed.
 
 ## Common Patterns
 

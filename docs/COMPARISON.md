@@ -419,59 +419,29 @@ fn send_welcome_email(user: &User) -> impl Effect<Output = (), Error = Error, En
 
 ---
 
-### Testing with Mock Dependencies
+### Testing with Explicit Dependencies
 
-**Before** (Traditional Rust - complex mocking):
+Ordinary Rust functions and Stillwater effects can both use hand-written service
+implementations; neither requires a mocking framework. Stillwater's contribution is
+a consistent environment boundary for the composed operations.
+
 ```rust
-#[cfg(test)]
-mod tests {
-    use mockall::{automock, predicate::*};
+use stillwater::prelude::*;
+use std::collections::HashMap;
 
-    #[automock]
-    trait DatabaseTrait {
-        async fn fetch_user(&self, id: u64) -> Result<User, Error>;
-    }
+#[derive(Clone)]
+struct Env { users: HashMap<u64, String> }
 
-    #[tokio::test]
-    async fn test_process_user() {
-        let mut mock_db = MockDatabaseTrait::new();
-        mock_db.expect_fetch_user()
-            .with(eq(123))
-            .times(1)
-            .returning(|_| Ok(User { id: 123, name: "Test".into() }));
-
-        let result = process_user(&mock_db, 123).await;
-        assert!(result.is_ok());
-    }
-}
+tokio_test::block_on(async {
+    let env = Env { users: HashMap::from([(123, "Test".to_string())]) };
+    let effect = from_fn(|env: &Env| env.users.get(&123).cloned().ok_or("not found"));
+    assert_eq!(effect.run(&env).await, Ok("Test".to_string()));
+});
 ```
 
-**After** (With Stillwater - 12 lines, simpler):
-```rust
-#[cfg(test)]
-mod tests {
-    use stillwater::effect::prelude::*;
-    use std::sync::Arc;
-
-    #[tokio::test]
-    async fn test_process_user() {
-        let test_env = AppEnv {
-            db: Arc::new(InMemoryDb::with_user(User { id: 123, name: "Test".into() })),
-            cache: Arc::new(NoOpCache),
-            email: Arc::new(RecordingEmailService::new()),
-        };
-
-        let result = process_user(123).run(&test_env).await;
-        assert!(result.is_ok());
-    }
-}
-```
-
-**Key Improvements**:
-- No mocking framework required
-- Test environment is just data
-- Easy to reuse test fixtures across tests
-- Behavior verification via recording implementations
+Use recording service implementations to verify calls and persistent state. The
+[registration example](https://github.com/iepathos/stillwater/blob/master/examples/user_registration.rs)
+demonstrates the larger workflow and its failure boundaries.
 
 ---
 

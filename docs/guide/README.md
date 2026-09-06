@@ -193,7 +193,7 @@ validate_email(email)
     .and_then(|email| check_email_available(email))
 
 // Pattern 3: Effect with validation
-Effect::from_validation(validate_user(input))
+from_validation(validate_user(input))
     .and_then(|user| save_to_db(user))
 
 // Pattern 4: Error recovery with fallback
