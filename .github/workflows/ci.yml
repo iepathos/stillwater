@@ -80,7 +80,7 @@ jobs:
       uses: taiki-e/install-action@mdbook
 
     - name: Install documentation check runtime
-      uses: actions/setup-python@v6
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
